@@ -82,6 +82,8 @@ DECISION_RULE = (
 )
 # Потолок сводных вопросов в одном ответе модели: больше не влезает в лимит длины (живой прогон 26.11).
 MAX_QUESTIONS = 15
+# Свёртка: одинаковое замечание минимум в стольких требованиях становится системным (К-07).
+FOLD_MIN_PLACES = 3
 # Вес уровня в приоритете сводного вопроса (К-08).
 SEVERITY_WEIGHT = {"CRITICAL": 5.0, "MAJOR": 2.0, "MINOR": 0.5}
 
@@ -374,7 +376,7 @@ class Pipeline:
                         criterion=defect.criterion,
                         severity=defect.severity,
                         req_ids=[req.id],
-                        evidence=[self._ground_in_requirement(defect.evidence, req, index, doc)],
+                        evidence=[self._ground(defect.evidence, defect.line, [req], index, doc)],
                         problem=defect.problem.strip(),
                         impact=defect.impact.strip(),
                         recommendation=defect.recommendation.strip(),
@@ -382,6 +384,11 @@ class Pipeline:
                         addressee=(defect.addressee or _ADDRESSEE_DEFAULT) if question else None,
                     )
                 )
+            for f in req_findings:
+                if all(e.status == "missing" for e in f.evidence):
+                    # Ни одна цитата не найдена в документе: в сводку и вердикт не входит (К-06).
+                    f.status = "quarantine"
+                    self.grounding.quarantine += 1
             self.checks[req.id] = self._reconcile_checks(review, req_findings)
             req.lint_confirmed = self._confirm_lint(req, review)
             findings.extend(req_findings)
@@ -467,12 +474,13 @@ class Pipeline:
                     req_id = self._norm_req_id(raw)
                     if req_id in known and req_id not in req_ids:
                         req_ids.append(req_id)
-                quotes = [q.quote for q in item.evidence]
-                evidence = self._ground_in_document(quotes, [known[i] for i in req_ids], index, doc)
+                quotes = [(q.quote, q.line) for q in item.evidence]
+                evidence = self._ground_all(quotes, [known[i] for i in req_ids], index, doc)
+                found = [e for e in evidence if e.status != "missing"]
                 question = (item.question or "").strip() or None
                 section = (item.section or "").strip() or None
                 # Пробелу цитата не обязательна, но нужны вопрос и место, где сведений нет (К-05).
-                anchored = bool(evidence or req_ids) or (kind == "gap" and question and section)
+                anchored = bool(found or req_ids) or (kind == "gap" and question and section)
                 if not anchored:
                     # Ни подтверждённой цитаты, ни ссылки на требование или раздел: замечание без опоры на текст.
                     self.grounding.dropped_findings += 1
@@ -496,6 +504,10 @@ class Pipeline:
                         addressee=(item.addressee or _ADDRESSEE_DEFAULT) if question else None,
                     )
                 )
+                if kind == "contradiction" and len({e.line for e in found}) < 2:
+                    # Противоречие без двух подтверждённых цитат из разных строк: только вопрос (К-06).
+                    findings[-1].status = "question_only"
+                    self.grounding.question_only += 1
         return findings
 
     # ---------- шаг 4: сверка цитат ----------
@@ -507,50 +519,92 @@ class Pipeline:
             return self._req_by_number.get(int(match.group(1)), (raw or "").strip())
         return (raw or "").strip()
 
-    def _ground_in_requirement(self, quote: str, req: Requirement, index: TextIndex, doc: Document) -> Evidence:
-        line = index.find(quote, req.line_start, req.line_end)
-        if line is None:
-            line = index.find(quote)  # цитата из контекста за пределами требования
-        if line is not None:
-            self.grounding.exact += 1
-            return Evidence(quote=_clip(clean_quote(quote)), line=line, status="exact")
-        line = index.fuzzy(quote, req.line_start, req.line_end)
-        if line is not None:
-            self.grounding.fuzzy += 1
-            return Evidence(quote=_clip(doc.line(line).text), line=line, status="fuzzy")
-        # Фрагмент не найден. Замечание остаётся привязанным к требованию, цитата берётся из него.
-        self.grounding.anchor += 1
-        return Evidence(quote=_clip(req.quote), line=req.line_start, status="anchor")
+    def _ground(self, quote: str, line: int | None, reqs: list[Requirement], index: TextIndex, doc: Document) -> Evidence:
+        """Сверка одной цитаты модели с документом (К-06).
 
-    def _ground_in_document(self, quotes: list[str], reqs: list[Requirement], index: TextIndex, doc: Document) -> list[Evidence]:
+        Порядок: короткая цитата по номеру строки с допуском; точное вхождение в тексте требований,
+        затем во всём документе (поиск идёт по склейке строк, так находится и цитата через перенос);
+        нечёткое совпадение с порогом FUZZY_SHARE. Не нашлось: статус missing, цитата модели как есть.
+        """
+        quote = clean_quote(quote or "")
+        if index.is_short(quote):
+            found = index.find_short(quote, line)
+            if found is not None:
+                self.grounding.exact += 1
+                return Evidence(quote=quote, line=found, status="exact")
+        else:
+            for start, end in [(r.line_start, r.line_end) for r in reqs] + [(None, None)]:
+                found = index.find(quote, start, end)
+                if found is not None:
+                    self.grounding.exact += 1
+                    return Evidence(quote=_clip(quote), line=found, status="exact")
+            for start, end in [(r.line_start, r.line_end) for r in reqs] + [(None, None)]:
+                found = index.fuzzy(quote, start, end)
+                if found is not None:
+                    self.grounding.fuzzy += 1
+                    return Evidence(quote=_clip(doc.line(found).text), line=found, status="fuzzy")
+        self.grounding.missing += 1
+        return Evidence(quote=_clip(quote), line=line, status="missing")
+
+    def _ground_all(self, quotes: list[tuple[str, int | None]], reqs: list[Requirement], index: TextIndex, doc: Document) -> list[Evidence]:
         evidence: list[Evidence] = []
         seen: set[tuple[int, str]] = set()
-        for quote in quotes:
+        for quote, line in quotes:
             if not quote or not quote.strip():
                 continue
-            found: Evidence | None = None
-            line = index.find(quote)
-            if line is not None:
-                found = Evidence(quote=_clip(clean_quote(quote)), line=line, status="exact")
-                self.grounding.exact += 1
-            else:
-                for req in reqs:
-                    line = index.fuzzy(quote, req.line_start, req.line_end)
-                    if line is not None:
-                        break
-                if line is None:
-                    line = index.fuzzy(quote)
-                if line is not None:
-                    found = Evidence(quote=_clip(doc.line(line).text), line=line, status="fuzzy")
-                    self.grounding.fuzzy += 1
-            if found is None:
-                self.grounding.dropped_quotes += 1
-                continue
-            key = (found.line or 0, found.quote)
+            item = self._ground(quote, line, reqs, index, doc)
+            key = (item.line or 0, item.quote)
             if key not in seen:
                 seen.add(key)
-                evidence.append(found)
+                evidence.append(item)
         return evidence
+
+    # ---------- свёртка одинаковых замечаний ----------
+
+    @staticmethod
+    def _fold_key(f: Finding) -> tuple[str, str]:
+        text = re.sub(r"[^\w ]+", " ", f.problem.casefold())
+        return f.criterion, " ".join(text.split())
+
+    def fold(self, findings: list[Finding], requirements: list[Requirement]) -> list[tuple[Finding, list[Finding]]]:
+        """Один критерий с одинаковым текстом проблемы в трёх и более требованиях даёт одно
+        системное замечание со списком мест (К-07, Р-11). Исходные получают статус merged."""
+        by_req = {r.id: r for r in requirements}
+        groups: dict[tuple[str, str], list[Finding]] = {}
+        for f in findings:
+            if f.scope == "requirement" and f.status not in INACTIVE_STATUSES:
+                groups.setdefault(self._fold_key(f), []).append(f)
+        system: list[Finding] = []
+        members: list[list[Finding]] = []
+        for items in groups.values():
+            if len({f.req_ids[0] for f in items}) < FOLD_MIN_PLACES:
+                continue
+            head = min(items, key=lambda f: SEVERITY_ORDER[f.severity])
+            req_ids: list[str] = []
+            places: list[str] = []
+            evidence: list[Evidence] = []
+            for f in items:
+                rid = f.req_ids[0]
+                if rid not in req_ids:
+                    req_ids.append(rid)
+                line = next((e.line for e in f.evidence if e.status != "missing"), by_req[rid].line_start)
+                places.append(f"{rid}, строка {line}")
+                evidence.extend(e for e in f.evidence if e.status != "missing")
+            fid_question = next((f for f in items if f.question), None)
+            system.append(Finding(
+                scope="set", kind="other", criterion=head.criterion, severity=head.severity,
+                title=f"Повторяется в {len(req_ids)} требованиях: {head.problem}",
+                req_ids=req_ids, evidence=evidence[:5], problem=head.problem, impact=head.impact,
+                recommendation=head.recommendation,
+                question=fid_question.question if fid_question else None,
+                addressee=fid_question.addressee if fid_question else None,
+                places=places, status="unreviewed",
+            ))
+            for f in items:
+                f.status = "merged"
+            self.grounding.folded += len(items)
+            members.append(items)
+        return list(zip(system, members))
 
     # ---------- шаг 5: итог ----------
 
@@ -634,7 +688,9 @@ class Pipeline:
             questions = self._fallback_questions(ranked)
         else:
             questions = self._add_uncovered_critical(questions, ranked)
-        questions = self._number_questions(questions, ranked)
+        # Противоречие с одной цитатой остаётся вопросом в группе «требует проверки» (К-06, О-09).
+        questions += [self._fallback_question(f) for f in findings if f.status == "question_only" and f.question]
+        questions = self._number_questions(questions, findings)
 
         if fixes:
             verdict = self._verdict(
@@ -669,6 +725,8 @@ class Pipeline:
         seen: set[tuple[int, str]] = set()
         for f in linked:
             for e in f.evidence:
+                if e.status == "missing":
+                    continue
                 key = (e.line or 0, e.quote)
                 if key not in seen:
                     seen.add(key)
@@ -840,15 +898,21 @@ class Pipeline:
         req_findings.sort(key=lambda f: (order[f.req_ids[0]], SEVERITY_ORDER[f.severity]))
         for number, finding in enumerate(req_findings, start=1):
             finding.id = make_id("D", number, len(req_findings))
+        folded = self.fold(req_findings, requirements)
+        set_findings.extend(system for system, _ in folded)
         set_findings.sort(key=lambda f: (SEVERITY_ORDER[f.severity], f.criterion))
         for number, finding in enumerate(set_findings, start=1):
             finding.id = make_id("S", number, len(set_findings))
+        for system, items in folded:
+            for f in items:
+                f.merged_into = system.id
         findings = req_findings + set_findings
         g = self.grounding
         self._end(
             mark,
-            f"цитат точных {g.exact}, восстановлено {g.fuzzy}, привязано к требованию {g.anchor}, "
-            f"отброшено цитат {g.dropped_quotes}, отброшено замечаний {g.dropped_findings}",
+            f"цитат точных {g.exact}, нечётких {g.fuzzy}, не найдено {g.missing}; в карантине {g.quarantine}, "
+            f"противоречий только с вопросом {g.question_only}, свёрнуто в системные {g.folded}, "
+            f"отброшено без опоры {g.dropped_findings}",
         )
         self._skip("7", "Критик", "желательная часть")
 

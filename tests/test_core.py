@@ -173,7 +173,11 @@ def test_grounding(doc):
     assert index.find("Система должна ... результаты поиска книги") == 4  # многоточие внутри
     assert index.find("Читатель может взять на руки не больше 5 книг", 9, 11) is None  # вне диапазона
     assert index.find("этого нет") is None
-    assert index.fuzzy("Система обязана быстро показывать результаты поиска книги", 4, 4) == 4
+    assert index.fuzzy("Система должна быстро показывать результаты поиска книжки", 4, 4) == 4
+    # Порог 0,8: общий кусок меньше 80% цитаты не засчитывается (К-06).
+    assert index.fuzzy("Система обязана быстро показывать результаты поиска книги", 4, 4) is None
+    # Короткая цитата сверяется по номеру строки с допуском в две строки.
+    assert index.is_short("5") and index.find_short("5", 6) == 5 and index.find_short("5", 9) is None
     assert index.fuzzy("совершенно посторонний текст про погоду", 4, 4) is None
 
 
@@ -208,7 +212,8 @@ def test_pipeline_end_to_end(doc):
     assert d1.evidence[0].status == "exact" and d1.evidence[0].line == 4
     assert d1.question == "Какое время ответа, в секундах?" and d1.addressee == "business" and d1.impact == "и"
     assert by_id["D-02"].req_ids == ["REQ-02"]  # дефект с неверным критерием отброшен, порция цела
-    assert by_id["D-02"].evidence[0].status == "anchor"  # выдуманная цитата заменена текстом требования
+    d2 = by_id["D-02"]  # выдуманная цитата: не найдена, замечание в карантине (К-06)
+    assert d2.evidence[0].status == "missing" and d2.status == "quarantine" and result.grounding.quarantine == 1
     assert by_id["D-02"].question is None and by_id["D-02"].addressee is None
     assert result.quality.dropped_defects == 1 and result.quality.dropped_checks == 1
 
@@ -220,13 +225,13 @@ def test_pipeline_end_to_end(doc):
 
     s1 = by_id["S-01"]
     assert s1.kind == "contradiction" and s1.req_ids == ["REQ-02", "REQ-03"]
-    assert [e.line for e in s1.evidence] == [5, 11]
+    assert [e.line for e in s1.evidence if e.status != "missing"] == [5, 11] and s1.evidence[2].status == "missing"
     assert s1.question and s1.addressee == "business"
     gap = next(f for f in result.findings if f.title == "Нет требований к доступу")
     assert gap.kind == "gap" and not gap.evidence and gap.section == "Требования" and gap.addressee == "security"
     titles = {f.title for f in result.findings}
     assert "Без опоры" not in titles and "Пробел без места" not in titles  # без опоры на текст отброшены
-    assert result.grounding.dropped_findings == 2 and result.grounding.dropped_quotes == 2
+    assert result.grounding.dropped_findings == 2 and result.grounding.missing == 3
     assert [a.criterion for a in result.set_analyses] == ["SET_CONSISTENT", "SET_COMPLETE"]
     assert result.set_analyses[1].status == "partial"  # чужой критерий из первого прохода не принят
 
@@ -550,3 +555,36 @@ def test_model_text_has_no_dashes_but_quotes_stay():
     assert tidy("Ф-1 — Ф-4 покрыты") == "Ф-1 - Ф-4 покрыты"
     assert tidy("порог — главное") == "порог, главное"
     assert tidy(None) is None
+
+
+def test_single_quote_contradiction_becomes_question(doc):
+    class OneQuote(FakeLLM):
+        def complete_json(self, step, system, user, schema, kind=""):
+            out = super().complete_json(step, system, user, schema, kind)
+            if schema is SetReviewOut and "согласованность" in step:
+                out.findings[0].evidence = out.findings[0].evidence[:1]
+            return out
+
+    result = Pipeline(OneQuote(), SETTINGS).run(doc, "test")
+    s1 = next(f for f in result.findings if f.title == "Разное число книг")
+    assert s1.status == "question_only" and result.grounding.question_only == 1
+    q = next(q for q in result.questions if s1.id in q.finding_ids)
+    assert q.source == "fallback" and s1.id not in result.verdict.blockers
+    report = render(result)
+    assert "### Требует проверки" in report and "критичных замечаний не подтверждены цитатой" in report
+
+
+def test_same_problem_in_three_requirements_is_folded():
+    from reqask.schemas import Evidence, Finding, Requirement
+
+    reqs = [Requirement(id=f"REQ-0{i}", source_id=None, section="", line_start=i, line_end=i, kind="other",
+                        summary="", quote="q") for i in range(1, 5)]
+    def f(i, problem="Нет единицы измерения."):
+        return Finding(id=f"D-0{i}", scope="requirement", criterion="COMPLETE", severity="MAJOR", req_ids=[f"REQ-0{i}"],
+                       evidence=[Evidence(quote="q", line=i)], problem=problem, recommendation="р")
+    findings = [f(1), f(2, "нет единицы  измерения"), f(3), f(4, "Другое.")]
+    folded = Pipeline(FakeLLM(), SETTINGS).fold(findings, reqs)
+    assert len(folded) == 1
+    system, members = folded[0]
+    assert system.scope == "set" and system.req_ids == ["REQ-01", "REQ-02", "REQ-03"] and len(system.places) == 3
+    assert [m.status for m in members] == ["merged"] * 3 and findings[3].status == "unreviewed"

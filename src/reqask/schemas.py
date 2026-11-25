@@ -234,8 +234,8 @@ class Evidence(BaseModel):
     quote: str
     line: int | None = None
     # exact: цитата найдена в документе; fuzzy: восстановлена по близкому совпадению;
-    # anchor: фрагмент не найден, замечание привязано к требованию целиком.
-    status: Literal["exact", "fuzzy", "anchor"] = "exact"
+    # missing: в документе не найдена, приведена цитата модели (К-06).
+    status: Literal["exact", "fuzzy", "missing"] = "exact"
 
 
 class Finding(BaseModel):
@@ -260,6 +260,8 @@ class Finding(BaseModel):
     # Решение критика (желательный шаг 7): причина и цель слияния.
     critic_reason: str | None = None
     merged_into: str | None = None
+    # Места системного замечания, свёрнутого кодом из одинаковых (К-07, Р-11).
+    places: list[str] = Field(default_factory=list)
 
 
 # Замечания с этими статусами не входят в вердикт и сводку (К-06, К-07, К-09).
@@ -313,9 +315,15 @@ class Verdict(BaseModel):
 class GroundingStats(BaseModel):
     exact: int = 0
     fuzzy: int = 0
-    anchor: int = 0
-    dropped_quotes: int = 0
+    missing: int = 0
+    # Замечание без опоры на текст: ни цитаты, ни требования, ни раздела. В отчёт не попадает.
     dropped_findings: int = 0
+    # Замечание по требованию без единой найденной цитаты (К-06).
+    quarantine: int = 0
+    # Противоречие, подтверждённое меньше чем двумя цитатами из разных строк (К-06).
+    question_only: int = 0
+    # Одинаковые замечания в трёх и более местах свёрнуты в системные (К-07, Р-11).
+    folded: int = 0
 
 
 class QualityStats(BaseModel):

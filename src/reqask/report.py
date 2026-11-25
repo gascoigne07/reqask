@@ -44,6 +44,8 @@ BLOCKER_GROUPS = (
     ("Неполные формулировки и пробелы", lambda f: f.kind == "gap" or f.criterion in ("COMPLETE", "SET_COMPLETE")),
     ("Прочие", lambda f: True),
 )
+# Подраздел раздела 4 для системного замечания, свёрнутого из критерия отдельного требования.
+SYSTEM_GROUP = {"CONSISTENT": "consistency", "FEASIBLE": "feasibility", "CORRECT": "feasibility", "APPROPRIATE": "feasibility"}
 FIRST_SCREEN_BLOCKERS = 5
 FIRST_SCREEN_QUESTIONS = 5
 REQ_TABLE_QUOTE = 80
@@ -114,7 +116,6 @@ def _evidence(item: Evidence) -> str:
     note = {
         "exact": "",
         "fuzzy": ", восстановлена по близкому совпадению",
-        "anchor": ", фрагмент не найден дословно, приведено начало требования",
         "missing": ", не найдена в документе",
     }.get(item.status, "")
     return f"{_code(item.quote)}{line}{note}"
@@ -261,8 +262,9 @@ class _Report:
             self.add(f"| Идентификаторы | в документе {q.ids_in_document}, в нарезке {q.ids_in_document - len(q.ids_missing)}{lost} |")
         quarantine = sum(1 for f in self.inactive if f.status == "quarantine")
         self.add(
-            f"| Цитаты | точных {g.exact}, нечётких {g.fuzzy}, не найдено {g.anchor + g.dropped_quotes}; "
-            f"замечаний в карантине {quarantine}, отброшено без опоры на текст {g.dropped_findings} |"
+            f"| Цитаты | точных {g.exact}, нечётких {g.fuzzy}, не найдено {g.missing}; "
+            f"замечаний в карантине {quarantine}, противоречий только с вопросом {g.question_only}, "
+            f"свёрнуто в системные {g.folded}, отброшено без опоры на текст {g.dropped_findings} |"
         )
         self.add("| Критик | не включён |")
         self.add(
@@ -382,13 +384,15 @@ class _Report:
         for f in shown:
             self.defect(f)
         for f in findings:
-            if not _active(f):
+            if f.status == "merged" and f.merged_into:
+                self.add(f"{_link(f.id)} [{f.severity}] {_criterion(f.criterion)}: повторяется в нескольких требованиях, см. {_link(f.merged_into)}.\n")
+            elif not _active(f):
                 self.add(f"{_link(f.id)} снято: {FINDING_STATUS_RU.get(f.status, f.status)}, см. [приложение Б](#appendix-b).\n")
         if x.id in r.rewritten:
             self.add(f"**Готовая формулировка:** {_one_line(r.rewritten[x.id])}\n")
 
     def defect(self, f: Finding) -> None:
-        quotes = "; ".join(_evidence(e) for e in f.evidence)
+        quotes = "; ".join(_evidence(e) for e in f.evidence if e.status != "missing")
         quote = f" Цитата: {quotes}." if quotes else ""
         impact = f" Последствие: {f.impact}" if f.impact else ""
         self.add(_target(f.id))
@@ -426,7 +430,7 @@ class _Report:
                 correct = [f for f in r.findings if f.scope == "requirement" and f.criterion == "CORRECT" and _active(f)]
                 if correct:
                     self.add(f"Дефекты корректности в отдельных требованиях: {_links([f.id for f in correct])}.\n")
-            items = [f for f in set_findings if f.criterion in codes]
+            items = [f for f in set_findings if f.criterion in codes or (not f.criterion.startswith("SET_") and group == SYSTEM_GROUP.get(f.criterion, "completeness"))]
             if not items:
                 self.add("Замечаний нет.\n")
             for f in items:
@@ -440,9 +444,12 @@ class _Report:
             self.add(f"- Требования: {_links([i for i in f.req_ids if i in self.reqs])}.")
         if f.section:
             self.add(f"- Раздел: {f.section}.")
-        for e in f.evidence:
+        if f.places:
+            self.add(f"- Места: {'; '.join(f.places)}.")
+        found = [e for e in f.evidence if e.status != "missing"]
+        for e in found:
             self.add(f"- Цитата: {_evidence(e)}")
-        if not f.evidence:
+        if not found:
             self.add("- Цитаты нет: в документе этих сведений нет.")
         self.add(f"- Что не так: {f.problem}")
         if f.impact:

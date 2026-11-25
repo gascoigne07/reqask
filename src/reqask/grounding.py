@@ -1,8 +1,10 @@
 """Проверка цитат: каждая цитата модели должна находиться в тексте документа.
 
 Модель может ошибиться в цитате или выдумать её. Здесь цитата сверяется
-с документом без участия модели: точное совпадение после нормализации,
-затем поиск близкого фрагмента. Что не нашлось, в отчёт как цитата не попадает.
+с документом без участия модели (К-06): точное вхождение после нормализации
+(в строку или в склейку соседних строк), затем поиск близкого фрагмента.
+Цитата короче четырёх символов сверяется по номеру строки с допуском в две строки.
+Что не нашлось, получает статус missing, и замечание уходит в карантин.
 """
 
 from __future__ import annotations
@@ -28,7 +30,8 @@ _ELLIPSIS_RE = re.compile(r"\s*(?:\.{3,}|…|\[\s*\.{3}\s*\])\s*")
 
 MIN_QUOTE_LEN = 4
 MIN_FUZZY_LEN = 12
-FUZZY_SHARE = 0.6
+FUZZY_SHARE = 0.8
+LINE_TOLERANCE = 2
 MAX_FUZZY_HAYSTACK = 200_000
 
 
@@ -101,6 +104,21 @@ class TextIndex:
                 first = pos
             cursor = pos + len(part)
         return self._line_at(first) if first is not None else None
+
+    def find_short(self, quote: str, line: int | None, tolerance: int = LINE_TOLERANCE) -> int | None:
+        """Короткая цитата («GET», «5») ищется только рядом со строкой, которую назвала модель."""
+        norm = normalize(clean_quote(quote))
+        if not norm or line is None:
+            return None
+        span = self._span(line - tolerance, line + tolerance)
+        if span is None:
+            return None
+        pos = self.text.find(norm, span[0], span[1])
+        return self._line_at(pos) if pos >= 0 else None
+
+    @staticmethod
+    def is_short(quote: str) -> bool:
+        return len(normalize(clean_quote(quote))) < MIN_QUOTE_LEN
 
     def fuzzy(self, quote: str, start: int | None = None, end: int | None = None) -> int | None:
         """Строка с самым длинным общим фрагментом, если он покрывает большую часть цитаты."""
