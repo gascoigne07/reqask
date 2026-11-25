@@ -29,7 +29,7 @@ from .config import Settings
 from .criteria import REQ_CODES, SET_CODES, SEVERITY_ORDER
 from .grounding import TextIndex, clean_quote
 from .lint import lint
-from .llm import LLMError, LLMFatal
+from .llm import LLMError, LLMFatal, LLMTruncated
 from .loader import Document
 from .schemas import (
     INACTIVE_STATUSES,
@@ -52,6 +52,7 @@ from .schemas import (
     SetAnalysis,
     SetReviewOut,
     SkippedSpan,
+    StepStat,
     TopFix,
     Verdict,
 )
@@ -79,6 +80,8 @@ DECISION_RULE = (
     "Готовность к тестированию считается отдельно: «Нет», если есть CRITICAL по проверяемости, однозначности, "
     "полноте, согласованности или валидируемости; «Да, с оговорками», если есть другие CRITICAL или MAJOR; иначе «Да»."
 )
+# Потолок сводных вопросов в одном ответе модели: больше не влезает в лимит длины (живой прогон 26.11).
+MAX_QUESTIONS = 15
 # Вес уровня в приоритете сводного вопроса (К-08).
 SEVERITY_WEIGHT = {"CRITICAL": 5.0, "MAJOR": 2.0, "MINOR": 0.5}
 
@@ -87,6 +90,47 @@ class JsonLLM(Protocol):
     stats: LLMStats
 
     def complete_json(self, step: str, system: str, user: str, schema: type[T], kind: str = "") -> T: ...
+
+
+_RANGE_DASH_RE = re.compile(r"(\w)\s*[\u2013\u2014]\s*(\w)")
+
+
+def tidy(text: str | None) -> str | None:
+    """Текст, который написала модель: без длинных и коротких тире (правило стиля отчёта).
+
+    Диапазон «1–64» становится «1-64», вставка « — » становится запятой. Цитаты документа
+    этой функцией не обрабатываются.
+    """
+    if not text:
+        return text
+    text = re.sub(r"(\d)\s*[\u2013\u2014]\s*(\d)", r"\1-\2", text)
+    # Диапазон идентификаторов «Ф-1 — Ф-4»: остаётся диапазоном, через дефис.
+    text = re.sub(r"(\d)\s+[\u2013\u2014]\s+(?=\w+-\d)", r"\1 - ", text)
+    text = re.sub(r"\s+[\u2013\u2014]\s+", ", ", text)
+    text = _RANGE_DASH_RE.sub(r"\1-\2", text)
+    return text.replace("\u2014", "-").replace("\u2013", "-")
+
+
+def _tidy_result(result: "RunResult") -> None:
+    for r in result.requirements:
+        r.summary = tidy(r.summary)
+    for f in result.findings:
+        f.title, f.problem, f.impact = tidy(f.title), tidy(f.problem), tidy(f.impact)
+        f.recommendation, f.question = tidy(f.recommendation), tidy(f.question)
+    result.rewritten = {k: tidy(v) for k, v in result.rewritten.items()}
+    for checks in result.checks.values():
+        for c in checks:
+            c.note = tidy(c.note)
+    for a in result.set_analyses:
+        a.analysis = tidy(a.analysis)
+    v = result.verdict
+    v.rationale = tidy(v.rationale)
+    for fix in v.top_fixes:
+        fix.action = tidy(fix.action)
+    for q in result.questions:
+        q.text, q.blocks, q.doc_says, q.why_recommended = tidy(q.text), tidy(q.blocks), tidy(q.doc_says), tidy(q.why_recommended)
+        for o in q.options:
+            o.answer, o.consequence = tidy(o.answer), tidy(o.consequence)
 
 
 def make_id(prefix: str, number: int, total: int) -> str:
@@ -116,6 +160,7 @@ class Pipeline:
         self.checks: dict[str, list[CriterionCheck]] = {}
         self.set_analyses: list[SetAnalysis] = []
         self._req_by_number: dict[int, str] = {}
+        self.steps: list[StepStat] = []
 
     # ---------- шаг 1: нарезка ----------
 
@@ -549,15 +594,28 @@ class Pipeline:
         active = [f for f in findings if f.status not in INACTIVE_STATUSES]
         ranked = sorted(active, key=lambda f: (SEVERITY_ORDER[f.severity], f.id))
         decision = self.decide(findings)[0]
-        user = prompts.final_prompt(doc.name, len(requirements), ranked, decision)
         known = {f.id for f in ranked}
         out: FinalOut | None = None
-        try:
-            out = self.llm.complete_json("итог", prompts.SYSTEM, user, FinalOut, kind="verdict")
-        except LLMFatal:
-            raise
-        except LLMError as exc:
-            self.failed_steps.append(f"итог: {exc}")
+        with_question = sum(1 for f in ranked if f.question and f.severity != "MINOR")
+        limit = max(1, min(MAX_QUESTIONS, with_question))
+        for attempt in (1, 2):
+            user = prompts.final_prompt(doc.name, len(requirements), ranked, decision, limit)
+            try:
+                out = self.llm.complete_json("итог", prompts.SYSTEM, user, FinalOut, kind="verdict")
+                break
+            except LLMFatal:
+                raise
+            except LLMTruncated as exc:
+                if attempt == 1 and limit > 3:
+                    # Ответ не влез в лимит длины: один повтор с вдвое меньшим числом вопросов.
+                    limit = max(3, limit // 2)
+                    self.log(f"  итог: ответ обрезан, повторяю с потолком {limit} вопросов")
+                    continue
+                self.failed_steps.append(f"итог: {exc}")
+                break
+            except LLMError as exc:
+                self.failed_steps.append(f"итог: {exc}")
+                break
 
         fixes: list[TopFix] = []
         if out is not None:
@@ -710,31 +768,74 @@ class Pipeline:
                     by_id[fid].question_id = q.id
         return questions
 
+    # ---------- журнал шагов ----------
+
+    def _begin(self, number: str, name: str) -> tuple[StepStat, float, LLMStats, int]:
+        self.log(f"Шаг {number}. {name}")
+        return StepStat(number=number, name=name), time.monotonic(), self.llm.stats.model_copy(), len(self.failed_steps)
+
+    def _end(self, mark: tuple[StepStat, float, LLMStats, int], summary: str, failed: bool = False) -> StepStat:
+        step, t0, before, failures = mark
+        after = self.llm.stats
+        step.calls = after.calls - before.calls
+        step.cache_hits = after.cache_hits - before.cache_hits
+        step.retries = after.retries - before.retries
+        step.seconds = round(time.monotonic() - t0, 1)
+        step.summary = summary
+        new_failures = self.failed_steps[failures:]
+        if failed:
+            step.status = "failed"
+        elif new_failures:
+            step.status = "degraded"
+        if new_failures:
+            step.reason = "; ".join(new_failures)[:500]
+        calls = f"вызовов {step.calls}" + (f", из кэша {step.cache_hits}" if step.cache_hits else "")
+        mark_ru = {"ok": "", "degraded": " [частично]", "failed": " [не выполнен]"}[step.status]
+        self.log(f"    итог шага{mark_ru}: {summary} ({step.seconds} с, {calls})")
+        self.steps.append(step)
+        return step
+
+    def _skip(self, number: str, name: str, reason: str) -> None:
+        self.log(f"Шаг {number}. {name}: не включён")
+        self.steps.append(StepStat(number=number, name=name, status="skipped", reason=reason))
+
     # ---------- весь прогон ----------
 
     def run(self, doc: Document, agent_version: str) -> RunResult:
+        """Шаги 0-8 таблицы 3.1. Шаг 9 (запись отчёта) делает командная строка."""
         started = datetime.now().astimezone()
         t0 = time.monotonic()
 
-        self.log(f"1/5 Нарезка требований ({doc.n} строк)")
+        mark = self._begin("0", "Чтение документа")
+        self._end(mark, f"строк {doc.n}, формат {doc.fmt}")
+        self._skip("1", "Структурные проверки кодом", "желательная часть; словарь формулировок работает внутри шага 3")
+        self._skip("2", "Контекст документа", "желательная часть")
+
+        mark = self._begin("3", f"Нарезка требований ({doc.n} строк)")
         requirements = self.segment(doc)
         if not requirements:
+            self._end(mark, "требований не выделено", failed=True)
             raise LLMError(
                 "Агент не выделил ни одного требования. Проверьте, что документ содержит требования, "
                 "и посмотрите сообщения об ошибках выше."
             )
-        self.log(f"    выделено требований: {len(requirements)}")
-        if self.quality.ids_missing:
-            self.log(f"    идентификаторы документа вне нарезки: {', '.join(self.quality.ids_missing)}")
+        lost = f"; идентификаторы документа вне нарезки: {', '.join(self.quality.ids_missing)}" if self.quality.ids_missing else ""
+        self._end(mark, f"требований {len(requirements)}, пропущено фрагментов {len(self.skipped)}{lost}")
         index = TextIndex(doc)
 
-        self.log("2/5 Проверка каждого требования")
+        mark = self._begin("4", "Проверка каждого требования")
         req_findings, rewritten = self.review_requirements(doc, requirements, index)
+        self._end(
+            mark, f"дефектов {len(req_findings)}, без проверки {len(self.unreviewed)}",
+            failed=len(self.unreviewed) == len(requirements),
+        )
 
-        self.log("3/5 Проверка набора требований")
+        mark = self._begin("5", "Набор требований целиком (два прохода)")
         set_findings = self.review_set(doc, requirements, index)
+        self._end(mark, f"замечаний {len(set_findings)}, анализов по критериям {len(self.set_analyses)}")
+        self._skip("5в", "Чек-лист ревью из документа", "желательная часть")
 
-        self.log("4/5 Сверка цитат с документом")
+        mark = self._begin("6", "Сверка цитат с документом")
         order = {r.id: i for i, r in enumerate(requirements)}
         req_findings.sort(key=lambda f: (order[f.req_ids[0]], SEVERITY_ORDER[f.severity]))
         for number, finding in enumerate(req_findings, start=1):
@@ -744,17 +845,19 @@ class Pipeline:
             finding.id = make_id("S", number, len(set_findings))
         findings = req_findings + set_findings
         g = self.grounding
-        self.log(
-            f"    цитат точных: {g.exact}, восстановлено: {g.fuzzy}, привязано к требованию: {g.anchor}, "
-            f"отброшено цитат: {g.dropped_quotes}, отброшено замечаний: {g.dropped_findings}"
+        self._end(
+            mark,
+            f"цитат точных {g.exact}, восстановлено {g.fuzzy}, привязано к требованию {g.anchor}, "
+            f"отброшено цитат {g.dropped_quotes}, отброшено замечаний {g.dropped_findings}",
         )
+        self._skip("7", "Критик", "желательная часть")
 
-        self.log("5/5 Итог и сводные вопросы")
+        mark = self._begin("8", "Итог и сводные вопросы")
         verdict, questions = self.conclude(doc, requirements, findings)
-        self.log(f"    решение: {verdict.decision}; вопросов: {len(questions)}"
-                 + ("" if verdict.questions_by_model else " (запасной путь: из полей замечаний)"))
+        tail = "" if verdict.questions_by_model else " (запасной путь: из полей замечаний)"
+        self._end(mark, f"решение: {verdict.decision}; вопросов {len(questions)}{tail}")
 
-        return RunResult(
+        result = RunResult(
             document_name=doc.name,
             document_format=doc.fmt,
             document_lines=doc.n,
@@ -774,8 +877,12 @@ class Pipeline:
             checks=self.checks,
             set_analyses=self.set_analyses,
             questions=questions,
+            steps=self.steps,
+            json_mode=getattr(self.llm, "json_mode", ""),
             verdict=verdict,
             grounding=self.grounding,
             quality=self.quality,
             llm=self.llm.stats,
         )
+        _tidy_result(result)
+        return result

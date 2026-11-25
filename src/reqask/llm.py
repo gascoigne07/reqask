@@ -113,6 +113,11 @@ class LLMClient:
         self._send_max_tokens = True
         self._cache_dir = Path(settings.cache_dir) if settings.cache_dir else None
 
+    @property
+    def json_mode(self) -> str:
+        """Текущий режим ответа JSON после возможных понижений."""
+        return self._json_modes[0] if self._json_modes else ""
+
     # ---------- кэш ----------
 
     def _cache_key(self, system: str, user: str, schema: type[BaseModel], kind: str) -> str:

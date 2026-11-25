@@ -69,7 +69,7 @@ def _set_finding(kind, criterion, severity, title, evidence, req_ids=(), questio
 
 
 def _question(ids, n_options, recommended=None, addressee=None):
-    return {"text": f"Вопрос про {', '.join(ids)}?", "addressee": addressee,
+    return {"text": f"Вопрос про {ids[0]}?", "addressee": addressee,
             "options": [{"answer": f"вариант {i}", "consequence": "правка"} for i in range(1, n_options + 1)],
             "recommended": recommended, "why_recommended": "так проще" if recommended else None,
             "blocks": "нельзя реализовать", "doc_says": None, "finding_ids": list(ids)}
@@ -257,13 +257,65 @@ def test_pipeline_end_to_end(doc):
     assert result.quality.ids_in_document == 2 and result.quality.ids_missing == []
     assert result.rewritten == {"REQ-01": "Система отвечает за <N секунд>."}
 
+    _check_report(result)
+
+
+SECTIONS = (
+    "**Вердикт:", "## 1. Паспорт прогона", "## 2. Нарезка на требования", "## 3. Проверка каждого требования",
+    "## 4. Проверка набора требований целиком", "## 5. Сводка", "## 6. Вердикт", "## 7. Вопросы к автору ТЗ",
+    "## Приложение А.", "## Приложение Б.",
+)
+
+
+def _check_report(result):
+    """Т-05: порядок разделов, вердикт до паспорта, вопросы, формат идентификаторов, нет тире."""
     report = render(result)
-    for heading in ("## 1. Паспорт прогона", "## 2. Как агент нарезал требования", "## 3. Проверка каждого требования",
-                    "## 4. Проверка набора требований", "## 5. Сводка", "## 6. Итог"):
+    positions = [report.index(h) for h in SECTIONS]
+    assert positions == sorted(positions)
+    for heading in ("### 4.1. Системная полнота", "### 4.2. Взаимная непротиворечивость", "### 4.3. Осуществимость и стандарты"):
         assert heading in report
-    assert "fake-model" in report and "FR-1" in report and "D-01" in report and "S-01" in report
-    assert "Вопрос заказчику (бизнес): Какое время ответа" in report
+    assert "**Вердикт: Не рекомендуется начинать.**" in report
+    assert "Критичные замечания не перепроверены" in report
+    # Первый экран: блокеры и главные вопросы до паспорта, со ссылками на якоря.
+    first = report[: report.index("## 1. Паспорт прогона")]
+    assert len(first.splitlines()) <= 40
+    assert "[S-01](#s-01)" in first and "[Q-01](#q-01)" in first
+    assert '<a id="q-01"></a>' in report and '<a id="req-01"></a>' in report and '<a id="d-01"></a>' in report
+    # Блок требования (9.2): заголовок, таблица оценок, дефект с вопросом и ссылкой на сводный вопрос.
+    assert "### REQ-01 · ID в документе: FR-1 · раздел" in report
+    assert "| Проверяемость | ❌ |" in report and "| Необходимость | ➖ |" in report
+    assert "**D-01 [CRITICAL] Проверяемость.**" in report
+    assert "- Вопрос заказчику (бизнес): Какое время ответа, в секундах? См. [Q-02](#q-02)." in report
+    assert "**Готовая формулировка:** Система отвечает за <N секунд>." in report
+    # Требование без замечаний занимает одну строку со значками (О-06).
+    assert "Замечаний нет: ✅ Необх." in report
+    # Вопросы (9.3): группа по адресату, варианты, рекомендация, что закрывает.
+    assert "#### Q-01 · заказчику (бизнес) · блокирует разработку" in report
+    assert "  1. вариант 1. Последствие: правка" in report and "- Рекомендуем: вариант 1, потому что так проще" in report
+    assert "- Закрывает замечания: [S-01](#s-01)." in report
+    assert "fake-model" in report and "Журнал шагов" in report
     assert "—" not in report and "–" not in report
+
+
+def test_questions_file_has_no_service_links(doc):
+    from reqask.report import render_questions
+
+    text = render_questions(Pipeline(FakeLLM(), SETTINGS).run(doc, "test"))
+    assert text.startswith("# Вопросы по документу «spec.md»")
+    assert "## Вопросы заказчику (бизнес)" in text and "### 1. Вопрос про S-01?" in text
+    assert "Варианты:" in text and "Сейчас в документе: `Читатель может взять" in text
+    assert "Закрывает замечания" not in text and "](#" not in text and "D-01" not in text
+    assert "—" not in text and "–" not in text
+
+
+def test_steps_are_logged_in_table_order(doc):
+    logs = []
+    result = Pipeline(FakeLLM(), SETTINGS, logs.append).run(doc, "test")
+    assert [s.number for s in result.steps] == ["0", "1", "2", "3", "4", "5", "5в", "6", "7", "8"]
+    assert {s.number: s.status for s in result.steps}["7"] == "skipped"
+    assert all(s.status in ("ok", "skipped") for s in result.steps)
+    assert sum(s.calls for s in result.steps) == result.llm.calls
+    assert "Шаг 3. Нарезка требований (14 строк)" in logs and any("итог шага: требований 3" in x for x in logs)
 
 
 def test_ids_lost_in_segmentation_are_reported(doc):
@@ -276,7 +328,7 @@ def test_ids_lost_in_segmentation_are_reported(doc):
 
     result = Pipeline(Lossy(), SETTINGS).run(doc, "test")
     assert result.quality.ids_missing == ["FR-2"]
-    assert "Не найдены в нарезке: FR-2" in render(result)
+    assert "которых нет в нарезке: FR-2" in render(result)
 
 
 def test_ids_use_three_digits_over_99():
@@ -299,7 +351,10 @@ def test_pipeline_survives_failed_steps(doc):
     # Запасной путь вопросов: из поля question замечания, без вариантов (К-08).
     assert not result.verdict.questions_by_model
     assert [(q.id, q.finding_ids, q.source, q.options) for q in result.questions] == [("Q-01", ["S-01"], "fallback", [])]
-    assert "Неполнота прогона" in render(result)
+    report = render(result)
+    assert "> **Отчёт неполный.**" in report and report.index("Отчёт неполный") < report.index("**Вердикт:")
+    assert "шаг 4 «Проверка каждого требования»: не выполнен" in report
+    assert "Сводные вопросы не сформированы" in report
 
 
 def test_llm_repairs_invalid_json(monkeypatch):
@@ -469,3 +524,29 @@ def test_decision_rule_ignores_inactive_findings():
     # Снятое критиком и ушедшее в карантин CRITICAL на решение не влияет (К-09).
     gone = [f("CRITICAL", status="quarantine"), f("CRITICAL", status="dropped", fid="D-02"), f("MAJOR", fid="D-03")]
     assert decide(gone) == ("Условно допускается", "Да, с оговорками", "Да, с оговорками", [])
+
+
+def test_final_step_retries_with_fewer_questions_when_truncated(doc):
+    class Long(FakeLLM):
+        def complete_json(self, step, system, user, schema, kind=""):
+            if schema is FinalOut and "не больше 4." in user:
+                self.steps.append(step)
+                self.users.append(user)
+                raise LLMTruncated("[итог] ответ обрезан по лимиту длины")
+            return super().complete_json(step, system, user, schema, kind)
+
+    llm = Long()
+    result = Pipeline(llm, SETTINGS).run(doc, "test")
+    finals = [u for s, u in zip(llm.steps, llm.users) if s == "итог"]
+    # Четыре CRITICAL и MAJOR с вопросом дают потолок 4; после обрезки повтор с потолком 3.
+    assert len(finals) == 2 and "не больше 3." in finals[1]
+    assert result.verdict.questions_by_model and not result.failed_steps
+
+
+def test_model_text_has_no_dashes_but_quotes_stay():
+    from reqask.pipeline import tidy
+
+    assert tidy("длина 1–64 символа") == "длина 1-64 символа"
+    assert tidy("Ф-1 — Ф-4 покрыты") == "Ф-1 - Ф-4 покрыты"
+    assert tidy("порог — главное") == "порог, главное"
+    assert tidy(None) is None

@@ -257,6 +257,9 @@ class Finding(BaseModel):
     question_id: str | None = None
     # unreviewed: критик не смотрел. Остальные статусы ставят критик и сверка цитат (4.6).
     status: FindingStatus = "unreviewed"
+    # Решение критика (желательный шаг 7): причина и цель слияния.
+    critic_reason: str | None = None
+    merged_into: str | None = None
 
 
 # Замечания с этими статусами не входят в вердикт и сводку (К-06, К-07, К-09).
@@ -345,6 +348,21 @@ class LLMStats(BaseModel):
     reasoning_tokens: int = 0
 
 
+class StepStat(BaseModel):
+    """Итог одного шага конвейера (К-01, 4.6). Номера как в таблице шагов: 0-9 и 5в."""
+
+    number: str
+    name: str
+    # ok: выполнен; degraded: выполнен частично; failed: не выполнен; skipped: шаг не включён.
+    status: Literal["ok", "degraded", "failed", "skipped"] = "ok"
+    calls: int = 0
+    cache_hits: int = 0
+    retries: int = 0
+    seconds: float = 0.0
+    summary: str = ""
+    reason: str = ""
+
+
 class RunResult(BaseModel):
     document_name: str
     document_format: str
@@ -365,6 +383,9 @@ class RunResult(BaseModel):
     checks: dict[str, list[CriterionCheck]] = Field(default_factory=dict)
     set_analyses: list[SetAnalysis] = Field(default_factory=list)
     questions: list[Question] = Field(default_factory=list)
+    steps: list[StepStat] = Field(default_factory=list)
+    # Режим ответа JSON, на котором закончился прогон: parse, schema, object, none.
+    json_mode: str = ""
     verdict: Verdict
     grounding: GroundingStats
     quality: QualityStats = Field(default_factory=QualityStats)

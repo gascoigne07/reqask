@@ -12,7 +12,8 @@ from .config import ConfigError, load_settings
 from .llm import LLMClient, LLMError
 from .loader import LoadError, load_document
 from .pipeline import Pipeline
-from .report import render
+from .schemas import StepStat
+from .report import render, render_questions
 from .version import agent_version
 
 
@@ -59,10 +60,23 @@ def main(argv: list[str] | None = None) -> int:
         return 130
 
     output = Path(args.output)
-    output.parent.mkdir(parents=True, exist_ok=True)
-    output.write_text(render(result), encoding="utf-8")
-    if not args.no_json:
-        output.with_suffix(".json").write_text(result.model_dump_json(indent=2), encoding="utf-8")
+    questions_path = output.with_name(output.stem + ".questions.md")
+    log("Шаг 9. Отчёт")
+    t9 = time.monotonic()
+    written = [output, questions_path] + ([] if args.no_json else [output.with_suffix(".json")])
+    result.steps.append(StepStat(
+        number="9", name="Отчёт", summary="записаны: " + ", ".join(p.name for p in written),
+    ))
+    try:
+        output.parent.mkdir(parents=True, exist_ok=True)
+        output.write_text(render(result), encoding="utf-8")
+        questions_path.write_text(render_questions(result), encoding="utf-8")
+        if not args.no_json:
+            output.with_suffix(".json").write_text(result.model_dump_json(indent=2), encoding="utf-8")
+    except OSError as exc:
+        print(f"Ошибка записи отчёта: {exc}", file=sys.stderr)
+        return 2
+    log(f"    итог шага: {result.steps[-1].summary} ({round(time.monotonic() - t9, 1)} с)")
 
     severity = Counter(f.severity for f in result.findings)
     log(
@@ -71,7 +85,7 @@ def main(argv: list[str] | None = None) -> int:
     )
     if result.failed_steps or result.unreviewed:
         log("Внимание: часть шагов не выполнена, подробности в паспорте отчёта.")
-    print(f"Отчёт: {output}")
+    print(f"Отчёт: {output}\nВопросы автору: {questions_path}")
     return 0
 
 
