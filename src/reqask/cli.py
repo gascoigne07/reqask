@@ -42,6 +42,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--env-file", help="путь к файлу с ключом (по умолчанию .env в текущей папке)")
     parser.add_argument("--batch-size", type=int, help="сколько требований проверять одним запросом")
     parser.add_argument("--no-cache", action="store_true", help="не брать ответы модели из кэша и не писать в него")
+    parser.add_argument("--no-critic", action="store_true", help="не запускать шаг критика (перепроверку CRITICAL и MAJOR)")
     parser.add_argument("--no-json", action="store_true", help="не сохранять report.json рядом с отчётом")
     parser.add_argument("--fail-on-critical", action="store_true",
                         help="код возврата 10, если вердикт «Не рекомендуется начинать» (для CI)")
@@ -111,6 +112,8 @@ def main(argv: list[str] | None = None) -> int:
         settings = load_settings(args.env_file).with_overrides(model=args.model, batch_size=args.batch_size)
         if args.no_cache:
             settings = settings.with_overrides(cache_dir="")
+        if args.no_critic:
+            settings = settings.with_overrides(critic=False)
         log(f"Документ: {doc.name} ({doc.fmt}, строк: {doc.n}). Модель: {settings.model} ({settings.provider})")
         llm = LLMClient(settings, log)
         result = Pipeline(llm, settings, log).run(doc, agent_version())

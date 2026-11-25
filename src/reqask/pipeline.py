@@ -37,6 +37,8 @@ from .schemas import (
     SEVERITY_SET,
     BatchReviewOut,
     CriterionCheck,
+    CriticOut,
+    CriticStats,
     Evidence,
     FinalOut,
     Finding,
@@ -63,6 +65,8 @@ T = TypeVar("T", bound=BaseModel)
 SEG_CHUNK_LINES = 350
 FULL_CONTEXT_CHARS = 60_000
 CONTEXT_MARGIN_LINES = 40
+# Критик на длинном документе видит строки вокруг цитат, а не весь текст.
+CRITIC_MARGIN_LINES = 8
 MAX_EVIDENCE_CHARS = 300
 _NO_ID = {"", "-", "null", "none", "нет", "n/a", "отсутствует"}
 _REQ_REF_RE = re.compile(r"REQ-?(\d+)", re.IGNORECASE)
@@ -164,6 +168,7 @@ class Pipeline:
         self.set_analyses: list[SetAnalysis] = []
         self._req_by_number: dict[int, str] = {}
         self.steps: list[StepStat] = []
+        self.critic = CriticStats()
         # Фатальная ошибка модели (К-10): после неё шаги с моделью пропускаются, отчёт пишется частичным.
         self.fatal: str | None = None
 
@@ -681,6 +686,124 @@ class Pipeline:
             members.append(items)
         return list(zip(system, members))
 
+    # ---------- шаг 7: критик ----------
+
+    def _critic_context(self, doc: Document, findings: list[Finding]) -> tuple[str, bool]:
+        full = doc.numbered()
+        if len(full) <= FULL_CONTEXT_CHARS:
+            return full, True
+        spans: list[list[int]] = []
+        lines = sorted({e.line for f in findings for e in f.evidence if e.line})
+        for line in lines:
+            start, end = max(1, line - CRITIC_MARGIN_LINES), min(doc.n, line + CRITIC_MARGIN_LINES)
+            if spans and start <= spans[-1][1] + 1:
+                spans[-1][1] = max(spans[-1][1], end)
+            else:
+                spans.append([start, end])
+        parts = [doc.numbered(a, b) for a, b in spans]
+        text = "\n...\n".join(parts)
+        return _clip(text, FULL_CONTEXT_CHARS), False
+
+    def critique(self, doc: Document, findings: list[Finding]) -> None:
+        """Шаг 7 (К-07): второй ревьюер решает по каждому CRITICAL и MAJOR: keep, downgrade, drop, merge.
+
+        Ограничения держит код: нет решения, значит замечание остаётся; уровень не повышается;
+        новых замечаний нет; снять или понизить можно только с причиной; merge только в известное
+        замечание без циклов, цель получает цитаты, требования и старший из двух уровней.
+        """
+        st = self.critic
+        pool = [f for f in findings if f.status not in INACTIVE_STATUSES and f.severity in ("CRITICAL", "MAJOR")]
+        st.reviewed = len(pool)
+        if not pool:
+            st.done = True
+            return
+        if self._blocked("критик"):
+            return
+        context, is_full = self._critic_context(doc, pool)
+        try:
+            out = self.llm.complete_json(
+                "критик", prompts.SYSTEM, prompts.critic_prompt(pool, context, is_full), CriticOut, kind="critic")
+        except LLMFatal as exc:
+            self._on_fatal(exc, "критик")
+            return
+        except LLMError as exc:
+            self.failed_steps.append(f"критик: {exc}")
+            return
+
+        if not out.decisions:
+            # Пустой ответ не считается перепроверкой: в отчёте остаётся пометка «не перепроверены».
+            st.no_decision = len(pool)
+            self.failed_steps.append("критик: модель не вернула ни одного решения")
+            return
+        by_id = {f.id: f for f in pool}
+        decisions = {}
+        for d in out.decisions:
+            fid = d.finding_id.strip().upper()
+            if fid not in by_id or fid in decisions:
+                st.rejected += 1
+                continue
+            decisions[fid] = d
+        st.no_decision = len(pool) - len(decisions)
+
+        merges: dict[str, tuple[str, str]] = {}
+        for fid, d in decisions.items():
+            f = by_id[fid]
+            reason = " ".join(d.reason.split())
+            if d.action == "keep":
+                f.status = "confirmed"
+                st.keep += 1
+            elif d.action == "downgrade" and reason and d.severity in SEVERITY_SET \
+                    and SEVERITY_ORDER[d.severity] > SEVERITY_ORDER[f.severity]:
+                f.severity_before, f.severity = f.severity, d.severity
+                f.status, f.critic_reason = "downgraded", reason
+                st.downgraded += 1
+            elif d.action == "drop" and reason:
+                f.status, f.critic_reason = "dropped", reason
+                st.dropped += 1
+            elif d.action == "merge" and reason and d.into:
+                merges[fid] = (d.into.strip().upper(), reason)
+            else:
+                # Повышение уровня, решение без причины, неизвестное действие: замечание остаётся как было.
+                st.rejected += 1
+
+        def final_target(fid: str) -> str | None:
+            seen = {fid}
+            target = merges[fid][0]
+            while target in merges:
+                if target in seen:
+                    return None  # цикл слияний
+                seen.add(target)
+                target = merges[target][0]
+            return target
+
+        for fid, (_, reason) in merges.items():
+            src = by_id[fid]
+            target_id = final_target(fid)
+            target = by_id.get(target_id or "")
+            if target is None or target is src or target.status == "dropped":
+                st.rejected += 1
+                continue
+            self._merge_into(src, target)
+            src.status, src.merged_into, src.critic_reason = "merged", target.id, reason
+            st.merged += 1
+        st.done = True
+
+    @staticmethod
+    def _merge_into(src: Finding, target: Finding) -> None:
+        seen = {(e.line, e.quote) for e in target.evidence}
+        for e in src.evidence:
+            if e.status != "missing" and (e.line, e.quote) not in seen:
+                target.evidence.append(e)
+                seen.add((e.line, e.quote))
+        for rid in src.req_ids:
+            if rid not in target.req_ids:
+                target.req_ids.append(rid)
+        if SEVERITY_ORDER[src.severity] < SEVERITY_ORDER[target.severity]:
+            target.severity_before = target.severity_before or target.severity
+            target.severity = src.severity
+        if not target.question and src.question:
+            target.question, target.addressee = src.question, src.addressee
+
     # ---------- шаг 5: итог ----------
 
     @staticmethod
@@ -710,7 +833,7 @@ class Pipeline:
         decision, dev, test, blockers = self.decide(findings)
         return Verdict(
             decision=decision, ready_for_development=dev, ready_for_testing=test, rule=DECISION_RULE,
-            blockers=blockers, critic_done=False, partial=self._incomplete(), **fields,
+            blockers=blockers, critic_done=self.critic.done, partial=self._incomplete(), **fields,
         )
 
     def _incomplete(self) -> bool:
@@ -998,7 +1121,18 @@ class Pipeline:
             f"противоречий только с вопросом {g.question_only}, свёрнуто в системные {g.folded}, "
             f"отброшено без опоры {g.dropped_findings}",
         )
-        self._skip("7", "Критик", "желательная часть")
+        if self.s.critic:
+            mark = self._begin("7", "Критик")
+            self.critique(doc, findings)
+            c = self.critic
+            self._end(
+                mark,
+                f"проверено {c.reviewed}: оставлено {c.keep}, понижено {c.downgraded}, снято {c.dropped}, "
+                f"слито {c.merged}, без решения {c.no_decision}, отклонено кодом {c.rejected}",
+                failed=not c.done,
+            )
+        else:
+            self._skip("7", "Критик", "выключен (--no-critic или REQASK_CRITIC=0)")
 
         mark = self._begin("8", "Итог и сводные вопросы")
         verdict, questions = self.conclude(doc, requirements, findings)
@@ -1050,6 +1184,7 @@ class Pipeline:
             verdict=verdict,
             grounding=self.grounding,
             quality=self.quality,
+            critic=self.critic,
             llm=self.llm.stats,
         )
         _tidy_result(result)

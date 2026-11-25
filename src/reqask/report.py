@@ -33,7 +33,7 @@ SKIP_REASONS_RU = {
 SET_STATUS_RU = {"ok": "выполнен", "partial": "частично", "fail": "нарушен", "unknown": "нельзя оценить"}
 KIND_RU = {"contradiction": "противоречие", "gap": "пробел", "other": "прочее", "defect": "дефект"}
 FINDING_STATUS_RU = {
-    "dropped": "снято критиком", "merged": "слито с другим замечанием", "quarantine": "цитата не найдена в документе",
+    "dropped": "снято критиком", "merged": "слито с другим замечанием", "downgraded": "уровень понижен критиком", "quarantine": "цитата не найдена в документе",
     "question_only": "противоречие подтверждено одной цитатой, оставлен вопрос",
 }
 STEP_STATUS_RU = {"ok": "выполнен", "degraded": "частично", "failed": "не выполнен", "skipped": "не включён"}
@@ -278,7 +278,16 @@ class _Report:
             f"замечаний в карантине {quarantine}, противоречий только с вопросом {g.question_only}, "
             f"свёрнуто в системные {g.folded}, отброшено без опоры на текст {g.dropped_findings} |"
         )
-        self.add("| Критик | не включён |")
+        c = r.critic
+        if c.done:
+            self.add(
+                f"| Критик | проверено CRITICAL и MAJOR {c.reviewed}: оставлено {c.keep}, понижено {c.downgraded}, "
+                f"снято {c.dropped}, слито {c.merged}, без решения {c.no_decision}, решений отклонено кодом {c.rejected} |"
+            )
+        else:
+            step = next((x for x in r.steps if x.number == "7"), None)
+            why = "не выполнен" if step and step.status == "failed" else "не включён"
+            self.add(f"| Критик | {why} |")
         self.add(
             f"| Ответы модели | исправлений JSON {llm.repairs}, отброшено дефектов проверкой {q.dropped_defects}, "
             f"оценок {q.dropped_checks}; оценок не вернула модель {q.checks_missing}, "
@@ -398,7 +407,9 @@ class _Report:
         for f in shown:
             self.defect(f)
         for f in findings:
-            if f.status == "merged" and f.merged_into:
+            if f.status == "merged" and f.merged_into and f.critic_reason:
+                self.add(f"{_link(f.id)} [{f.severity}] {_criterion(f.criterion)}: тот же дефект, что {_link(f.merged_into)}, слито критиком.\n")
+            elif f.status == "merged" and f.merged_into:
                 self.add(f"{_link(f.id)} [{f.severity}] {_criterion(f.criterion)}: повторяется в нескольких требованиях, см. {_link(f.merged_into)}.\n")
             elif not _active(f):
                 self.add(f"{_link(f.id)} снято: {FINDING_STATUS_RU.get(f.status, f.status)}, см. [приложение Б](#appendix-b).\n")
@@ -411,8 +422,18 @@ class _Report:
         impact = f" Последствие: {f.impact}" if f.impact else ""
         self.add(_target(f.id))
         self.add(f"**{f.id} [{f.severity}] {_criterion(f.criterion)}.** {f.problem}{quote}{impact}")
+        others = [i for i in f.req_ids[1:] if i in self.reqs]
+        if others:
+            self.add(f"- Тот же дефект: {_links(others)}.")
+        self.critic_line(f)
         self.question_line(f)
         self.add(f"- Как исправить: {f.recommendation}\n")
+
+    def critic_line(self, f: Finding) -> None:
+        if f.status == "downgraded" and f.severity_before:
+            self.add(f"- Критик понизил уровень с {f.severity_before}: {f.critic_reason}")
+        elif f.severity_before:
+            self.add(f"- Уровень поднят до {f.severity} при слиянии с более критичным повтором.")
 
     def question_line(self, f: Finding) -> None:
         if f.question:
@@ -466,6 +487,7 @@ class _Report:
         if not found:
             self.add("- Цитаты нет: в документе этих сведений нет.")
         self.add(f"- Что не так: {f.problem}")
+        self.critic_line(f)
         if f.impact:
             self.add(f"- Последствие: {f.impact}")
         self.question_line(f)

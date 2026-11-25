@@ -167,6 +167,21 @@ class SetReviewOut(BaseModel):
     findings: list[SetFindingOut]
 
 
+class CriticDecisionOut(BaseModel):
+    finding_id: str = Field(description="Идентификатор замечания из списка")
+    action: str = _enum_str(("keep", "downgrade", "drop", "merge"), "Решение по замечанию")
+    severity: str | None = Field(description="Новый уровень для downgrade, иначе null")
+    into: str | None = Field(description="Идентификатор замечания, с которым слить, для merge, иначе null")
+    reason: str = Field(description="Причина одной фразой, до 25 слов")
+
+    _norm_a = field_validator("action", mode="before")(_lower)
+    _norm_s = field_validator("severity", mode="before")(_upper)
+
+
+class CriticOut(BaseModel):
+    decisions: list[CriticDecisionOut]
+
+
 class TopFix(BaseModel):
     finding_ids: list[str] = Field(description="Идентификаторы замечаний из списка (D-... и S-...)")
     action: str = Field(description="Одно конкретное действие для аналитика")
@@ -264,6 +279,8 @@ class Finding(BaseModel):
     # Решение критика (желательный шаг 7): причина и цель слияния.
     critic_reason: str | None = None
     merged_into: str | None = None
+    # Уровень до решения критика, если он понизил замечание или поднял его при слиянии.
+    severity_before: Severity | None = None
     # Места системного замечания, свёрнутого кодом из одинаковых (К-07, Р-11).
     places: list[str] = Field(default_factory=list)
 
@@ -331,6 +348,21 @@ class GroundingStats(BaseModel):
     question_only: int = 0
     # Одинаковые замечания в трёх и более местах свёрнуты в системные (К-07, Р-11).
     folded: int = 0
+
+
+class CriticStats(BaseModel):
+    """Шаг 7 (К-07): сколько решений принял критик и сколько из них отклонил код."""
+
+    done: bool = False
+    reviewed: int = 0
+    keep: int = 0
+    downgraded: int = 0
+    dropped: int = 0
+    merged: int = 0
+    # Решения нет: замечание остаётся как есть.
+    no_decision: int = 0
+    # Решение нарушает ограничения К-07 (повышение уровня, слияние с неизвестным, без причины и т. п.).
+    rejected: int = 0
 
 
 class QualityStats(BaseModel):
@@ -415,4 +447,5 @@ class RunResult(BaseModel):
     verdict: Verdict
     grounding: GroundingStats
     quality: QualityStats = Field(default_factory=QualityStats)
+    critic: CriticStats = Field(default_factory=CriticStats)
     llm: LLMStats

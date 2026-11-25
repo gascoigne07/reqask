@@ -26,6 +26,7 @@ STEP_PARAMS: dict[str, tuple[str, int]] = {
     "review": ("medium", 24_000),
     "set": ("medium", 24_000),
     "verdict": ("medium", 24_000),
+    "critic": ("medium", 16_000),
     "check": ("low", 4_000),
 }
 DEFAULT_STEP_PARAMS = ("medium", 16_000)
@@ -52,6 +53,8 @@ class Settings:
     concurrency: int = 1
     batch_size: int = 6
     cache_dir: str | None = DEFAULT_CACHE_DIR
+    # Шаг 7, критик (К-07). REQASK_CRITIC=0 или --no-critic выключает.
+    critic: bool = True
 
     def step_params(self, kind: str) -> tuple[str, int]:
         """Уровень рассуждения и лимит вывода для шага. LLM_REASONING_EFFORT перекрывает уровень для всех шагов."""
@@ -141,4 +144,5 @@ def load_settings(env_file: str | None = None) -> Settings:
         concurrency=max(1, _num("LLM_CONCURRENCY", 1, int)),
         batch_size=max(1, _num("REQASK_BATCH_SIZE", 6, int)),
         cache_dir=cache_dir,
+        critic=(_env("REQASK_CRITIC", "1") or "1").lower() not in ("0", "false", "no", "off"),
     )

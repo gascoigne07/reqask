@@ -1,6 +1,8 @@
 """Тесты без сети: модель подменена заглушкой."""
 
 import json
+import re
+from dataclasses import replace
 import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -17,6 +19,7 @@ from reqask.pipeline import Pipeline, make_id
 from reqask.report import render
 from reqask.schemas import (
     BatchReviewOut,
+    CriticOut,
     LLMStats,
     SegmentationOut,
     SetReviewOut,
@@ -137,6 +140,11 @@ class FakeLLM:
                                  question="Кто может менять лимит книг?", section="Требования", addressee="security"),
                     _set_finding("gap", "SET_COMPLETE", "MAJOR", "Пробел без места", [], question="Вопрос?"),
                 ]})
+        if schema is CriticOut:
+            # По умолчанию критик оставляет все замечания из списка как есть.
+            ids = re.findall(r"^([DS]-\d+) \|", user, re.MULTILINE)
+            return CriticOut.model_validate({"decisions": [
+                {"finding_id": i, "action": "keep", "severity": None, "into": None, "reason": "верно"} for i in ids]})
         if schema is FinalOut:
             return FinalOut.model_validate({"rationale": "Есть блокеры.", "top_fixes": [
                 {"finding_ids": ["S-01", "X-404"], "action": "Оставить одно число."},
@@ -247,7 +255,7 @@ def test_pipeline_end_to_end(doc):
     assert "Разное число книг" in llm.users[3]
 
     v = result.verdict
-    assert v.decision == "Не рекомендуется начинать" and v.blockers == ["D-01", "S-01"] and not v.critic_done
+    assert v.decision == "Не рекомендуется начинать" and v.blockers == ["D-01", "S-01"] and v.critic_done
     assert v.ready_for_development == "Нет" and v.ready_for_testing == "Нет"
     assert [fix.finding_ids for fix in v.top_fixes] == [["S-01"]]
 
@@ -288,7 +296,7 @@ def _check_report(result):
     for heading in ("### 4.1. Системная полнота", "### 4.2. Взаимная непротиворечивость", "### 4.3. Осуществимость и стандарты"):
         assert heading in report
     assert "**Вердикт: Не рекомендуется начинать.**" in report
-    assert "Критичные замечания не перепроверены" in report
+    assert "Критичные замечания не перепроверены" not in report and "| Критик | проверено CRITICAL и MAJOR" in report
     # Первый экран: блокеры и главные вопросы до паспорта, со ссылками на якоря.
     first = report[: report.index("## 1. Паспорт прогона")]
     assert len(first.splitlines()) <= 40
@@ -325,7 +333,10 @@ def test_steps_are_logged_in_table_order(doc):
     logs = []
     result = Pipeline(FakeLLM(), SETTINGS, logs.append).run(doc, "test")
     assert [s.number for s in result.steps] == ["0", "1", "2", "3", "4", "5", "5в", "6", "7", "8"]
-    assert {s.number: s.status for s in result.steps}["7"] == "skipped"
+    assert {s.number: s.status for s in result.steps}["7"] == "ok"
+    assert result.critic.keep == result.critic.reviewed > 0 and result.verdict.critic_done
+    off = Pipeline(FakeLLM(), replace(SETTINGS, critic=False)).run(doc, "test")
+    assert {s.number: s.status for s in off.steps}["7"] == "skipped"
     assert all(s.status in ("ok", "skipped") for s in result.steps)
     assert sum(s.calls for s in result.steps) == result.llm.calls
     assert "Шаг 3. Нарезка требований (14 строк)" in logs and any("итог шага: требований 3" in x for x in logs)
@@ -635,3 +646,62 @@ def test_truncated_segmentation_chunk_is_split(tmp_path):
     llm = Cut()
     Pipeline(llm, SETTINGS).run(long_doc, "test")
     assert llm.ranges == ["нарезка 1/1", "нарезка 1/1a", "нарезка 1/1b"]
+
+
+def test_critic_decisions_and_limits(doc):
+    """К-07: решения критика применяются, ограничения держит код."""
+    from reqask.schemas import Evidence, Finding
+
+    def f(fid, severity, req="REQ-01", scope="requirement", line=4):
+        return Finding(id=fid, scope=scope, criterion="COMPLETE", severity=severity, req_ids=[req],
+                       evidence=[Evidence(quote=f"цитата {fid}", line=line)], problem=f"проблема {fid}",
+                       recommendation="р", question=None if fid == "S-01" else f"вопрос {fid}?")
+
+    findings = [f("D-01", "CRITICAL"), f("D-02", "MAJOR"), f("D-03", "MAJOR"), f("D-04", "MAJOR"),
+                f("D-05", "CRITICAL", req="REQ-02", line=5), f("D-06", "MAJOR"), f("D-07", "MAJOR"),
+                f("D-08", "MAJOR"), f("D-09", "MINOR"), f("D-10", "MAJOR"), f("S-01", "MAJOR", scope="set")]
+
+    def d(fid, action, severity=None, into=None, reason="причина"):
+        return {"finding_id": fid, "action": action, "severity": severity, "into": into, "reason": reason}
+
+    class CriticLLM:
+        stats = LLMStats()
+        users: list[str] = []
+
+        def complete_json(self, step, system, user, schema, kind=""):
+            assert schema is CriticOut and kind == "critic"
+            self.users.append(user)
+            return CriticOut.model_validate({"decisions": [
+                d("d-01", "downgrade", "major", reason="число есть в разделе данных"),
+                d("D-02", "downgrade", "CRITICAL"),          # повысить нельзя
+                d("D-03", "drop", reason="  "),              # снять без причины нельзя
+                d("D-04", "drop", reason="сведения есть в строке 9"),
+                d("D-05", "merge", into="S-01"),             # цель берёт старший уровень, цитаты и требования
+                d("D-06", "merge", into="D-07"), d("D-07", "merge", into="D-06"),  # цикл
+                d("D-08", "merge", into="X-404"),            # неизвестная цель
+                d("D-09", "drop"),                           # MINOR критику не передаётся
+                d("S-01", "keep"), d("S-01", "drop"),        # второе решение по тому же замечанию
+            ]})
+
+    llm = CriticLLM()
+    pipe = Pipeline(llm, SETTINGS)
+    pipe.critique(doc, findings)
+    by = {x.id: x for x in findings}
+    c = pipe.critic
+
+    assert "D-09 |" not in llm.users[0] and "D-10 |" in llm.users[0]
+    assert by["D-01"].status == "downgraded" and by["D-01"].severity == "MAJOR" and by["D-01"].severity_before == "CRITICAL"
+    assert by["D-02"].severity == "MAJOR" and by["D-02"].status == "unreviewed"
+    assert by["D-03"].status == "unreviewed"
+    assert by["D-04"].status == "dropped" and by["D-04"].critic_reason == "сведения есть в строке 9"
+    assert by["D-05"].status == "merged" and by["D-05"].merged_into == "S-01"
+    s1 = by["S-01"]
+    assert s1.status == "confirmed" and s1.severity == "CRITICAL" and s1.severity_before == "MAJOR"
+    assert s1.req_ids == ["REQ-01", "REQ-02"] and [e.line for e in s1.evidence] == [4, 5]
+    assert s1.question == "вопрос D-05?"  # у цели вопроса не было, взят у слитого
+    assert by["D-06"].status == by["D-07"].status == by["D-08"].status == "unreviewed"
+    assert by["D-09"].status == "unreviewed" and by["D-10"].status == "unreviewed"
+    assert (c.reviewed, c.keep, c.downgraded, c.dropped, c.merged, c.no_decision, c.rejected) == (10, 1, 1, 1, 1, 1, 7)
+    assert c.done and pipe._verdict(findings, rationale="").critic_done
+    # Слитое и снятое не входят в вердикт: блокер теперь S-01, а не D-05.
+    assert Pipeline.decide(findings)[3] == ["S-01"]
