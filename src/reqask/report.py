@@ -155,6 +155,9 @@ def _review_only_question(q: Question, by_id: dict[str, Finding]) -> bool:
 # ---------- отчёт ----------
 
 
+PARTIAL_VERDICT = ("Решение принято по неполным данным: часть шагов с моделью не выполнена, "
+                   "после полной проверки оно может стать строже.")
+
 class _Report:
     def __init__(self, result: RunResult):
         self.r = result
@@ -183,6 +186,8 @@ class _Report:
         )
         self.incomplete_block()
         self.add(f"**Вердикт: {v.decision}.**")
+        if v.partial:
+            self.add(PARTIAL_VERDICT)
         if v.blockers and not v.critic_done:
             self.add("Критичные замечания не перепроверены отдельным шагом.")
         self.add("")
@@ -217,9 +222,11 @@ class _Report:
     def incomplete_block(self) -> None:
         r = self.r
         failed = [s for s in r.steps if s.status in ("failed", "degraded")]
-        if not (r.failed_steps or r.unreviewed or failed):
+        if not (r.failed_steps or r.unreviewed or failed or r.fatal):
             return
         self.add("> **Отчёт неполный.** Часть работы не выполнена:")
+        if r.fatal:
+            self.add(f"> - причина: {_one_line(r.fatal, 400)}")
         for s in failed:
             self.add(f"> - шаг {s.number} «{s.name}»: {STEP_STATUS_RU[s.status]}")
         for item in r.failed_steps:
@@ -247,6 +254,8 @@ class _Report:
         self.add("| Стандарты | ISO/IEC/IEEE 29148:2018 п. 5.2.5 и 5.2.6; IEEE Std 830-1998 п. 4.3 |")
         self.add(f"| Обращений к модели | {llm.calls}, из кэша {llm.cache_hits}, повторов при сбоях {llm.retries} |")
         self.add(f"| Токены | вход {llm.prompt_tokens}, выход {llm.completion_tokens}, всего {llm.total_tokens} |")
+        if llm.notes:
+            self.add(f"| Отказы провайдера | {_cell('; '.join(llm.notes))} |")
         self.add("")
 
         self.add("| Самопроверка прогона | Значение |")
@@ -504,6 +513,8 @@ class _Report:
         v = self.r.verdict
         self.add("## 6. Вердикт\n")
         self.add(f"**{v.decision}.**\n")
+        if v.partial:
+            self.add(PARTIAL_VERDICT + "\n")
         if v.blockers and not v.critic_done:
             self.add("Критичные замечания не перепроверены отдельным шагом.\n")
         self.add(f"Правило. {v.rule}\n")

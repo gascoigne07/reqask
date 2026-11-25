@@ -13,6 +13,7 @@ from __future__ import annotations
 import hashlib
 import json
 import random
+import re
 import threading
 import time
 from pathlib import Path
@@ -51,7 +52,46 @@ class LLMTruncated(LLMError):
 
 
 class LLMFatal(LLMError):
-    """Ошибка, которую повтор не исправит: неверный ключ, нет доступа, нет такой модели."""
+    """Ошибка, которую повтор не исправит.
+
+    kind: auth (ключ не принят), model (модель не найдена), quota (суточная квота или баланс),
+    rate (лимит запросов не отпустил за все повторы). По kind командная строка решает,
+    писать ли частичный отчёт (К-10).
+    """
+
+    def __init__(self, message: str, kind: str = "other"):
+        super().__init__(message)
+        self.kind = kind
+
+
+# Паузы при минутном лимите (429), если провайдер не сказал, сколько ждать (М-08).
+RATE_WAITS_SEC = (15.0, 30.0, 60.0, 65.0, 65.0)
+MAX_RATE_WAIT_SEC = 120.0
+# Слова в тексте ошибки 400, по которым понятно, что провайдер не принял формат ответа (М-04).
+# Только тогда режим JSON понижается, и только для этой схемы.
+JSON_ERROR_WORDS = ("response_format", "json_schema", "json_object", "schema", "structured", "output_format", "strict")
+# Суточная квота и баланс: ждать бесполезно, каждый повтор тратит запрос.
+# Gemini (26.11.2026): «Generate content requests per day limit exceeded on Free Tier»,
+# quotaId «GenerateRequestsPerDayPerProjectPerModel-FreeTier». Минутный лимит Gemini тоже пишет
+# «quota», поэтому одно слово quota признаком суточной не считаем.
+DAILY_WORDS = ("per day", "perday", "daily", "insufficient_quota", "credit balance", "billing")
+AUTH_WORDS = ("api key", "api_key", "apikey", "invalid x-api-key", "authentication")
+
+
+def _retry_after(error: Exception) -> float | None:
+    """Сколько ждать по ответу провайдера: заголовок retry-after или retryDelay в теле Gemini."""
+    response = getattr(error, "response", None)
+    headers = getattr(response, "headers", None) or {}
+    for name, scale in (("retry-after-ms", 0.001), ("retry-after", 1.0)):
+        value = headers.get(name)
+        if value:
+            try:
+                return float(value) * scale
+            except ValueError:
+                pass
+    text = error_text(error) if isinstance(error, APIStatusError) else str(error)
+    match = re.search(r"retry(?:Delay|[ _-]?after|\s+in)?\W{0,4}(\d+(?:\.\d+)?)\s*s", text, re.IGNORECASE)
+    return float(match.group(1)) if match else None
 
 
 def extract_json(raw: str) -> str:
@@ -87,6 +127,13 @@ def schema_instruction(schema: type[BaseModel]) -> str:
     )
 
 
+class _Ping(BaseModel):
+    """Схема из двух полей для проверки ключа (М-14)."""
+
+    ok: bool
+    reply: str
+
+
 class LLMClient:
     def __init__(self, settings: Settings, log: Callable[[str], None] | None = None):
         self.s = settings
@@ -100,29 +147,51 @@ class LLMClient:
         )
         self._lock = threading.Lock()
         self._last_call = 0.0
-        # Порядок понижения режима JSON, если провайдер отклоняет запрос.
+        self._sleep = time.sleep
+        # Порядок понижения режима JSON, если провайдер отклоняет формат ответа.
         # parse: схема pydantic через помощник SDK; schema: ручной json_schema;
         # object: просто JSON, схема только в тексте промпта; none: без формата.
-        ladder = {"auto": ["parse", "schema", "object", "none"]}
-        self._json_modes = list(ladder.get(settings.json_mode, [settings.json_mode]))
+        # Понижение идёт отдельно по каждой схеме (М-04): одна неудачная схема не снимает режим с остальных.
+        self._ladder = ["parse", "schema", "object", "none"] if settings.json_mode == "auto" else [settings.json_mode]
+        self._modes: dict[str, list[str]] = {}
         # Gemini 3.6+ игнорирует temperature и обещает ошибку 400, поэтому ему параметр не шлём.
         self._send_temperature = settings.temperature is not None and settings.provider != "gemini"
         if settings.temperature is not None and settings.provider == "gemini":
             self.log("  LLM_TEMPERATURE задан, но для Gemini не отправляется")
-        self._send_reasoning = True
+        # Уровень рассуждения: param (reasoning_effort), extra (thinking_level в extra_body, только Gemini), off.
+        self._reasoning = "param"
         self._send_max_tokens = True
         self._cache_dir = Path(settings.cache_dir) if settings.cache_dir else None
 
+    def _modes_for(self, schema: type[BaseModel]) -> list[str]:
+        with self._lock:
+            return self._modes.setdefault(schema.__name__, list(self._ladder))
+
     @property
     def json_mode(self) -> str:
-        """Текущий режим ответа JSON после возможных понижений."""
-        return self._json_modes[0] if self._json_modes else ""
+        """Режим ответа JSON после возможных понижений: один на все схемы или по каждой схеме."""
+        used = {name: modes[0] for name, modes in self._modes.items()}
+        if not used:
+            return self._ladder[0]
+        if len(set(used.values())) == 1:
+            return next(iter(used.values()))
+        return ", ".join(f"{name}: {mode}" for name, mode in sorted(used.items()))
+
+    @property
+    def reasoning_mode(self) -> str:
+        return {"param": "reasoning_effort", "extra": "thinking_level в extra_body", "off": "не передаётся"}[self._reasoning]
+
+    def _note(self, text: str) -> None:
+        """Отказ провайдера или понижение режима: в лог и в паспорт отчёта (М-05)."""
+        self.log("  " + text)
+        if text not in self.stats.notes:
+            self.stats.notes.append(text)
 
     # ---------- кэш ----------
 
-    def _cache_key(self, system: str, user: str, schema: type[BaseModel], kind: str) -> str:
+    def _cache_key(self, system: str, user: str, schema: type[BaseModel], kind: str, effort: str | None = None) -> str:
         payload = json.dumps(
-            [self.s.base_url, self.s.model, self.s.temperature, self.s.step_params(kind)[0],
+            [self.s.base_url, self.s.model, effort or self.s.step_params(kind)[0],
              system, user, schema.model_json_schema()],
             ensure_ascii=False, sort_keys=True,
         )
@@ -150,13 +219,17 @@ class LLMClient:
 
     # ---------- вызов ----------
 
-    def complete_json(self, step: str, system: str, user: str, schema: type[T], kind: str = "") -> T:
+    def complete_json(
+        self, step: str, system: str, user: str, schema: type[T], kind: str = "",
+        effort: str | None = None, use_cache: bool = True,
+    ) -> T:
         """Возвращает ответ модели, проверенный по схеме. Бросает LLMError, если не вышло.
 
         step: подпись для лога. kind: вид шага, по нему берутся уровень рассуждения и лимит вывода.
+        effort: уровень рассуждения вместо уровня шага (повтор после обрезки, М-07).
         """
-        key = self._cache_key(system, user, schema, kind)
-        cached = self._cache_get(key, schema)
+        key = self._cache_key(system, user, schema, kind, effort)
+        cached = self._cache_get(key, schema) if use_cache else None
         if cached is not None:
             with self._lock:
                 self.stats.cache_hits += 1
@@ -169,7 +242,7 @@ class LLMClient:
         ]
         last_error = ""
         for attempt in range(self.s.max_repairs + 1):
-            raw = self._chat(step, messages, schema, kind)
+            raw = self._chat(step, messages, schema, kind, effort)
             try:
                 obj = schema.model_validate_json(extract_json(raw))
             except (ValidationError, ValueError) as exc:
@@ -188,9 +261,27 @@ class LLMClient:
                     },
                 ]
                 continue
-            self._cache_put(key, obj)
+            if use_cache:
+                self._cache_put(key, obj)
             return obj
         raise LLMError(f"[{step}] модель не вернула валидный JSON: {last_error}")
+
+    def check(self) -> dict:
+        """Проверка ключа одним коротким вызовом без кэша (М-14). Бросает LLMError, как обычный вызов."""
+        t0 = time.monotonic()
+        out = self.complete_json(
+            "проверка ключа", "Ты отвечаешь одним JSON-объектом.",
+            'Верни JSON: ok = true, reply = "готово".', _Ping, kind="check", use_cache=False,
+        )
+        return {
+            "ok": out.ok,
+            "json_mode": self._modes_for(_Ping)[0],
+            "reasoning": self.reasoning_mode,
+            "max_tokens": self._send_max_tokens,
+            "seconds": round(time.monotonic() - t0, 1),
+            "notes": list(self.stats.notes),
+            "tokens": self.stats.total_tokens,
+        }
 
     def _throttle(self) -> None:
         if self.s.min_interval_sec <= 0:
@@ -199,11 +290,12 @@ class LLMClient:
             wait = self._last_call + self.s.min_interval_sec - time.monotonic()
             self._last_call = max(time.monotonic(), self._last_call + self.s.min_interval_sec)
         if wait > 0:
-            time.sleep(wait)
+            self._sleep(wait)
 
-    def _kwargs(self, messages: list[dict], schema: type[BaseModel], kind: str) -> dict:
-        effort, max_tokens = self.s.step_params(kind)
-        mode = self._json_modes[0]
+    def _kwargs(self, messages: list[dict], schema: type[BaseModel], kind: str, effort: str | None = None) -> dict:
+        step_effort, max_tokens = self.s.step_params(kind)
+        effort = effort or step_effort
+        mode = self._modes_for(schema)[0]
         if mode in ("object", "none"):
             # Провайдер не держит схему сам: отдаём её текстом в системном сообщении.
             messages = [
@@ -222,8 +314,11 @@ class LLMClient:
             kwargs["response_format"] = {"type": "json_object"}
         if self._send_temperature:
             kwargs["temperature"] = self.s.temperature
-        if self._send_reasoning:
+        if self._reasoning == "param":
             kwargs["reasoning_effort"] = effort
+        elif self._reasoning == "extra":
+            # Запасной способ Gemini из страницы совместимости: thinking_level через extra_body (М-05).
+            kwargs["extra_body"] = {"extra_body": {"google": {"thinking_config": {"thinking_level": effort}}}}
         if self._send_max_tokens:
             kwargs["max_tokens"] = max_tokens
         return kwargs
@@ -238,33 +333,33 @@ class LLMClient:
             # SDK не разобрал ответ по схеме. Отдаём сырой текст дальше: там модель попросят исправить JSON.
             return ChatCompletion.model_validate_json(raw.text)
 
-    def _downgrade(self, error: BadRequestError) -> bool:
-        """Убирает одну неподдерживаемую возможность. False, если убирать больше нечего."""
+    def _downgrade(self, error: BadRequestError, schema: type[BaseModel]) -> bool:
+        """Убирает одну возможность, которую провайдер назвал в ошибке. False, если ошибка про другое (М-04, М-05)."""
         text = error_text(error).lower()
-        with self._lock:
-            if self._send_temperature and "temperature" in text:
-                self._send_temperature = False
-                self.log("  провайдер не принимает temperature, отправляю без него")
-                return True
-            # Gemini на неподдерживаемый уровень отвечает 400 «Thinking level ... is not supported for this model».
-            if self._send_reasoning and ("reasoning" in text or "thinking" in text):
-                self._send_reasoning = False
-                self.log("  провайдер не принимает reasoning_effort, отправляю без него")
-                return True
-            if self._send_max_tokens and "max_tokens" in text:
-                self._send_max_tokens = False
-                self.log("  провайдер не принимает max_tokens, отправляю без лимита вывода")
-                return True
-            if len(self._json_modes) > 1:
-                dropped = self._json_modes.pop(0)
-                self.log(f"  режим JSON «{dropped}» отклонён, перехожу на «{self._json_modes[0]}»")
-                return True
-            if self._send_temperature:
-                self._send_temperature = False
-                return True
-            if self._send_reasoning:
-                self._send_reasoning = False
-                return True
+        if self._send_temperature and "temperature" in text:
+            self._send_temperature = False
+            self._note("провайдер не принимает temperature, отправляю без него")
+            return True
+        # Gemini на неподдерживаемый уровень отвечает 400 «Thinking level ... is not supported for this model».
+        if self._reasoning != "off" and ("reasoning" in text or "thinking" in text):
+            if self._reasoning == "param" and self.s.provider == "gemini":
+                self._reasoning = "extra"
+                self._note("провайдер не принял reasoning_effort, пробую thinking_level в extra_body")
+            else:
+                self._reasoning = "off"
+                self._note("провайдер не принимает уровень рассуждения, отправляю без него")
+            return True
+        if self._send_max_tokens and "max_tokens" in text:
+            self._send_max_tokens = False
+            self._note("провайдер не принимает max_tokens, отправляю без лимита вывода")
+            return True
+        if any(word in text for word in JSON_ERROR_WORDS):
+            modes = self._modes_for(schema)
+            with self._lock:
+                if len(modes) > 1:
+                    dropped = modes.pop(0)
+                    self._note(f"схема {schema.__name__}: режим JSON «{dropped}» отклонён, перехожу на «{modes[0]}»")
+                    return True
         return False
 
     def _count(self, response: ChatCompletion) -> None:
@@ -288,58 +383,93 @@ class LLMClient:
             self.stats.total_tokens += total
             self.stats.reasoning_tokens += reasoning
 
-    def _chat(self, step: str, messages: list[dict], schema: type[BaseModel], kind: str = "") -> str:
+    def _auth_fatal(self, exc: APIStatusError) -> LLMFatal:
+        text = error_text(exc)
+        if "FREE_TIER_VERIFICATION_REQUIRED" in text:
+            hint = "Проект в AI Studio не верифицирован: откройте https://aistudio.google.com/ и пройдите проверку."
+        else:
+            hint = "Ключ не принят, проверьте .env: ключ, провайдер и адрес LLM_BASE_URL."
+        return LLMFatal(f"{hint} Провайдер {self.s.provider}, ответ: {text[:600]}", kind="auth")
+
+    def _quota_fatal(self, text: str) -> LLMFatal:
+        return LLMFatal(
+            f"Суточная квота или баланс модели «{self.s.model}» исчерпаны. Смените модель (--model), ключ или уровень "
+            f"оплаты и запустите снова: готовые шаги возьмутся из кэша. Ответ провайдера: {text[:600]}",
+            kind="quota",
+        )
+
+    def _chat(self, step: str, messages: list[dict], schema: type[BaseModel], kind: str = "",
+              effort: str | None = None) -> str:
+        """Один ответ модели с разбором ошибок по таблице М-08."""
         delay = 2.0
         transient = 0
+        rate_hits = 0
+        empty_retried = False
         while True:
             self._throttle()
+            wait: float | None = None
             try:
-                response = self._request(self._kwargs(messages, schema, kind))
+                response = self._request(self._kwargs(messages, schema, kind, effort))
             except LengthFinishReasonError as exc:
                 self._count(exc.completion)
                 raise LLMTruncated(f"[{step}] ответ обрезан по лимиту длины") from exc
             except ContentFilterFinishReasonError as exc:
                 raise LLMError(f"[{step}] ответ закрыт фильтром содержания провайдера") from exc
             except BadRequestError as exc:
+                text = error_text(exc)
+                low = text.lower()
                 # Gemini на неверный ключ отвечает 400 INVALID_ARGUMENT «Please pass a valid API key»
                 # (проверено живым вызовом 25.11.2026), а не 401.
-                if "api key" in error_text(exc).lower():
-                    raise LLMFatal(
-                        f"Ключ модели не принят провайдером ({self.s.provider}), проверьте .env: {error_text(exc)}"
-                    ) from exc
-                if self._downgrade(exc):
+                if any(word in low for word in AUTH_WORDS):
+                    raise self._auth_fatal(exc) from exc
+                if any(word in low for word in DAILY_WORDS):
+                    raise self._quota_fatal(text) from exc
+                if self._downgrade(exc, schema):
                     continue
-                raise LLMError(f"[{step}] провайдер отклонил запрос: {error_text(exc)}") from exc
+                # Остальные 400 режим не трогают: ошибка шага с текстом провайдера (М-04).
+                raise LLMError(f"[{step}] провайдер отклонил запрос: {text[:1500]}") from exc
             except (AuthenticationError, PermissionDeniedError) as exc:
-                raise LLMFatal(f"Ключ модели не принят провайдером ({self.s.provider}): {error_text(exc)}") from exc
+                raise self._auth_fatal(exc) from exc
             except NotFoundError as exc:
-                raise LLMFatal(f"Модель «{self.s.model}» не найдена у провайдера: {error_text(exc)}") from exc
+                raise LLMFatal(
+                    f"Модель «{self.s.model}» не найдена у провайдера {self.s.provider} или адрес API неверный. "
+                    f"Проверьте имя модели в .env или --model. Ответ: {error_text(exc)[:600]}",
+                    kind="model",
+                ) from exc
             except RateLimitError as exc:
-                # Суточная квота Gemini (проверено 26.11.2026): 429 RESOURCE_EXHAUSTED, в тексте
-                # «Generate content requests per day limit exceeded on Free Tier» и quotaId
-                # «GenerateRequestsPerDayPerProjectPerModel-FreeTier». Ждать бесполезно, а каждый повтор тратит запрос.
                 text = error_text(exc)
-                if "per day" in text.lower() or "perday" in text.lower():
-                    raise LLMFatal(
-                        f"Суточная квота модели «{self.s.model}» исчерпана. Смените модель (--model), ключ или уровень "
-                        f"оплаты и запустите снова: готовые шаги возьмутся из кэша. Ответ провайдера: {text[:600]}"
-                    ) from exc
+                if any(word in text.lower() for word in DAILY_WORDS):
+                    raise self._quota_fatal(text) from exc
                 error: Exception = exc
+                # Минутный лимит: пауза от провайдера, иначе 15, 30, 60, 65, 65 секунд (М-08).
+                wait = _retry_after(exc) or RATE_WAITS_SEC[min(rate_hits, len(RATE_WAITS_SEC) - 1)]
+                wait = min(wait, MAX_RATE_WAIT_SEC)
+                rate_hits += 1
             except (APITimeoutError, APIConnectionError) as exc:
                 error = exc
             except APIStatusError as exc:
                 if exc.status_code < 500:
-                    raise LLMError(f"[{step}] ошибка провайдера {exc.status_code}: {error_text(exc)}") from exc
+                    raise LLMError(f"[{step}] ошибка провайдера {exc.status_code}: {error_text(exc)[:1500]}") from exc
                 error = exc
             else:
                 self._count(response)
                 choice = response.choices[0] if response.choices else None
                 content = (choice.message.content or "") if choice else ""
-                if choice is not None and choice.finish_reason == "length":
+                finish = choice.finish_reason if choice is not None else None
+                if finish == "length":
                     raise LLMTruncated(f"[{step}] ответ обрезан по лимиту длины")
+                if finish == "content_filter":
+                    raise LLMError(f"[{step}] ответ закрыт фильтром содержания провайдера")
                 if content.strip():
                     return content
-                error = LLMError("пустой ответ модели")
+                # Пустой ответ: один повтор, дальше ошибка шага (М-08).
+                if empty_retried:
+                    raise LLMError(f"[{step}] модель дважды вернула пустой ответ")
+                empty_retried = True
+                with self._lock:
+                    self.stats.retries += 1
+                self.log(f"  [{step}] пустой ответ модели, повторяю один раз")
+                continue
 
             transient += 1
             if transient > self.s.max_retries:
@@ -348,19 +478,18 @@ class LLMClient:
                     # Готовые ответы лежат в кэше, повторный запуск продолжит с этого места.
                     raise LLMFatal(
                         f"Провайдер держит лимит запросов (429) после {self.s.max_retries} повторов. "
-                        "Подождите или смените модель/ключ и запустите снова: готовые шаги возьмутся из кэша."
+                        "Подождите или смените модель/ключ и запустите снова: готовые шаги возьмутся из кэша.",
+                        kind="rate",
                     )
                 raise LLMError(f"[{step}] не удалось получить ответ за {self.s.max_retries} повторов: {error}")
-            wait = delay + random.uniform(0, 1)
-            retry_after = getattr(getattr(error, "response", None), "headers", {}).get("retry-after")
-            if retry_after:
-                try:
-                    wait = max(wait, float(retry_after))
-                except ValueError:
-                    pass
-            wait = min(wait, MAX_BACKOFF_SEC)
+            if wait is None:
+                # Сбой сервера, таймаут, обрыв связи: 2-60 секунд с удвоением.
+                wait = min(delay + random.uniform(0, 1), MAX_BACKOFF_SEC)
+                retry_after = _retry_after(error)
+                if retry_after:
+                    wait = min(max(wait, retry_after), MAX_BACKOFF_SEC)
+                delay = min(delay * 2, MAX_BACKOFF_SEC)
             with self._lock:
                 self.stats.retries += 1
             self.log(f"  [{step}] {type(error).__name__}, повтор {transient}/{self.s.max_retries} через {wait:.0f} с")
-            time.sleep(wait)
-            delay = min(delay * 2, MAX_BACKOFF_SEC)
+            self._sleep(wait)

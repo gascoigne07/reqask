@@ -368,7 +368,7 @@ def test_llm_repairs_invalid_json(monkeypatch):
                     '{"rationale": "ок", "top_fixes": []}'])
     seen = []
 
-    def fake_chat(step, messages, schema, kind=""):
+    def fake_chat(step, messages, schema, kind="", effort=None):
         seen.append(len(messages))
         return next(answers)
 
@@ -588,3 +588,42 @@ def test_same_problem_in_three_requirements_is_folded():
     system, members = folded[0]
     assert system.scope == "set" and system.req_ids == ["REQ-01", "REQ-02", "REQ-03"] and len(system.places) == 3
     assert [m.status for m in members] == ["merged"] * 3 and findings[3].status == "unreviewed"
+
+
+def test_truncated_set_pass_retries_once_with_low_effort(doc):
+    """М-07: проход по набору после обрезки повторяется один раз с reasoning_effort=low."""
+    class Cut(FakeLLM):
+        efforts: list = []
+
+        def complete_json(self, step, system, user, schema, kind="", **opts):
+            if schema is SetReviewOut and "согласованность" in step:
+                self.efforts.append(opts.get("effort"))
+                if opts.get("effort") != "low":
+                    raise LLMTruncated("обрезан")
+            return super().complete_json(step, system, user, schema, kind)
+
+    llm = Cut()
+    result = Pipeline(llm, SETTINGS).run(doc, "test")
+    assert llm.efforts == [None, "low"] and not result.failed_steps
+
+
+def test_truncated_segmentation_chunk_is_split(tmp_path):
+    """М-07: обрезанный ответ нарезки делит кусок пополам."""
+    path = tmp_path / "long.md"
+    path.write_text("\n".join(f"* Правило {i}: система хранит запись {i}." for i in range(1, 61)), encoding="utf-8")
+    long_doc = load_document(path)
+
+    class Cut(FakeLLM):
+        ranges: list = []
+
+        def complete_json(self, step, system, user, schema, kind="", **opts):
+            if schema is SegmentationOut:
+                self.ranges.append(step)
+                if step == "нарезка 1/1":
+                    raise LLMTruncated("обрезан")
+                return SegmentationOut.model_validate({"requirements": [], "skipped": []})
+            return super().complete_json(step, system, user, schema, kind)
+
+    llm = Cut()
+    Pipeline(llm, SETTINGS).run(long_doc, "test")
+    assert llm.ranges == ["нарезка 1/1", "нарезка 1/1a", "нарезка 1/1b"]

@@ -292,7 +292,8 @@ class Question(BaseModel):
     source: Literal["model", "fallback"] = "model"
 
 
-Decision = Literal["Не рекомендуется начинать", "Условно допускается", "Допускается"]
+# «Не вынесен» только для отчёта без единого проверенного требования (К-10).
+Decision = Literal["Не рекомендуется начинать", "Условно допускается", "Допускается", "Не вынесен"]
 
 
 class Verdict(BaseModel):
@@ -310,6 +311,8 @@ class Verdict(BaseModel):
     generated_by_model: bool = True
     # Сводные вопросы сформированы моделью; False значит запасной путь из полей question.
     questions_by_model: bool = True
+    # Решение принято по неполным данным: часть шагов с моделью не выполнена (К-10).
+    partial: bool = False
 
 
 class GroundingStats(BaseModel):
@@ -354,6 +357,8 @@ class LLMStats(BaseModel):
     completion_tokens: int = 0
     total_tokens: int = 0
     reasoning_tokens: int = 0
+    # Отказы провайдера в параметрах и понижения режима JSON (М-04, М-05): что и почему сделано.
+    notes: list[str] = Field(default_factory=list)
 
 
 class StepStat(BaseModel):
@@ -394,6 +399,8 @@ class RunResult(BaseModel):
     steps: list[StepStat] = Field(default_factory=list)
     # Режим ответа JSON, на котором закончился прогон: parse, schema, object, none.
     json_mode: str = ""
+    # Фатальная ошибка модели, после которой шаги с моделью пропущены (К-10). None, если её не было.
+    fatal: str | None = None
     verdict: Verdict
     grounding: GroundingStats
     quality: QualityStats = Field(default_factory=QualityStats)

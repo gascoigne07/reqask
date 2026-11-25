@@ -9,8 +9,9 @@
    и сводные вопросы автору; ссылки, варианты, приоритет и цитаты вопросов проверяет код (К-08).
 
 Сбой одного шага не роняет прогон: порция делится пополам, непроверенное
-перечисляется в отчёте. Останавливают прогон только ошибки без шанса на успех
-(неверный ключ, нет модели, исчерпанная квота).
+перечисляется в отчёте. Фатальная ошибка модели (квота, лимит) ловится на шаге:
+оставшиеся шаги с моделью пропускаются, отчёт пишется частичным (К-10). Без отчёта
+прогон останавливают только неверный ключ и ненайденная модель на первом же вызове.
 """
 
 from __future__ import annotations
@@ -91,7 +92,7 @@ SEVERITY_WEIGHT = {"CRITICAL": 5.0, "MAJOR": 2.0, "MINOR": 0.5}
 class JsonLLM(Protocol):
     stats: LLMStats
 
-    def complete_json(self, step: str, system: str, user: str, schema: type[T], kind: str = "") -> T: ...
+    def complete_json(self, step: str, system: str, user: str, schema: type[T], kind: str = "", **opts) -> T: ...
 
 
 _RANGE_DASH_RE = re.compile(r"(\w)\s*[\u2013\u2014]\s*(\w)")
@@ -163,6 +164,31 @@ class Pipeline:
         self.set_analyses: list[SetAnalysis] = []
         self._req_by_number: dict[int, str] = {}
         self.steps: list[StepStat] = []
+        # Фатальная ошибка модели (К-10): после неё шаги с моделью пропускаются, отчёт пишется частичным.
+        self.fatal: str | None = None
+
+    # ---------- фатальные ошибки ----------
+
+    def _on_fatal(self, exc: LLMFatal, step: str) -> None:
+        """Фатальная ошибка ловится на шаге, а не на прогоне (К-10).
+
+        Исключение одно: ключ не принят или модель не найдена до первого удачного ответа.
+        Тогда отчёт не пишется, ошибка уходит в командную строку (код 1).
+        """
+        stats = self.llm.stats
+        if getattr(exc, "kind", "") in ("auth", "model") and not (stats.calls or stats.cache_hits):
+            raise exc
+        if self.fatal is None:
+            self.fatal = str(exc)
+            self.log(f"  {step}: фатальная ошибка модели, оставшиеся шаги с моделью пропускаю")
+        self.failed_steps.append(f"{step}: не выполнено после фатальной ошибки модели")
+
+    def _blocked(self, step: str) -> bool:
+        """Шаг с моделью пропускается, если раньше была фатальная ошибка."""
+        if self.fatal is None:
+            return False
+        self.failed_steps.append(f"{step}: пропущено после фатальной ошибки модели")
+        return True
 
     # ---------- шаг 1: нарезка ----------
 
@@ -182,27 +208,41 @@ class Pipeline:
             start = end + 1
         return bounds
 
+    def _segment_part(self, doc: Document, start: int, end: int, step: str, whole: bool, depth: int = 0) -> list[SegItem]:
+        """Нарезка одного куска. Обрезанный ответ: кусок делится пополам (М-07)."""
+        if self._blocked(step):
+            return []
+        part = None if whole and depth == 0 else (start, end)
+        user = prompts.segmentation_prompt(doc.numbered(start, end), doc.outline(), part)
+        try:
+            out = self.llm.complete_json(step, prompts.SYSTEM, user, SegmentationOut, kind="segment")
+        except LLMFatal as exc:
+            self._on_fatal(exc, step)
+            return []
+        except LLMTruncated as exc:
+            if depth < 2 and end - start >= 20:
+                mid = (start + end) // 2
+                self.log(f"  {step}: ответ обрезан, делю строки {start}-{end} пополам")
+                return (self._segment_part(doc, start, mid, step + "a", whole, depth + 1)
+                        + self._segment_part(doc, mid + 1, end, step + "b", whole, depth + 1))
+            self.failed_steps.append(f"{step}: {exc}")
+            return []
+        except LLMError as exc:
+            self.failed_steps.append(f"{step}: {exc}")
+            self.log(f"  {step}: сбой, строки {start}-{end} не нарезаны")
+            return []
+        for span in out.skipped:
+            a, b = sorted((span.line_start, span.line_end))
+            a, b = max(start, a), min(end, b)
+            if a <= b:
+                self.skipped.append(SkippedSpan(line_start=a, line_end=b, reason=span.reason))
+        return list(out.requirements)
+
     def segment(self, doc: Document) -> list[Requirement]:
         chunks = self._chunks(doc)
         items: list[SegItem] = []
         for index, (start, end) in enumerate(chunks, start=1):
-            part = (start, end) if len(chunks) > 1 else None
-            user = prompts.segmentation_prompt(doc.numbered(start, end), doc.outline(), part)
-            step = f"нарезка {index}/{len(chunks)}"
-            try:
-                out = self.llm.complete_json(step, prompts.SYSTEM, user, SegmentationOut, kind="segment")
-            except LLMFatal:
-                raise
-            except LLMError as exc:
-                self.failed_steps.append(f"{step}: {exc}")
-                self.log(f"  {step}: сбой, строки {start}-{end} не нарезаны")
-                continue
-            items.extend(out.requirements)
-            for span in out.skipped:
-                a, b = sorted((span.line_start, span.line_end))
-                a, b = max(start, a), min(end, b)
-                if a <= b:
-                    self.skipped.append(SkippedSpan(line_start=a, line_end=b, reason=span.reason))
+            items.extend(self._segment_part(doc, start, end, f"нарезка {index}/{len(chunks)}", len(chunks) == 1))
         requirements = self._build_requirements(doc, items)
         self._check_ids(doc, requirements)
         return requirements
@@ -300,12 +340,15 @@ class Pipeline:
         return doc.numbered(start, end), False
 
     def _review_batch(self, doc: Document, batch: list[Requirement], label: str, depth: int = 0) -> dict[str, ReqReviewOut]:
+        if self.fatal is not None:
+            return {}
         context, is_full = self._context(doc, batch)
         user = prompts.review_prompt(batch, context, is_full)
         try:
             out = self.llm.complete_json(f"проверка {label}", prompts.SYSTEM, user, BatchReviewOut, kind="review")
-        except LLMFatal:
-            raise
+        except LLMFatal as exc:
+            self._on_fatal(exc, f"проверка {label}")
+            return {}
         except LLMError as exc:
             if len(batch) > 1:
                 # Порция не прошла (обрезан ответ, битый JSON): делим пополам и пробуем снова.
@@ -340,6 +383,8 @@ class Pipeline:
 
         def work(job: tuple[int, list[Requirement]]) -> dict[str, ReqReviewOut]:
             number, batch = job
+            if self.fatal is not None:
+                return {}
             self.log(f"  порция {number}/{total}: {batch[0].id}..{batch[-1].id}")
             return self._review_batch(doc, batch, f"{number}/{total}")
 
@@ -446,14 +491,12 @@ class Pipeline:
         known = {r.id: r for r in requirements}
         findings: list[Finding] = []
         for step, build, own in passes:
+            if self._blocked(step):
+                continue
             user = build(findings)
             self.log(f"  {step}")
-            try:
-                out = self.llm.complete_json(step, prompts.SYSTEM, user, SetReviewOut, kind="set")
-            except LLMFatal:
-                raise
-            except LLMError as exc:
-                self.failed_steps.append(f"{step}: {exc}")
+            out = self._set_call(step, user)
+            if out is None:
                 continue
             seen_analyses = {a.criterion for a in self.set_analyses}
             for analysis in out.analyses:
@@ -509,6 +552,27 @@ class Pipeline:
                     findings[-1].status = "question_only"
                     self.grounding.question_only += 1
         return findings
+
+    def _set_call(self, step: str, user: str) -> SetReviewOut | None:
+        """Один проход по набору. Обрезанный ответ: один повтор с reasoning_effort=low (М-07)."""
+        effort = None
+        for attempt in (1, 2):
+            try:
+                return self.llm.complete_json(step, prompts.SYSTEM, user, SetReviewOut, kind="set",
+                                              **({"effort": effort} if effort else {}))
+            except LLMFatal as exc:
+                self._on_fatal(exc, step)
+                return None
+            except LLMTruncated as exc:
+                if attempt == 1:
+                    effort = "low"
+                    self.log(f"  {step}: ответ обрезан, повторяю с reasoning_effort=low")
+                    continue
+                self.failed_steps.append(f"{step}: {exc}")
+            except LLMError as exc:
+                self.failed_steps.append(f"{step}: {exc}")
+                return None
+        return None
 
     # ---------- шаг 4: сверка цитат ----------
 
@@ -635,15 +699,21 @@ class Pipeline:
         decision, dev, test, blockers = self.decide(findings)
         return Verdict(
             decision=decision, ready_for_development=dev, ready_for_testing=test, rule=DECISION_RULE,
-            blockers=blockers, critic_done=False, **fields,
+            blockers=blockers, critic_done=False, partial=self._incomplete(), **fields,
         )
+
+    def _incomplete(self) -> bool:
+        """Часть работы модели не выполнена: решение принято по неполным данным (К-10)."""
+        return bool(self.fatal or self.unreviewed or any(
+            s.startswith(("нарезка", "проверка", "набор")) for s in self.failed_steps))
 
     def conclude(self, doc: Document, requirements: list[Requirement], findings: list[Finding]) -> tuple[Verdict, list[Question]]:
         """Шаг 8: один вызов даёт обоснование, первоочередные действия и сводные вопросы (К-08)."""
         if not findings:
-            verdict = self._verdict(
-                findings, rationale="Агент не нашёл нарушений критериев качества.", generated_by_model=False,
-            )
+            rationale = ("Агент не нашёл нарушений в той части, которую успел проверить. Отчёт неполный, "
+                         "решение может измениться после полной проверки." if self._incomplete()
+                         else "Агент не нашёл нарушений критериев качества.")
+            verdict = self._verdict(findings, rationale=rationale, generated_by_model=False)
             return verdict, []
         active = [f for f in findings if f.status not in INACTIVE_STATUSES]
         ranked = sorted(active, key=lambda f: (SEVERITY_ORDER[f.severity], f.id))
@@ -653,12 +723,15 @@ class Pipeline:
         with_question = sum(1 for f in ranked if f.question and f.severity != "MINOR")
         limit = max(1, min(MAX_QUESTIONS, with_question))
         for attempt in (1, 2):
+            if self._blocked("итог"):
+                break
             user = prompts.final_prompt(doc.name, len(requirements), ranked, decision, limit)
             try:
                 out = self.llm.complete_json("итог", prompts.SYSTEM, user, FinalOut, kind="verdict")
                 break
-            except LLMFatal:
-                raise
+            except LLMFatal as exc:
+                self._on_fatal(exc, "итог")
+                break
             except LLMTruncated as exc:
                 if attempt == 1 and limit > 3:
                     # Ответ не влез в лимит длины: один повтор с вдвое меньшим числом вопросов.
@@ -872,11 +945,11 @@ class Pipeline:
         mark = self._begin("3", f"Нарезка требований ({doc.n} строк)")
         requirements = self.segment(doc)
         if not requirements:
+            if not self.failed_steps:
+                self.failed_steps.append(
+                    "нарезка: модель не выделила ни одного требования; проверьте, что документ содержит требования")
             self._end(mark, "требований не выделено", failed=True)
-            raise LLMError(
-                "Агент не выделил ни одного требования. Проверьте, что документ содержит требования, "
-                "и посмотрите сообщения об ошибках выше."
-            )
+            return self._partial_without_requirements(doc, agent_version, started, t0)
         lost = f"; идентификаторы документа вне нарезки: {', '.join(self.quality.ids_missing)}" if self.quality.ids_missing else ""
         self._end(mark, f"требований {len(requirements)}, пропущено фрагментов {len(self.skipped)}{lost}")
         index = TextIndex(doc)
@@ -921,6 +994,23 @@ class Pipeline:
         tail = "" if verdict.questions_by_model else " (запасной путь: из полей замечаний)"
         self._end(mark, f"решение: {verdict.decision}; вопросов {len(questions)}{tail}")
 
+        return self._result(doc, agent_version, started, t0, requirements, findings, rewritten, questions, verdict)
+
+    def _partial_without_requirements(self, doc: Document, agent_version: str, started: datetime, t0: float) -> RunResult:
+        """Нарезка не дала требований: отчёт из паспорта и причины (К-03, К-10)."""
+        for number, name in (("4", "Проверка каждого требования"), ("5", "Набор требований целиком (два прохода)"),
+                             ("6", "Сверка цитат с документом"), ("8", "Итог и сводные вопросы")):
+            self.steps.append(StepStat(number=number, name=name, status="failed", reason="нет требований после нарезки"))
+        verdict = self._verdict(
+            [], rationale="Решение не принято: требования не выделены, проверка не проводилась.",
+            generated_by_model=False, questions_by_model=False,
+        )
+        verdict.decision, verdict.ready_for_development, verdict.ready_for_testing = "Не вынесен", "Не оценена", "Не оценена"
+        verdict.partial = True
+        return self._result(doc, agent_version, started, t0, [], [], {}, [], verdict)
+
+    def _result(self, doc: Document, agent_version: str, started: datetime, t0: float, requirements: list[Requirement],
+                findings: list[Finding], rewritten: dict[str, str], questions: list[Question], verdict: Verdict) -> RunResult:
         result = RunResult(
             document_name=doc.name,
             document_format=doc.fmt,
@@ -943,6 +1033,7 @@ class Pipeline:
             questions=questions,
             steps=self.steps,
             json_mode=getattr(self.llm, "json_mode", ""),
+            fatal=self.fatal,
             verdict=verdict,
             grounding=self.grounding,
             quality=self.quality,

@@ -9,6 +9,14 @@ from dotenv import load_dotenv
 
 GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai/"
 DEFAULT_GEMINI_MODEL = "gemini-3.8-flash"
+# Совместимый с OpenAI адрес Anthropic (живой прогон 26.11.2026 на claude-haiku-5-5 через LLM_*).
+ANTHROPIC_BASE_URL = "https://api.anthropic.com/v1/"
+DEFAULT_ANTHROPIC_MODEL = "claude-haiku-5-5"
+# Модель OpenAI по умолчанию: «сбалансированная по цене» со страницы моделей OpenAI на 26.11.2026.
+# Живым вызовом не проверена: ключа OpenAI нет.
+DEFAULT_OPENAI_MODEL = "gpt-6.2-sol"
+# Пауза между запросами к Gemini по умолчанию: бесплатный уровень держит малый RPM (М-09).
+GEMINI_MIN_INTERVAL_SEC = 4.0
 DEFAULT_CACHE_DIR = ".reqask_cache"
 
 # Уровень рассуждения и лимит вывода по видам шагов. Лимит взят с запасом:
@@ -18,6 +26,7 @@ STEP_PARAMS: dict[str, tuple[str, int]] = {
     "review": ("medium", 24_000),
     "set": ("medium", 24_000),
     "verdict": ("medium", 24_000),
+    "check": ("low", 4_000),
 }
 DEFAULT_STEP_PARAMS = ("medium", 16_000)
 JSON_MODES = ("auto", "parse", "schema", "object", "none")
@@ -74,7 +83,10 @@ def _num(name: str, default, cast):
 
 
 def _provider() -> tuple[str, str | None, str, str]:
-    """Возвращает (провайдер, base_url, ключ, модель) по первому заполненному варианту."""
+    """Возвращает (провайдер, base_url, ключ, модель) по первому заполненному варианту.
+
+    Порядок: LLM_*, GEMINI_*, ANTHROPIC_*, OPENAI_*, OLLAMA_*.
+    """
     if _env("LLM_BASE_URL") or _env("LLM_API_KEY"):
         model = _env("LLM_MODEL")
         if not model:
@@ -84,11 +96,12 @@ def _provider() -> tuple[str, str | None, str, str]:
     if _env("GEMINI_API_KEY"):
         return "gemini", GEMINI_BASE_URL, _env("GEMINI_API_KEY"), _env("GEMINI_MODEL", DEFAULT_GEMINI_MODEL)
 
+    if _env("ANTHROPIC_API_KEY"):
+        return ("anthropic", ANTHROPIC_BASE_URL, _env("ANTHROPIC_API_KEY"),
+                _env("ANTHROPIC_MODEL", DEFAULT_ANTHROPIC_MODEL))
+
     if _env("OPENAI_API_KEY"):
-        model = _env("OPENAI_MODEL")
-        if not model:
-            raise ConfigError("Задан OPENAI_API_KEY, но не задан OPENAI_MODEL.")
-        return "openai", None, _env("OPENAI_API_KEY"), model
+        return "openai", None, _env("OPENAI_API_KEY"), _env("OPENAI_MODEL", DEFAULT_OPENAI_MODEL)
 
     if _env("OLLAMA_MODEL"):
         base = _env("OLLAMA_BASE_URL", "http://localhost:11434").rstrip("/")
@@ -98,7 +111,7 @@ def _provider() -> tuple[str, str | None, str, str]:
 
     raise ConfigError(
         "Не найден ключ модели. Скопируйте .env.example в .env и впишите GEMINI_API_KEY "
-        "(бесплатный ключ: https://aistudio.google.com/). Другие варианты описаны в .env.example."
+        "(бесплатный ключ: https://aistudio.google.com/). Другие варианты (ANTHROPIC_API_KEY, OPENAI_API_KEY, Ollama, любой OpenAI-совместимый адрес) описаны в .env.example."
     )
 
 
@@ -124,7 +137,7 @@ def load_settings(env_file: str | None = None) -> Settings:
         max_retries=_num("LLM_MAX_RETRIES", 5, int),
         max_repairs=_num("LLM_MAX_REPAIRS", 2, int),
         timeout_sec=_num("LLM_TIMEOUT_SEC", 240.0, float),
-        min_interval_sec=_num("LLM_MIN_INTERVAL_SEC", 0.0, float),
+        min_interval_sec=_num("LLM_MIN_INTERVAL_SEC", GEMINI_MIN_INTERVAL_SEC if provider == "gemini" else 0.0, float),
         concurrency=max(1, _num("LLM_CONCURRENCY", 1, int)),
         batch_size=max(1, _num("REQASK_BATCH_SIZE", 6, int)),
         cache_dir=cache_dir,
