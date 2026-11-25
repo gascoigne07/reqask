@@ -401,6 +401,9 @@ class RunResult(BaseModel):
     json_mode: str = ""
     # Фатальная ошибка модели, после которой шаги с моделью пропущены (К-10). None, если её не было.
     fatal: str | None = None
+    # PDF: страницы без текста (Ч-07) и удалённые строки колонтитулов (Ч-04).
+    empty_pages: list[int] = Field(default_factory=list)
+    removed_headers: int = 0
     verdict: Verdict
     grounding: GroundingStats
     quality: QualityStats = Field(default_factory=QualityStats)

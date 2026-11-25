@@ -1034,6 +1034,8 @@ class Pipeline:
             steps=self.steps,
             json_mode=getattr(self.llm, "json_mode", ""),
             fatal=self.fatal,
+            empty_pages=doc.empty_pages,
+            removed_headers=doc.removed_headers,
             verdict=verdict,
             grounding=self.grounding,
             quality=self.quality,

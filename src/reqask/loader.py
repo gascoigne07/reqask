@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import hashlib
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from functools import cached_property
 from pathlib import Path
 
@@ -26,9 +26,14 @@ class LoadError(Exception):
 
 @dataclass(frozen=True)
 class Line:
+    """Строка документа после очистки (Ч-01). Номер строки видят модель и отчёт."""
+
     no: int
     text: str
     page: int | None = None
+    # text, table, heading. В Markdown заголовок и таблица видны по разметке, в PDF их размечает чтение.
+    kind: str = "text"
+    level: int = 0
 
 
 @dataclass
@@ -37,6 +42,9 @@ class Document:
     fmt: str
     lines: list[Line]
     sha256: str
+    # PDF: страницы без текста (Ч-07) и число удалённых строк колонтитулов (Ч-04).
+    empty_pages: list[int] = field(default_factory=list)
+    removed_headers: int = 0
 
     @property
     def name(self) -> str:
@@ -63,6 +71,9 @@ class Document:
         found = []
         in_fence = False
         for line in self.lines:
+            if line.kind == "heading" and line.level:
+                found.append((line.no, line.level, line.text.strip()))
+                continue
             if FENCE_RE.match(line.text):
                 in_fence = not in_fence
                 continue
@@ -123,27 +134,24 @@ def _load_text(data: bytes) -> list[tuple[str, int | None]]:
     return [(raw.rstrip(), None) for raw in _decode(data).splitlines()]
 
 
-def _load_pdf(path: Path) -> list[tuple[str, int | None]]:
-    from pypdf import PdfReader
+def _load_pdf(path: Path):
     from pypdf.errors import PdfReadError
 
+    from .pdfread import ScanError, read_pdf
+
     try:
-        reader = PdfReader(str(path))
-        if reader.is_encrypted and not reader.decrypt(""):
-            raise LoadError("PDF защищён паролем. Снимите защиту и повторите запуск.")
-        rows: list[tuple[str, int | None]] = []
-        for page_no, page in enumerate(reader.pages, start=1):
-            for raw in (page.extract_text() or "").splitlines():
-                # Выравнивание по ширине даёт в PDF двойные пробелы между словами, убираем их.
-                rows.append((re.sub(r"[ \t]{2,}", " ", raw).strip(), page_no))
-    except PdfReadError as exc:
-        raise LoadError(f"Не удалось разобрать PDF: {exc}") from exc
-    if not any(text.strip() for text, _ in rows):
+        return read_pdf(path)
+    except PermissionError as exc:
+        raise LoadError("PDF защищён паролем. Снимите защиту и повторите запуск.") from exc
+    except ScanError as exc:
         raise LoadError(
-            "В PDF нет текстового слоя (похоже на скан). Распознайте текст (OCR) "
+            f"Это скан, нужен текстовый PDF: {exc}. Распознайте текст (OCR) "
             "или передайте документ в Markdown, DOCX или TXT."
-        )
-    return rows
+        ) from exc
+    except (PdfReadError, ValueError, KeyError, OSError) as exc:
+        raise LoadError(f"Не удалось разобрать PDF, файл повреждён или это не PDF: {exc}") from exc
+    except Exception as exc:  # noqa: BLE001  pdfminer бросает свои исключения на битых файлах
+        raise LoadError(f"Не удалось разобрать PDF: {type(exc).__name__}: {exc}") from exc
 
 
 def _load_docx(path: Path) -> list[tuple[str, int | None]]:
@@ -181,8 +189,14 @@ def load_document(path: str | Path) -> Document:
 
     ext = path.suffix.lower()
     if ext == ".pdf" or data[:5] == b"%PDF-":
-        fmt, rows = "pdf", _load_pdf(path)
-    elif ext == ".docx":
+        pdf = _load_pdf(path)
+        lines = [Line(no=i, text=line.text, page=line.page, kind=line.kind, level=line.level)
+                 for i, line in enumerate(pdf.lines, start=1)]
+        return Document(path=path, fmt="pdf", lines=lines, sha256=hashlib.sha256(data).hexdigest(),
+                        empty_pages=pdf.empty_pages, removed_headers=pdf.removed_headers)
+    if ext == ".doc":
+        raise LoadError("Старый формат .doc не поддерживается. Сохраните документ как DOCX или PDF.")
+    if ext == ".docx":
         fmt, rows = "docx", _load_docx(path)
     elif ext in TEXT_EXTENSIONS or not ext:
         fmt, rows = (ext.lstrip(".") or "txt"), _load_text(data)

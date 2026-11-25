@@ -243,6 +243,9 @@ class _Report:
         self.add("| Прогон | Значение |")
         self.add("| :--- | :--- |")
         self.add(f"| Документ | {_cell(r.document_name)}, формат {r.document_format}, строк {r.document_lines} |")
+        if r.document_format == "pdf":
+            empty = ", ".join(map(str, r.empty_pages)) if r.empty_pages else "нет"
+            self.add(f"| Чтение PDF | страницы без текста: {empty}; удалено строк колонтитулов: {r.removed_headers} |")
         self.add(f"| SHA-256 документа | `{r.document_sha256}` |")
         self.add(f"| Дата и время | {r.started_at} |")
         self.add(f"| Длительность | {r.duration_sec} с |")
