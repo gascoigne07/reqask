@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+
+# Окружение и секреты
+.env
+.venv/
+venv/
+
+# Кэш ответов модели
+.reqask_cache/
+
+# Рабочие заметки, в публичный репозиторий не идут
+CLAUDE.md
+RESEARCH.md
+.claude/
+
+# IDE и ОС
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# ТЗ на доработку, рабочий файл
+TZ.md
