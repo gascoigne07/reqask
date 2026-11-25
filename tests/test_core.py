@@ -6,6 +6,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 import pytest
+from pydantic import BaseModel
 
 from reqask.config import Settings
 from reqask.grounding import TextIndex, normalize
@@ -19,7 +20,8 @@ from reqask.schemas import (
     LLMStats,
     SegmentationOut,
     SetReviewOut,
-    VerdictOut,
+    FinalOut,
+    TopFix,
 )
 
 DOC = """# Библиотечный каталог
@@ -37,6 +39,13 @@ DOC = """# Библиотечный каталог
 ## Тестирование
 заполняется позже
 """
+
+class SimpleOut(BaseModel):
+    """Простая схема для тестов клиента модели."""
+
+    rationale: str
+    top_fixes: list[TopFix]
+
 
 SETTINGS = Settings(provider="fake", base_url=None, api_key="x", model="fake-model", cache_dir=None, max_retries=0)
 
@@ -57,6 +66,13 @@ def _set_finding(kind, criterion, severity, title, evidence, req_ids=(), questio
     return {"kind": kind, "criterion": criterion, "severity": severity, "title": title, "req_ids": list(req_ids),
             "section": section, "evidence": [{"quote": q, "line": None} for q in evidence], "problem": "п",
             "impact": "и", "recommendation": "р", "question": question, "addressee": addressee}
+
+
+def _question(ids, n_options, recommended=None, addressee=None):
+    return {"text": f"Вопрос про {', '.join(ids)}?", "addressee": addressee,
+            "options": [{"answer": f"вариант {i}", "consequence": "правка"} for i in range(1, n_options + 1)],
+            "recommended": recommended, "why_recommended": "так проще" if recommended else None,
+            "blocks": "нельзя реализовать", "doc_says": None, "finding_ids": list(ids)}
 
 
 class FakeLLM:
@@ -118,10 +134,16 @@ class FakeLLM:
                                  question="Кто может менять лимит книг?", section="Требования", addressee="security"),
                     _set_finding("gap", "SET_COMPLETE", "MAJOR", "Пробел без места", [], question="Вопрос?"),
                 ]})
-        if schema is VerdictOut:
-            return VerdictOut.model_validate({"rationale": "Есть блокеры.", "top_fixes": [
+        if schema is FinalOut:
+            return FinalOut.model_validate({"rationale": "Есть блокеры.", "top_fixes": [
                 {"finding_ids": ["S-01", "X-404"], "action": "Оставить одно число."},
                 {"finding_ids": ["нет"], "action": "Мимо."},
+            ], "questions": [
+                _question(["S-01", "D-99"], 2, recommended=1, addressee="business"),
+                _question(["s-01"], 3),  # тот же набор замечаний: сливается с первым
+                _question(["S-02", "S-03"], 1),  # один вариант: отброшен
+                _question(["X-1"], 2),  # нет существующих замечаний: отброшен
+                _question(["S-02"], 5, recommended=7),  # вариантов больше четырёх, номер рекомендации мимо
             ]})
         raise AssertionError(schema)
 
@@ -211,9 +233,25 @@ def test_pipeline_end_to_end(doc):
     # Второй проход по набору видит замечания первого и просит их не повторять.
     assert "Разное число книг" in llm.users[3]
 
-    assert result.verdict.ready_for_development == "Нет"
-    assert result.verdict.ready_for_testing == "Нет"
-    assert [fix.finding_ids for fix in result.verdict.top_fixes] == [["S-01"]]
+    v = result.verdict
+    assert v.decision == "Не рекомендуется начинать" and v.blockers == ["D-01", "S-01"] and not v.critic_done
+    assert v.ready_for_development == "Нет" and v.ready_for_testing == "Нет"
+    assert [fix.finding_ids for fix in v.top_fixes] == [["S-01"]]
+
+    # Сводные вопросы: проверки кодом, приоритет, запасной вопрос для непокрытого CRITICAL (К-08).
+    qs = result.questions
+    assert [(q.id, q.finding_ids, q.source) for q in qs] == [
+        ("Q-01", ["S-01"], "model"), ("Q-02", ["D-01"], "fallback"), ("Q-03", ["S-02"], "model"),
+    ]
+    assert [q.priority for q in qs] == [5.5, 5.25, 2.0]  # CRITICAL 5 + 0,25 за требование
+    assert qs[0].recommended == 1 and qs[0].addressee == "business" and qs[0].req_ids == ["REQ-02", "REQ-03"]
+    assert [e.line for e in qs[0].quotes] == [5, 11]  # цитаты подставлены из замечания
+    assert len(qs[2].options) == 4 and qs[2].recommended is None and qs[2].why_recommended is None
+    assert qs[2].addressee == "analyst" and qs[1].text == "Какое время ответа, в секундах?"
+    q = result.quality
+    assert (q.questions_dropped, q.questions_merged, q.questions_added) == (2, 1, 1)
+    assert by_id["D-01"].question_id == "Q-02" and by_id["S-01"].question_id == "Q-01"
+    assert v.questions_by_model
     assert [(s.line_start, s.line_end, s.reason) for s in result.skipped_lines] == [(13, 14, "template")]
     assert result.uncovered_lines == []
     assert result.quality.ids_in_document == 2 and result.quality.ids_missing == []
@@ -248,7 +286,7 @@ def test_ids_use_three_digits_over_99():
 def test_pipeline_survives_failed_steps(doc):
     class Flaky(FakeLLM):
         def complete_json(self, step, system, user, schema, kind=""):
-            if schema in (BatchReviewOut, VerdictOut) or "полнота" in step:
+            if schema in (BatchReviewOut, FinalOut) or "полнота" in step:
                 self.steps.append(step)
                 raise LLMError("сбой")
             return super().complete_json(step, system, user, schema, kind)
@@ -258,6 +296,9 @@ def test_pipeline_survives_failed_steps(doc):
     assert len(result.failed_steps) == 5  # три требования, проход по набору, итог
     assert [f.id for f in result.findings] == ["S-01"]
     assert result.verdict.generated_by_model is False and result.verdict.top_fixes
+    # Запасной путь вопросов: из поля question замечания, без вариантов (К-08).
+    assert not result.verdict.questions_by_model
+    assert [(q.id, q.finding_ids, q.source, q.options) for q in result.questions] == [("Q-01", ["S-01"], "fallback", [])]
     assert "Неполнота прогона" in render(result)
 
 
@@ -272,7 +313,7 @@ def test_llm_repairs_invalid_json(monkeypatch):
         return next(answers)
 
     monkeypatch.setattr(client, "_chat", fake_chat)
-    out = client.complete_json("итог", "system", "user", VerdictOut)
+    out = client.complete_json("итог", "system", "user", SimpleOut)
     assert out.rationale == "ок" and client.stats.repairs == 2
     assert seen == [2, 4, 4]  # в повторе модель видит свой ответ и текст ошибки
 
@@ -281,7 +322,7 @@ def test_llm_gives_up_after_repairs(monkeypatch):
     client = LLMClient(SETTINGS)
     monkeypatch.setattr(client, "_chat", lambda *a: "мусор")
     with pytest.raises(LLMError):
-        client.complete_json("итог", "system", "user", VerdictOut)
+        client.complete_json("итог", "system", "user", SimpleOut)
 
 
 # ---------- клиент против локального сервера: что уходит провайдеру и как разбирается ответ ----------
@@ -339,17 +380,17 @@ VERDICT_JSON = '{"rationale": "ок", "top_fixes": []}'
 
 def test_llm_request_params(client_with):
     client, sent, logs = client_with(lambda body, n: (200, _completion(VERDICT_JSON)), temperature=0.3)
-    out = client.complete_json("итог", "system", "user", VerdictOut, kind="verdict")
-    client.complete_json("нарезка 1/1", "system", "user", VerdictOut, kind="segment")
+    out = client.complete_json("итог", "system", "user", SimpleOut, kind="verdict")
+    client.complete_json("нарезка 1/1", "system", "user", SimpleOut, kind="segment")
 
     assert out.rationale == "ок"
     first, second = sent
     assert "temperature" not in first and "top_p" not in first and "seed" not in first
     assert any("LLM_TEMPERATURE" in line for line in logs)  # одно предупреждение, параметр не ушёл
-    assert (first["reasoning_effort"], first["max_tokens"]) == ("medium", 16_000)
+    assert (first["reasoning_effort"], first["max_tokens"]) == ("medium", 24_000)
     assert (second["reasoning_effort"], second["max_tokens"]) == ("low", 16_000)
     assert first["response_format"]["type"] == "json_schema"  # режим parse: схему строит SDK
-    assert first["response_format"]["json_schema"]["name"] == "VerdictOut"
+    assert first["response_format"]["json_schema"]["name"] == "SimpleOut"
     assert "JSON Schema" not in first["messages"][0]["content"]  # схема ушла один раз, в response_format (П-04)
     stats = client.stats
     assert (stats.calls, stats.prompt_tokens, stats.completion_tokens) == (2, 20, 10)
@@ -363,7 +404,7 @@ def test_llm_json_mode_ladder(client_with):
         return 200, _completion("Ответ:\n```json\n" + VERDICT_JSON + "\n```")
 
     client, sent, _ = client_with(handler)
-    client.complete_json("итог", "system", "user", VerdictOut, kind="verdict")
+    client.complete_json("итог", "system", "user", SimpleOut, kind="verdict")
     formats = [(body.get("response_format") or {}).get("type") for body in sent]
     assert formats == ["json_schema", "json_schema", "json_object", None]  # parse, schema, object, none
     assert "strict" in sent[0]["response_format"]["json_schema"] and "strict" not in sent[1]["response_format"]["json_schema"]
@@ -380,27 +421,27 @@ def test_llm_drops_rejected_params_and_stops_on_bad_key(client_with):
         return 200, _completion(VERDICT_JSON)
 
     client, sent, _ = client_with(handler)
-    client.complete_json("итог", "system", "user", VerdictOut, kind="verdict")
+    client.complete_json("итог", "system", "user", SimpleOut, kind="verdict")
     assert len(sent) == 3 and "reasoning_effort" not in sent[2] and "max_tokens" not in sent[2]
     assert sent[2]["response_format"]["type"] == "json_schema"  # режим JSON при этом не понижен
 
     # Gemini отдаёт тело ошибки списком, причина есть только в нём.
     client, sent, _ = client_with(lambda body, n: (400, [{"error": {"code": 400, "message": "Please pass a valid API key"}}]))
     with pytest.raises(LLMFatal):
-        client.complete_json("итог", "system", "user", VerdictOut, kind="verdict")
+        client.complete_json("итог", "system", "user", SimpleOut, kind="verdict")
     assert len(sent) == 1  # без повторов и без понижения режимов
 
 
 def test_llm_truncated_and_unparsed_answers(client_with):
     client, _, _ = client_with(lambda body, n: (200, _completion('{"rationale": "об', finish="length")))
     with pytest.raises(LLMTruncated):
-        client.complete_json("итог", "system", "user", VerdictOut, kind="verdict")
+        client.complete_json("итог", "system", "user", SimpleOut, kind="verdict")
     assert client.stats.calls == 1
 
     # Ответ не по схеме: SDK его не разбирает, клиент отдаёт текст модели на исправление.
     answers = iter(['{"rationale": 5, "top_fixes": "нет"}', VERDICT_JSON])
     client, sent, _ = client_with(lambda body, n: (200, _completion(next(answers))))
-    out = client.complete_json("итог", "system", "user", VerdictOut, kind="verdict")
+    out = client.complete_json("итог", "system", "user", SimpleOut, kind="verdict")
     assert out.rationale == "ок" and client.stats.repairs == 1 and len(sent[1]["messages"]) == 4
 
 
@@ -409,5 +450,22 @@ def test_llm_daily_quota_is_fatal_without_retries(client_with):
                        "message": "Quota exceeded: Generate content requests per day limit exceeded on Free Tier."}}]
     client, sent, _ = client_with(lambda request, n: (429, body), max_retries=3)
     with pytest.raises(LLMFatal):
-        client.complete_json("итог", "system", "user", VerdictOut, kind="verdict")
+        client.complete_json("итог", "system", "user", SimpleOut, kind="verdict")
     assert len(sent) == 1  # повторы суточную квоту не вернут, а запросы тратят
+
+
+def test_decision_rule_ignores_inactive_findings():
+    from reqask.schemas import Finding
+
+    def f(severity, criterion="COMPLETE", status="unreviewed", fid="D-01"):
+        return Finding(id=fid, scope="requirement", criterion=criterion, severity=severity,
+                       problem="п", recommendation="р", status=status)
+
+    decide = Pipeline.decide
+    assert decide([f("CRITICAL", "VERIFIABLE")]) == ("Не рекомендуется начинать", "Нет", "Нет", ["D-01"])
+    assert decide([f("CRITICAL", "NECESSARY")])[2] == "Да, с оговорками"  # не блокер тестирования
+    assert decide([f("MAJOR")])[:3] == ("Условно допускается", "Да, с оговорками", "Да, с оговорками")
+    assert decide([f("MINOR")])[0] == "Допускается" and decide([])[0] == "Допускается"
+    # Снятое критиком и ушедшее в карантин CRITICAL на решение не влияет (К-09).
+    gone = [f("CRITICAL", status="quarantine"), f("CRITICAL", status="dropped", fid="D-02"), f("MAJOR", fid="D-03")]
+    assert decide(gone) == ("Условно допускается", "Да, с оговорками", "Да, с оговорками", [])

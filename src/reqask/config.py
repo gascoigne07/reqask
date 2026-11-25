@@ -17,7 +17,7 @@ STEP_PARAMS: dict[str, tuple[str, int]] = {
     "segment": ("low", 16_000),
     "review": ("medium", 24_000),
     "set": ("medium", 24_000),
-    "verdict": ("medium", 16_000),
+    "verdict": ("medium", 24_000),
 }
 DEFAULT_STEP_PARAMS = ("medium", 16_000)
 JSON_MODES = ("auto", "parse", "schema", "object", "none")

@@ -298,15 +298,42 @@ def render(result: RunResult) -> str:
     # ---------- 6. итог ----------
     v = result.verdict
     add("## 6. Итог\n")
+    add(f"**Вердикт: {v.decision}.**\n")
+    if v.blockers and not v.critic_done:
+        add("Критичные замечания не перепроверены отдельным шагом.\n")
     add(f"- Можно ли начинать разработку: **{v.ready_for_development}**")
     add(f"- Можно ли начинать тестирование: **{v.ready_for_testing}**\n")
-    add(f"Правило расчёта готовности. {v.rule}\n")
+    add(f"Правило вердикта. {v.rule}\n")
     add(v.rationale + "\n")
     if v.top_fixes:
         add("### Что исправить в первую очередь\n")
         for number, fix in enumerate(v.top_fixes, start=1):
             add(f"{number}. {fix.action} (замечания: {', '.join(fix.finding_ids)})")
         add("")
+
+    # ---------- 7. вопросы ----------
+    add("## 7. Вопросы к автору ТЗ\n")
+    if not result.questions:
+        add("Вопросов нет.\n")
+    elif not v.questions_by_model:
+        add("Сводные вопросы не сформированы, ниже вопросы из замечаний по убыванию критичности.\n")
+    for qn in result.questions:
+        add(f"#### {qn.id} · {ADDRESSEES.get(qn.addressee, qn.addressee)}\n")
+        add(qn.text + "\n")
+        if qn.doc_says:
+            add(f"- Сейчас в документе: {qn.doc_says}")
+        for item in qn.quotes:
+            add(f"- Цитата, {_evidence(item)}")
+        if qn.options:
+            add("- Варианты:")
+            for number, option in enumerate(qn.options, start=1):
+                add(f"  {number}. {option.answer}. Последствие: {option.consequence}")
+        if qn.recommended:
+            why = f", потому что {qn.why_recommended}" if qn.why_recommended else ""
+            add(f"- Рекомендуем: вариант {qn.recommended}{why}")
+        if qn.blocks:
+            add(f"- Без ответа нельзя: {qn.blocks}")
+        add(f"- Закрывает замечания: {', '.join(qn.finding_ids)}.\n")
 
     # ---------- приложение ----------
     add("## Приложение. Критерии проверки\n")

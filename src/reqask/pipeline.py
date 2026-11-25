@@ -5,7 +5,8 @@
 2. review: проверка каждого требования порциями, с линтер-подсказками и контекстом.
 3. set review: два независимых прохода по набору (согласованность, полнота и остальное).
 4. grounding: сверка всех цитат с документом, непривязанные замечания отбрасываются.
-5. verdict: готовность считает правило, модель пишет обоснование и порядок исправлений.
+5. итог: решение считает правило (К-09), модель пишет обоснование, порядок исправлений
+   и сводные вопросы автору; ссылки, варианты, приоритет и цитаты вопросов проверяет код (К-08).
 
 Сбой одного шага не роняет прогон: порция делится пополам, непроверенное
 перечисляется в отчёте. Останавливают прогон только ошибки без шанса на успех
@@ -16,6 +17,7 @@ from __future__ import annotations
 
 import re
 import time
+from collections import Counter
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from typing import Callable, Protocol, TypeVar
@@ -30,14 +32,18 @@ from .lint import lint
 from .llm import LLMError, LLMFatal
 from .loader import Document
 from .schemas import (
+    INACTIVE_STATUSES,
     SEVERITY_SET,
     BatchReviewOut,
     CriterionCheck,
     Evidence,
+    FinalOut,
     Finding,
     GroundingStats,
     LLMStats,
+    Option,
     QualityStats,
+    Question,
     ReqReviewOut,
     Requirement,
     RunResult,
@@ -48,7 +54,6 @@ from .schemas import (
     SkippedSpan,
     TopFix,
     Verdict,
-    VerdictOut,
 )
 
 T = TypeVar("T", bound=BaseModel)
@@ -65,11 +70,17 @@ _ADDRESSEE_DEFAULT = "analyst"
 
 # Критерии, без которых нельзя писать тесты: дефект CRITICAL по ним блокирует тестирование.
 TESTING_BLOCKERS = {"VERIFIABLE", "UNAMBIGUOUS", "COMPLETE", "SET_CONSISTENT", "SET_COMPLETE", "SET_VALIDATABLE"}
-READINESS_RULE = (
-    "Разработка: «Нет», если есть хотя бы одно замечание CRITICAL; «Да, с оговорками», если есть MAJOR; иначе «Да». "
-    "Тестирование: «Нет», если есть CRITICAL по проверяемости, однозначности, полноте, согласованности "
-    "или валидируемости; «Да, с оговорками», если есть другие CRITICAL или MAJOR; иначе «Да»."
+DECISIONS = ("Не рекомендуется начинать", "Условно допускается", "Допускается")
+# Правило вердикта К-09. Печатается в отчёте как есть.
+DECISION_RULE = (
+    "«Не рекомендуется начинать», если есть хотя бы одно замечание CRITICAL, которое не снято критиком "
+    "и не ушло в карантин из-за ненайденной цитаты. «Условно допускается», если CRITICAL нет, но есть MAJOR. "
+    "«Допускается», если есть только MINOR или замечаний нет. "
+    "Готовность к тестированию считается отдельно: «Нет», если есть CRITICAL по проверяемости, однозначности, "
+    "полноте, согласованности или валидируемости; «Да, с оговорками», если есть другие CRITICAL или MAJOR; иначе «Да»."
 )
+# Вес уровня в приоритете сводного вопроса (К-08).
+SEVERITY_WEIGHT = {"CRITICAL": 5.0, "MAJOR": 2.0, "MINOR": 0.5}
 
 
 class JsonLLM(Protocol):
@@ -499,52 +510,205 @@ class Pipeline:
     # ---------- шаг 5: итог ----------
 
     @staticmethod
-    def readiness(findings: list[Finding]) -> tuple[str, str]:
-        critical = [f for f in findings if f.severity == "CRITICAL"]
-        major = [f for f in findings if f.severity == "MAJOR"]
-        dev = "Нет" if critical else ("Да, с оговорками" if major else "Да")
+    def decide(findings: list[Finding], critic_done: bool = False) -> tuple[str, str, str, list[str]]:
+        """Решение по правилу К-09, готовность к разработке и тестированию, блокеры.
+
+        Снятые критиком, слитые, ушедшие в карантин и пониженные до вопроса замечания не считаются.
+        """
+        active = [f for f in findings if f.status not in INACTIVE_STATUSES]
+        critical = [f for f in active if f.severity == "CRITICAL"]
+        major = [f for f in active if f.severity == "MAJOR"]
+        if critical:
+            decision, dev = DECISIONS[0], "Нет"
+        elif major:
+            decision, dev = DECISIONS[1], "Да, с оговорками"
+        else:
+            decision, dev = DECISIONS[2], "Да"
         if any(f.criterion in TESTING_BLOCKERS for f in critical):
             test = "Нет"
         elif critical or major:
             test = "Да, с оговорками"
         else:
             test = "Да"
-        return dev, test
+        return decision, dev, test, [f.id for f in critical]
 
-    def conclude(self, doc: Document, requirements: list[Requirement], findings: list[Finding]) -> Verdict:
-        dev, test = self.readiness(findings)
+    def _verdict(self, findings: list[Finding], **fields) -> Verdict:
+        decision, dev, test, blockers = self.decide(findings)
+        return Verdict(
+            decision=decision, ready_for_development=dev, ready_for_testing=test, rule=DECISION_RULE,
+            blockers=blockers, critic_done=False, **fields,
+        )
+
+    def conclude(self, doc: Document, requirements: list[Requirement], findings: list[Finding]) -> tuple[Verdict, list[Question]]:
+        """Шаг 8: один вызов даёт обоснование, первоочередные действия и сводные вопросы (К-08)."""
         if not findings:
-            return Verdict(
-                ready_for_development=dev, ready_for_testing=test, rule=READINESS_RULE,
-                rationale="Агент не нашёл нарушений критериев качества.", generated_by_model=False,
+            verdict = self._verdict(
+                findings, rationale="Агент не нашёл нарушений критериев качества.", generated_by_model=False,
             )
-        ranked = sorted(findings, key=lambda f: (SEVERITY_ORDER[f.severity], f.id))
-        user = prompts.verdict_prompt(doc.name, len(requirements), ranked, f"разработка: {dev}; тестирование: {test}")
-        known = {f.id for f in findings}
+            return verdict, []
+        active = [f for f in findings if f.status not in INACTIVE_STATUSES]
+        ranked = sorted(active, key=lambda f: (SEVERITY_ORDER[f.severity], f.id))
+        decision = self.decide(findings)[0]
+        user = prompts.final_prompt(doc.name, len(requirements), ranked, decision)
+        known = {f.id for f in ranked}
+        out: FinalOut | None = None
         try:
-            out = self.llm.complete_json("итог", prompts.SYSTEM, user, VerdictOut, kind="verdict")
-            fixes = []
-            for fix in out.top_fixes:
-                ids = [i.strip() for i in fix.finding_ids if i.strip() in known]
-                if ids and fix.action.strip():
-                    fixes.append(TopFix(finding_ids=ids, action=fix.action.strip()))
-            if fixes:
-                return Verdict(
-                    ready_for_development=dev, ready_for_testing=test, rule=READINESS_RULE,
-                    rationale=out.rationale.strip(), top_fixes=fixes[:7],
-                )
-            self.failed_steps.append("итог: модель не сослалась на существующие замечания")
+            out = self.llm.complete_json("итог", prompts.SYSTEM, user, FinalOut, kind="verdict")
         except LLMFatal:
             raise
         except LLMError as exc:
             self.failed_steps.append(f"итог: {exc}")
-        # Запасной вариант без модели: самые тяжёлые замечания по порядку.
-        fixes = [TopFix(finding_ids=[f.id], action=f.recommendation) for f in ranked[:7]]
-        return Verdict(
-            ready_for_development=dev, ready_for_testing=test, rule=READINESS_RULE,
-            rationale="Обоснование от модели не получено, список составлен по критичности замечаний.",
-            top_fixes=fixes, generated_by_model=False,
+
+        fixes: list[TopFix] = []
+        if out is not None:
+            for fix in out.top_fixes:
+                ids = [i.strip() for i in fix.finding_ids if i.strip() in known]
+                if ids and fix.action.strip():
+                    fixes.append(TopFix(finding_ids=ids, action=fix.action.strip()))
+            if not fixes:
+                self.failed_steps.append("итог: модель не сослалась на существующие замечания")
+
+        questions = self._questions(out, ranked) if out is not None else []
+        questions_by_model = bool(questions)
+        if out is not None and not questions and any(f.question for f in ranked):
+            self.failed_steps.append("итог: сводные вопросы не прошли проверку")
+        if not questions:
+            questions = self._fallback_questions(ranked)
+        else:
+            questions = self._add_uncovered_critical(questions, ranked)
+        questions = self._number_questions(questions, ranked)
+
+        if fixes:
+            verdict = self._verdict(
+                findings, rationale=out.rationale.strip(), top_fixes=fixes[:7], questions_by_model=questions_by_model,
+            )
+        else:
+            # Запасной вариант без модели: самые тяжёлые замечания по порядку.
+            verdict = self._verdict(
+                findings,
+                rationale="Обоснование от модели не получено, список составлен по критичности замечаний.",
+                top_fixes=[TopFix(finding_ids=[f.id], action=f.recommendation) for f in ranked[:7]],
+                generated_by_model=False, questions_by_model=questions_by_model,
+            )
+        return verdict, questions
+
+    # ---------- сводные вопросы ----------
+
+    @staticmethod
+    def _priority(linked: list[Finding]) -> tuple[float, list[str]]:
+        """Вес уровня связанных замечаний плюс 0,25 за каждое затронутое требование (К-08)."""
+        req_ids: list[str] = []
+        for f in linked:
+            for req_id in f.req_ids:
+                if req_id not in req_ids:
+                    req_ids.append(req_id)
+        weight = sum(SEVERITY_WEIGHT[f.severity] for f in linked) + 0.25 * len(req_ids)
+        return round(weight, 2), req_ids
+
+    @staticmethod
+    def _quotes(linked: list[Finding], limit: int = 3) -> list[Evidence]:
+        quotes: list[Evidence] = []
+        seen: set[tuple[int, str]] = set()
+        for f in linked:
+            for e in f.evidence:
+                key = (e.line or 0, e.quote)
+                if key not in seen:
+                    seen.add(key)
+                    quotes.append(e)
+        return quotes[:limit]
+
+    @staticmethod
+    def _main_addressee(linked: list[Finding]) -> str:
+        counts = Counter(f.addressee for f in linked if f.addressee)
+        return counts.most_common(1)[0][0] if counts else _ADDRESSEE_DEFAULT
+
+    def _questions(self, out: FinalOut, ranked: list[Finding]) -> list[Question]:
+        """Проверки сводных вопросов кодом: ссылки, число вариантов, дубли (К-08)."""
+        by_id = {f.id: f for f in ranked}
+        questions: list[Question] = []
+        by_key: dict[frozenset[str], Question] = {}
+        for item in out.questions:
+            ids: list[str] = []
+            for raw in item.finding_ids:
+                fid = raw.strip().upper()
+                if fid in by_id and fid not in ids:
+                    ids.append(fid)
+            options = [
+                Option(answer=" ".join(o.answer.split()), consequence=" ".join(o.consequence.split()))
+                for o in item.options if o.answer.strip()
+            ][:4]
+            text = " ".join(item.text.split())
+            if not ids or not text or len(options) < 2:
+                self.quality.questions_dropped += 1
+                continue
+            key = frozenset(ids)
+            if key in by_key:
+                # Тот же набор замечаний: второй вопрос сливается с первым.
+                self.quality.questions_merged += 1
+                continue
+            linked = [by_id[i] for i in ids]
+            priority, req_ids = self._priority(linked)
+            recommended = item.recommended if isinstance(item.recommended, int) and 1 <= item.recommended <= len(options) else None
+            why = " ".join((item.why_recommended or "").split()) or None
+            question = Question(
+                id="", text=text, addressee=item.addressee or self._main_addressee(linked), options=options,
+                recommended=recommended, why_recommended=why if recommended else None,
+                blocks=" ".join(item.blocks.split()), doc_says=" ".join((item.doc_says or "").split()) or None,
+                finding_ids=ids, priority=priority, req_ids=req_ids, quotes=self._quotes(linked), source="model",
+            )
+            by_key[key] = question
+            questions.append(question)
+        return questions
+
+    def _fallback_question(self, f: Finding) -> Question:
+        priority, req_ids = self._priority([f])
+        return Question(
+            id="", text=" ".join((f.question or "").split()), addressee=f.addressee or _ADDRESSEE_DEFAULT,
+            blocks=f.impact, finding_ids=[f.id], priority=priority, req_ids=req_ids,
+            quotes=self._quotes([f]), source="fallback",
         )
+
+    def _fallback_questions(self, ranked: list[Finding]) -> list[Question]:
+        """Запасной путь: вопросы из полей question замечаний по убыванию уровня, без вариантов (К-08)."""
+        questions: list[Question] = []
+        by_text: dict[str, Question] = {}
+        for f in ranked:
+            if not f.question:
+                continue
+            key = " ".join(f.question.split()).casefold()
+            if key in by_text:
+                # Одинаковый вопрос у нескольких замечаний: один вопрос, закрывает все.
+                q = by_text[key]
+                q.finding_ids.append(f.id)
+                linked = [x for x in ranked if x.id in q.finding_ids]
+                q.priority, q.req_ids = self._priority(linked)
+                q.quotes = self._quotes(linked)
+                continue
+            q = self._fallback_question(f)
+            by_text[key] = q
+            questions.append(q)
+        return questions
+
+    def _add_uncovered_critical(self, questions: list[Question], ranked: list[Finding]) -> list[Question]:
+        """CRITICAL с вопросом, который модель не взяла ни в один сводный вопрос, не теряется."""
+        covered = {fid for q in questions for fid in q.finding_ids}
+        for f in ranked:
+            if f.severity == "CRITICAL" and f.question and f.id not in covered:
+                questions.append(self._fallback_question(f))
+                self.quality.questions_added += 1
+        return questions
+
+    @staticmethod
+    def _number_questions(questions: list[Question], ranked: list[Finding]) -> list[Question]:
+        questions.sort(key=lambda q: -q.priority)
+        by_id = {f.id: f for f in ranked}
+        for number, q in enumerate(questions, start=1):
+            q.id = make_id("Q", number, len(questions))
+            for fid in q.finding_ids:
+                # У замечания остаётся ссылка на самый важный вопрос, который его закрывает.
+                if by_id[fid].question_id is None:
+                    by_id[fid].question_id = q.id
+        return questions
 
     # ---------- весь прогон ----------
 
@@ -585,8 +749,10 @@ class Pipeline:
             f"отброшено цитат: {g.dropped_quotes}, отброшено замечаний: {g.dropped_findings}"
         )
 
-        self.log("5/5 Итог")
-        verdict = self.conclude(doc, requirements, findings)
+        self.log("5/5 Итог и сводные вопросы")
+        verdict, questions = self.conclude(doc, requirements, findings)
+        self.log(f"    решение: {verdict.decision}; вопросов: {len(questions)}"
+                 + ("" if verdict.questions_by_model else " (запасной путь: из полей замечаний)"))
 
         return RunResult(
             document_name=doc.name,
@@ -607,6 +773,7 @@ class Pipeline:
             skipped_lines=self.skipped,
             checks=self.checks,
             set_analyses=self.set_analyses,
+            questions=questions,
             verdict=verdict,
             grounding=self.grounding,
             quality=self.quality,

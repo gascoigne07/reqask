@@ -23,6 +23,9 @@ Addressee = Literal["business", "analyst", "architect", "security", "qa"]
 ADDRESSEE_SET = set(Addressee.__args__)  # type: ignore[attr-defined]
 SkipReason = Literal["heading", "service", "history", "checklist", "template", "intro", "other"]
 SKIP_REASONS = set(SkipReason.__args__)  # type: ignore[attr-defined]
+FindingStatus = Literal[
+    "confirmed", "unreviewed", "downgraded", "merged", "dropped", "quarantine", "question_only",
+]
 
 
 def _upper(value):
@@ -166,9 +169,28 @@ class TopFix(BaseModel):
     action: str = Field(description="Одно конкретное действие для аналитика")
 
 
-class VerdictOut(BaseModel):
+class OptionOut(BaseModel):
+    answer: str = Field(description="Вариант ответа")
+    consequence: str = Field(description="Что придётся поменять в документе или в реализации при этом ответе")
+
+
+class QuestionOut(BaseModel):
+    text: str = Field(description="Один закрытый вопрос, до 40 слов")
+    addressee: Addressee | None = Field(description="Кто знает ответ")
+    options: list[OptionOut] = Field(description="2-4 варианта ответа")
+    recommended: int | None = Field(description="Номер рекомендуемого варианта (с 1) или null, если выбрать может только бизнес")
+    why_recommended: str | None = Field(description="Почему рекомендуем, одна фраза, или null")
+    blocks: str = Field(description="Что нельзя сделать без ответа")
+    doc_says: str | None = Field(description="Что документ говорит сейчас, одной фразой; null для пробела")
+    finding_ids: list[str] = Field(description="Идентификаторы замечаний (D-..., S-...), которые закрывает ответ")
+
+    _addr = field_validator("addressee", mode="before")(_addressee)
+
+
+class FinalOut(BaseModel):
     rationale: str
     top_fixes: list[TopFix]
+    questions: list[QuestionOut]
 
 
 # ---------- итог прогона ----------
@@ -231,15 +253,58 @@ class Finding(BaseModel):
     recommendation: str
     question: str | None = None
     addressee: str | None = None
+    # Сводный вопрос раздела 7, который закрывает это замечание (К-08).
+    question_id: str | None = None
+    # unreviewed: критик не смотрел. Остальные статусы ставят критик и сверка цитат (4.6).
+    status: FindingStatus = "unreviewed"
+
+
+# Замечания с этими статусами не входят в вердикт и сводку (К-06, К-07, К-09).
+INACTIVE_STATUSES = {"dropped", "merged", "quarantine", "question_only"}
+
+
+class Option(BaseModel):
+    answer: str
+    consequence: str
+
+
+class Question(BaseModel):
+    id: str
+    text: str
+    addressee: str
+    options: list[Option] = Field(default_factory=list)
+    recommended: int | None = None
+    why_recommended: str | None = None
+    blocks: str = ""
+    doc_says: str | None = None
+    finding_ids: list[str]
+    # Считает код: вес уровня связанных замечаний плюс 0,25 за каждое затронутое требование (К-08).
+    priority: float = 0.0
+    req_ids: list[str] = Field(default_factory=list)
+    # Цитаты со строками из связанных замечаний, подставляет код.
+    quotes: list[Evidence] = Field(default_factory=list)
+    # model: сводный вопрос от модели; fallback: собран кодом из поля question замечания.
+    source: Literal["model", "fallback"] = "model"
+
+
+Decision = Literal["Не рекомендуется начинать", "Условно допускается", "Допускается"]
 
 
 class Verdict(BaseModel):
+    # Решение по правилу К-09, его считает код.
+    decision: Decision
     ready_for_development: str
     ready_for_testing: str
     rule: str
     rationale: str
     top_fixes: list[TopFix] = Field(default_factory=list)
+    # CRITICAL, из-за которых разработку начинать не рекомендуется.
+    blockers: list[str] = Field(default_factory=list)
+    # Критик перепроверил критичные замечания (желательный шаг 7, пока не включён).
+    critic_done: bool = False
     generated_by_model: bool = True
+    # Сводные вопросы сформированы моделью; False значит запасной путь из полей question.
+    questions_by_model: bool = True
 
 
 class GroundingStats(BaseModel):
@@ -262,6 +327,11 @@ class QualityStats(BaseModel):
     dropped_defects: int = 0
     dropped_checks: int = 0
     defects_without_question: int = 0
+    # Сводные вопросы: отброшены проверкой (нет ссылок, меньше двух вариантов), слиты как дубли,
+    # добавлены кодом для CRITICAL, которые модель не покрыла вопросом.
+    questions_dropped: int = 0
+    questions_merged: int = 0
+    questions_added: int = 0
 
 
 class LLMStats(BaseModel):
@@ -294,6 +364,7 @@ class RunResult(BaseModel):
     skipped_lines: list[SkippedSpan] = Field(default_factory=list)
     checks: dict[str, list[CriterionCheck]] = Field(default_factory=dict)
     set_analyses: list[SetAnalysis] = Field(default_factory=list)
+    questions: list[Question] = Field(default_factory=list)
     verdict: Verdict
     grounding: GroundingStats
     quality: QualityStats = Field(default_factory=QualityStats)
