@@ -442,11 +442,15 @@ class Pipeline:
         return findings, rewritten
 
     def _reconcile_checks(self, review: ReqReviewOut, findings: list[Finding]) -> list[CriterionCheck]:
-        """Оценки по всем критериям: pass ставит код, fail только при дефекте (К-04)."""
+        """Оценки по всем девяти критериям от модели, сверенные с дефектами кодом (К-04).
+
+        Дефект важнее оценки: есть дефект, значит fail. fail без дефекта становится unknown.
+        Критерий без оценки считается pass, пропуски идут в паспорт.
+        """
         failed = {f.criterion for f in findings}
         notes: dict[str, CriterionCheck] = {}
         for check in review.checks:
-            if check.criterion not in REQ_CODES or check.status not in ("fail", "na", "unknown"):
+            if check.criterion not in REQ_CODES or check.status not in ("pass", "fail", "na", "unknown"):
                 self.quality.dropped_checks += 1
                 continue
             if check.criterion not in notes:
@@ -456,8 +460,15 @@ class Pipeline:
         result: list[CriterionCheck] = []
         for code in REQ_CODES:
             check = notes.get(code)
+            if check is None:
+                self.quality.checks_missing += 1
             if code in failed:
-                result.append(CriterionCheck(criterion=code, status="fail", note=check.note if check else ""))
+                if check is not None and check.status == "pass":
+                    self.quality.checks_pass_overridden += 1
+                note = check.note if check and check.status != "pass" else ""
+                result.append(CriterionCheck(criterion=code, status="fail", note=note))
+            elif check is not None and check.status == "pass":
+                result.append(CriterionCheck(criterion=code, status="pass"))
             elif check is not None:
                 # fail без дефекта: модель сочла критерий нарушенным, но дефект не описала.
                 status = "unknown" if check.status == "fail" else check.status

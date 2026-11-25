@@ -103,11 +103,14 @@ class FakeLLM:
                     {"criterion": "COMPLETE", "status": "fail", "note": "дефект не описан"},
                     {"criterion": "NECESSARY", "status": "NA", "note": "не применим"},
                     {"criterion": "STYLE", "status": "fail", "note": "нет такого критерия"},
+                    {"criterion": "SINGULAR", "status": "Pass", "note": ""},
                 ], "defects": [
                     _defect("verifiable", "critical", "«быстро показывать»", "Какое время ответа, в секундах?", "Business"),
                     _defect("STYLE", "MAJOR", "быстро показывать результаты", "лишний вопрос", "qa"),
                 ], "rewritten": "Система отвечает за <N секунд>."},
-                {"req_id": "REQ-2", "checks": [], "defects": [
+                {"req_id": "REQ-2", "checks": [
+                    {"criterion": "UNAMBIGUOUS", "status": "pass", "note": "лишнее пояснение"},
+                ], "defects": [
                     _defect("UNAMBIGUOUS", "MINOR", "такого текста в документе нет совсем"),
                 ], "rewritten": None},
                 {"req_id": "REQ-03", "checks": [], "defects": [], "rewritten": None},
@@ -222,6 +225,11 @@ def test_pipeline_end_to_end(doc):
     assert checks["COMPLETE"].status == "unknown"  # fail без дефекта
     assert checks["NECESSARY"].status == "na" and checks["SINGULAR"].status == "pass"
     assert {c.status for c in result.checks["REQ-03"]} == {"pass"}
+    # Дефект важнее оценки pass; пропущенные оценки считаются pass и видны в паспорте.
+    amb = {c.criterion: c for c in result.checks["REQ-02"]}["UNAMBIGUOUS"]
+    assert amb.status == "fail" and amb.note == ""
+    assert result.quality.checks_pass_overridden == 1
+    assert result.quality.checks_missing == 5 + 8 + 9
 
     s1 = by_id["S-01"]
     assert s1.kind == "contradiction" and s1.req_ids == ["REQ-02", "REQ-03"]

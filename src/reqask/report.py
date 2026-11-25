@@ -281,7 +281,9 @@ class _Report:
         self.add("| Критик | не включён |")
         self.add(
             f"| Ответы модели | исправлений JSON {llm.repairs}, отброшено дефектов проверкой {q.dropped_defects}, "
-            f"оценок {q.dropped_checks}; CRITICAL и MAJOR без вопроса {q.defects_without_question} |"
+            f"оценок {q.dropped_checks}; оценок не вернула модель {q.checks_missing}, "
+            f"pass заменён на fail по дефекту {q.checks_pass_overridden}; "
+            f"CRITICAL и MAJOR без вопроса {q.defects_without_question} |"
         )
         self.add(
             f"| Сводные вопросы | {'от модели' if r.verdict.questions_by_model else 'запасной путь из полей замечаний'}; "

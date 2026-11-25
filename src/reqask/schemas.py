@@ -93,8 +93,11 @@ class SegmentationOut(BaseModel):
 
 class CriterionCheckOut(BaseModel):
     criterion: str = _enum_str(REQ_CODES, "Код критерия")
-    status: str = _enum_str(("fail", "na", "unknown"), "fail нарушен, na не применим, unknown нельзя оценить по тексту")
-    note: str = Field(description="До 20 слов: почему нарушен, не применим или не оценивается")
+    status: str = _enum_str(
+        ("pass", "fail", "na", "unknown"),
+        "pass выполнен, fail нарушен, na не применим, unknown нельзя оценить по тексту",
+    )
+    note: str = Field(description="Для pass пустая строка. Иначе до 20 слов: почему нарушен, не применим или не оценивается")
 
     _norm_c = field_validator("criterion", mode="before")(_upper)
     _norm_s = field_validator("status", mode="before")(_lower)
@@ -117,7 +120,7 @@ class DefectOut(BaseModel):
 
 class ReqReviewOut(BaseModel):
     req_id: str
-    checks: list[CriterionCheckOut] = Field(description="Оценки только по критериям со статусом не pass")
+    checks: list[CriterionCheckOut] = Field(description="Оценки по всем девяти критериям, по одной на критерий")
     defects: list[DefectOut]
     rewritten: str | None = Field(description="Исправленная формулировка или null")
 
@@ -213,7 +216,8 @@ class Requirement(BaseModel):
 
 class CriterionCheck(BaseModel):
     criterion: str
-    # pass ставит код для критериев, которые модель не назвала; fail, na, unknown приходят от модели.
+    # Оценки приходят от модели по всем девяти критериям; fail код оставляет только при дефекте.
+    # Критерий, который модель пропустила, код считает pass и учитывает в QualityStats.checks_missing.
     status: Literal["pass", "fail", "na", "unknown"]
     note: str = ""
 
@@ -340,6 +344,10 @@ class QualityStats(BaseModel):
     # Ответ модели прошёл схему, но элемент отброшен кодом (неверный код критерия, уровень и т.п.).
     dropped_defects: int = 0
     dropped_checks: int = 0
+    # Оценки по требованиям: сколько оценок модель не вернула (из 9 на требование),
+    # сколько pass код заменил на fail, потому что по критерию есть дефект.
+    checks_missing: int = 0
+    checks_pass_overridden: int = 0
     defects_without_question: int = 0
     # Сводные вопросы: отброшены проверкой (нет ссылок, меньше двух вариантов), слиты как дубли,
     # добавлены кодом для CRITICAL, которые модель не покрыла вопросом.
