@@ -3,11 +3,11 @@
   "document_format": "md",
   "document_lines": 198,
   "document_sha256": "e7dae55e5453a250d93e335f5ff9c7f775f4457ccddd333f4a67e47b20d74381",
-  "started_at": "2026-11-26 00:52:57 +0500",
+  "started_at": "2026-11-26 00:55:38 +0500",
   "duration_sec": 0.0,
   "provider": "custom",
   "model": "claude-haiku-5-5",
-  "agent_version": "0.1.0, коммит c60e16f, есть незакоммиченные правки",
+  "agent_version": "0.1.0, коммит 4913ad9",
   "requirements": [
     {
       "id": "REQ-01",
@@ -691,7 +691,8 @@
       "question_id": null,
       "status": "unreviewed",
       "critic_reason": null,
-      "merged_into": null
+      "merged_into": null,
+      "places": []
     },
     {
       "id": "D-02",
@@ -719,7 +720,8 @@
       "question_id": null,
       "status": "unreviewed",
       "critic_reason": null,
-      "merged_into": null
+      "merged_into": null,
+      "places": []
     },
     {
       "id": "D-03",
@@ -747,7 +749,8 @@
       "question_id": "Q-12",
       "status": "unreviewed",
       "critic_reason": null,
-      "merged_into": null
+      "merged_into": null,
+      "places": []
     },
     {
       "id": "D-04",
@@ -775,7 +778,8 @@
       "question_id": "Q-04",
       "status": "unreviewed",
       "critic_reason": null,
-      "merged_into": null
+      "merged_into": null,
+      "places": []
     },
     {
       "id": "D-05",
@@ -803,7 +807,8 @@
       "question_id": null,
       "status": "unreviewed",
       "critic_reason": null,
-      "merged_into": null
+      "merged_into": null,
+      "places": []
     },
     {
       "id": "D-06",
@@ -831,7 +836,8 @@
       "question_id": "Q-14",
       "status": "unreviewed",
       "critic_reason": null,
-      "merged_into": null
+      "merged_into": null,
+      "places": []
     },
     {
       "id": "D-07",
@@ -859,7 +865,8 @@
       "question_id": "Q-05",
       "status": "unreviewed",
       "critic_reason": null,
-      "merged_into": null
+      "merged_into": null,
+      "places": []
     },
     {
       "id": "D-08",
@@ -887,7 +894,8 @@
       "question_id": "Q-07",
       "status": "unreviewed",
       "critic_reason": null,
-      "merged_into": null
+      "merged_into": null,
+      "places": []
     },
     {
       "id": "D-09",
@@ -915,7 +923,8 @@
       "question_id": null,
       "status": "unreviewed",
       "critic_reason": null,
-      "merged_into": null
+      "merged_into": null,
+      "places": []
     },
     {
       "id": "D-10",
@@ -943,7 +952,8 @@
       "question_id": "Q-08",
       "status": "unreviewed",
       "critic_reason": null,
-      "merged_into": null
+      "merged_into": null,
+      "places": []
     },
     {
       "id": "D-11",
@@ -971,7 +981,8 @@
       "question_id": "Q-08",
       "status": "unreviewed",
       "critic_reason": null,
-      "merged_into": null
+      "merged_into": null,
+      "places": []
     },
     {
       "id": "D-12",
@@ -999,7 +1010,8 @@
       "question_id": "Q-04",
       "status": "unreviewed",
       "critic_reason": null,
-      "merged_into": null
+      "merged_into": null,
+      "places": []
     },
     {
       "id": "D-13",
@@ -1027,7 +1039,8 @@
       "question_id": "Q-09",
       "status": "unreviewed",
       "critic_reason": null,
-      "merged_into": null
+      "merged_into": null,
+      "places": []
     },
     {
       "id": "D-14",
@@ -1055,7 +1068,8 @@
       "question_id": "Q-03",
       "status": "unreviewed",
       "critic_reason": null,
-      "merged_into": null
+      "merged_into": null,
+      "places": []
     },
     {
       "id": "D-15",
@@ -1083,7 +1097,8 @@
       "question_id": "Q-13",
       "status": "unreviewed",
       "critic_reason": null,
-      "merged_into": null
+      "merged_into": null,
+      "places": []
     },
     {
       "id": "D-16",
@@ -1111,7 +1126,8 @@
       "question_id": "Q-10",
       "status": "unreviewed",
       "critic_reason": null,
-      "merged_into": null
+      "merged_into": null,
+      "places": []
     },
     {
       "id": "D-17",
@@ -1139,7 +1155,8 @@
       "question_id": "Q-03",
       "status": "unreviewed",
       "critic_reason": null,
-      "merged_into": null
+      "merged_into": null,
+      "places": []
     },
     {
       "id": "D-18",
@@ -1167,7 +1184,8 @@
       "question_id": null,
       "status": "unreviewed",
       "critic_reason": null,
-      "merged_into": null
+      "merged_into": null,
+      "places": []
     },
     {
       "id": "D-19",
@@ -1195,7 +1213,8 @@
       "question_id": "Q-02",
       "status": "unreviewed",
       "critic_reason": null,
-      "merged_into": null
+      "merged_into": null,
+      "places": []
     },
     {
       "id": "D-20",
@@ -1223,7 +1242,8 @@
       "question_id": "Q-01",
       "status": "unreviewed",
       "critic_reason": null,
-      "merged_into": null
+      "merged_into": null,
+      "places": []
     },
     {
       "id": "D-21",
@@ -1251,7 +1271,8 @@
       "question_id": null,
       "status": "unreviewed",
       "critic_reason": null,
-      "merged_into": null
+      "merged_into": null,
+      "places": []
     },
     {
       "id": "D-22",
@@ -1279,7 +1300,8 @@
       "question_id": null,
       "status": "unreviewed",
       "critic_reason": null,
-      "merged_into": null
+      "merged_into": null,
+      "places": []
     },
     {
       "id": "D-23",
@@ -1307,7 +1329,8 @@
       "question_id": "Q-01",
       "status": "unreviewed",
       "critic_reason": null,
-      "merged_into": null
+      "merged_into": null,
+      "places": []
     },
     {
       "id": "D-24",
@@ -1335,7 +1358,8 @@
       "question_id": null,
       "status": "unreviewed",
       "critic_reason": null,
-      "merged_into": null
+      "merged_into": null,
+      "places": []
     },
     {
       "id": "D-25",
@@ -1363,7 +1387,8 @@
       "question_id": null,
       "status": "unreviewed",
       "critic_reason": null,
-      "merged_into": null
+      "merged_into": null,
+      "places": []
     },
     {
       "id": "D-26",
@@ -1391,7 +1416,8 @@
       "question_id": null,
       "status": "unreviewed",
       "critic_reason": null,
-      "merged_into": null
+      "merged_into": null,
+      "places": []
     },
     {
       "id": "D-27",
@@ -1419,7 +1445,8 @@
       "question_id": "Q-06",
       "status": "unreviewed",
       "critic_reason": null,
-      "merged_into": null
+      "merged_into": null,
+      "places": []
     },
     {
       "id": "D-28",
@@ -1447,7 +1474,8 @@
       "question_id": "Q-06",
       "status": "unreviewed",
       "critic_reason": null,
-      "merged_into": null
+      "merged_into": null,
+      "places": []
     },
     {
       "id": "D-29",
@@ -1475,7 +1503,8 @@
       "question_id": null,
       "status": "unreviewed",
       "critic_reason": null,
-      "merged_into": null
+      "merged_into": null,
+      "places": []
     },
     {
       "id": "D-30",
@@ -1503,7 +1532,8 @@
       "question_id": "Q-01",
       "status": "unreviewed",
       "critic_reason": null,
-      "merged_into": null
+      "merged_into": null,
+      "places": []
     },
     {
       "id": "D-31",
@@ -1531,7 +1561,8 @@
       "question_id": "Q-01",
       "status": "unreviewed",
       "critic_reason": null,
-      "merged_into": null
+      "merged_into": null,
+      "places": []
     },
     {
       "id": "D-32",
@@ -1559,7 +1590,8 @@
       "question_id": "Q-01",
       "status": "unreviewed",
       "critic_reason": null,
-      "merged_into": null
+      "merged_into": null,
+      "places": []
     },
     {
       "id": "D-33",
@@ -1587,7 +1619,8 @@
       "question_id": "Q-02",
       "status": "unreviewed",
       "critic_reason": null,
-      "merged_into": null
+      "merged_into": null,
+      "places": []
     },
     {
       "id": "D-34",
@@ -1615,7 +1648,8 @@
       "question_id": "Q-02",
       "status": "unreviewed",
       "critic_reason": null,
-      "merged_into": null
+      "merged_into": null,
+      "places": []
     },
     {
       "id": "D-35",
@@ -1643,7 +1677,8 @@
       "question_id": null,
       "status": "unreviewed",
       "critic_reason": null,
-      "merged_into": null
+      "merged_into": null,
+      "places": []
     },
     {
       "id": "S-01",
@@ -1677,7 +1712,8 @@
       "question_id": "Q-05",
       "status": "unreviewed",
       "critic_reason": null,
-      "merged_into": null
+      "merged_into": null,
+      "places": []
     },
     {
       "id": "S-02",
@@ -1711,7 +1747,8 @@
       "question_id": "Q-04",
       "status": "unreviewed",
       "critic_reason": null,
-      "merged_into": null
+      "merged_into": null,
+      "places": []
     },
     {
       "id": "S-03",
@@ -1745,7 +1782,8 @@
       "question_id": "Q-02",
       "status": "unreviewed",
       "critic_reason": null,
-      "merged_into": null
+      "merged_into": null,
+      "places": []
     },
     {
       "id": "S-04",
@@ -1779,7 +1817,8 @@
       "question_id": "Q-03",
       "status": "unreviewed",
       "critic_reason": null,
-      "merged_into": null
+      "merged_into": null,
+      "places": []
     },
     {
       "id": "S-05",
@@ -1808,7 +1847,8 @@
       "question_id": null,
       "status": "unreviewed",
       "critic_reason": null,
-      "merged_into": null
+      "merged_into": null,
+      "places": []
     },
     {
       "id": "S-06",
@@ -1843,7 +1883,8 @@
       "question_id": null,
       "status": "unreviewed",
       "critic_reason": null,
-      "merged_into": null
+      "merged_into": null,
+      "places": []
     },
     {
       "id": "S-07",
@@ -1874,7 +1915,8 @@
       "question_id": null,
       "status": "unreviewed",
       "critic_reason": null,
-      "merged_into": null
+      "merged_into": null,
+      "places": []
     },
     {
       "id": "S-08",
@@ -1903,7 +1945,8 @@
       "question_id": null,
       "status": "unreviewed",
       "critic_reason": null,
-      "merged_into": null
+      "merged_into": null,
+      "places": []
     },
     {
       "id": "S-09",
@@ -1931,7 +1974,8 @@
       "question_id": "Q-10",
       "status": "unreviewed",
       "critic_reason": null,
-      "merged_into": null
+      "merged_into": null,
+      "places": []
     },
     {
       "id": "S-10",
@@ -1965,7 +2009,8 @@
       "question_id": "Q-07",
       "status": "unreviewed",
       "critic_reason": null,
-      "merged_into": null
+      "merged_into": null,
+      "places": []
     },
     {
       "id": "S-11",
@@ -1999,7 +2044,8 @@
       "question_id": "Q-06",
       "status": "unreviewed",
       "critic_reason": null,
-      "merged_into": null
+      "merged_into": null,
+      "places": []
     },
     {
       "id": "S-12",
@@ -2034,7 +2080,8 @@
       "question_id": "Q-01",
       "status": "unreviewed",
       "critic_reason": null,
-      "merged_into": null
+      "merged_into": null,
+      "places": []
     },
     {
       "id": "S-13",
@@ -2068,7 +2115,8 @@
       "question_id": "Q-09",
       "status": "unreviewed",
       "critic_reason": null,
-      "merged_into": null
+      "merged_into": null,
+      "places": []
     },
     {
       "id": "S-14",
@@ -2107,7 +2155,8 @@
       "question_id": null,
       "status": "unreviewed",
       "critic_reason": null,
-      "merged_into": null
+      "merged_into": null,
+      "places": []
     },
     {
       "id": "S-15",
@@ -2133,7 +2182,8 @@
       "question_id": "Q-15",
       "status": "unreviewed",
       "critic_reason": null,
-      "merged_into": null
+      "merged_into": null,
+      "places": []
     },
     {
       "id": "S-16",
@@ -2162,7 +2212,8 @@
       "question_id": null,
       "status": "unreviewed",
       "critic_reason": null,
-      "merged_into": null
+      "merged_into": null,
+      "places": []
     },
     {
       "id": "S-17",
@@ -2188,7 +2239,8 @@
       "question_id": null,
       "status": "unreviewed",
       "critic_reason": null,
-      "merged_into": null
+      "merged_into": null,
+      "places": []
     },
     {
       "id": "S-18",
@@ -2219,7 +2271,8 @@
       "question_id": null,
       "status": "unreviewed",
       "critic_reason": null,
-      "merged_into": null
+      "merged_into": null,
+      "places": []
     },
     {
       "id": "S-19",
@@ -2251,7 +2304,8 @@
       "question_id": null,
       "status": "unreviewed",
       "critic_reason": null,
-      "merged_into": null
+      "merged_into": null,
+      "places": []
     },
     {
       "id": "S-20",
@@ -2277,7 +2331,8 @@
       "question_id": null,
       "status": "unreviewed",
       "critic_reason": null,
-      "merged_into": null
+      "merged_into": null,
+      "places": []
     },
     {
       "id": "S-21",
@@ -2303,7 +2358,8 @@
       "question_id": null,
       "status": "unreviewed",
       "critic_reason": null,
-      "merged_into": null
+      "merged_into": null,
+      "places": []
     },
     {
       "id": "S-22",
@@ -2335,7 +2391,8 @@
       "question_id": "Q-11",
       "status": "unreviewed",
       "critic_reason": null,
-      "merged_into": null
+      "merged_into": null,
+      "places": []
     },
     {
       "id": "S-23",
@@ -2361,7 +2418,8 @@
       "question_id": null,
       "status": "unreviewed",
       "critic_reason": null,
-      "merged_into": null
+      "merged_into": null,
+      "places": []
     },
     {
       "id": "S-24",
@@ -2395,7 +2453,8 @@
       "question_id": null,
       "status": "unreviewed",
       "critic_reason": null,
-      "merged_into": null
+      "merged_into": null,
+      "places": []
     }
   ],
   "rewritten": {
@@ -5810,7 +5869,7 @@
       "cache_hits": 0,
       "retries": 0,
       "seconds": 0.0,
-      "summary": "цитат точных 72, восстановлено 0, привязано к требованию 0, отброшено цитат 0, отброшено замечаний 0",
+      "summary": "цитат точных 72, нечётких 0, не найдено 0; в карантине 0, противоречий только с вопросом 0, свёрнуто в системные 0, отброшено без опоры 0",
       "reason": ""
     },
     {
@@ -5933,9 +5992,11 @@
   "grounding": {
     "exact": 72,
     "fuzzy": 0,
-    "anchor": 0,
-    "dropped_quotes": 0,
-    "dropped_findings": 0
+    "missing": 0,
+    "dropped_findings": 0,
+    "quarantine": 0,
+    "question_only": 0,
+    "folded": 0
   },
   "quality": {
     "content_lines": 95,
