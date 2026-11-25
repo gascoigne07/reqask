@@ -170,3 +170,45 @@ def test_txt_cp1251_and_diagnostics(tmp_path):
         load_document(tmp_path / "empty.md")
     with pytest.raises(LoadError, match="не найден"):
         load_document(tmp_path / "missing.pdf")
+
+
+def test_pdf_ligatures_and_toc_leaders():
+    from reqask.pdfread import _cell, _clean
+
+    # Имя глифа без таблицы Unicode и символ лигатуры дают обычные буквы.
+    assert _clean("Speci/f_ication of the /f_f_iles and o/f_f_line") == "Specification of the ffiles and offline"
+    assert _clean("Speciﬁcation") == "Specification"
+    assert _cell("Con/f_igurationﬂow") == "Configurationflow"
+    # Точки-заполнители оглавления убираются, многоточие в тексте остаётся.
+    assert _clean("Background ............................ 1") == "Background 1"
+    assert _clean("и так далее...") == "и так далее..."
+
+
+def test_pdf_header_table_removed_and_sentence_joined_across_pages(tmp_path):
+    # Колонтитул свёрстан таблицей с датой, предложение разорвано границей страницы.
+    path = tmp_path / "header_table.pdf"
+    c = canvas.Canvas(str(path), pagesize=A4)
+    body = [
+        ["1 Scope", "The kiosk shall print a receipt for every"],
+        ["paid order within 5 seconds.", "2 Limits"],
+        ["The kiosk accepts cards only.", "Cash is not supported."],
+    ]
+    for number, lines in enumerate(body, start=1):
+        top = H - 40
+        grid(c, 60, top, [150, 150], [16])
+        c.setFont("Helvetica", 9)
+        c.drawString(65, top - 12, "Kiosk spec")
+        c.drawString(215, top - 12, f"Date: 10/2{number}/2007")
+        c.setFont("Helvetica", 11)
+        for i, text in enumerate(lines):
+            c.drawString(60, H - 100 - 18 * i, text)
+        c.showPage()
+    c.save()
+
+    doc = load_document(path)
+    all_text = texts(doc)
+    assert not any("Kiosk spec" in t for t in all_text)
+    assert not any(line.kind == "table" for line in doc.lines)
+    assert doc.removed_headers == 3
+    assert "The kiosk shall print a receipt for every paid order within 5 seconds." in all_text
+    assert "Cash is not supported." in all_text  # строка с заглавной буквы не приклеена

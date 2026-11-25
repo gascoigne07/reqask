@@ -6,7 +6,8 @@
   Таблицы и текст идут в том порядке, в каком стоят на странице.
 - Колонтитулы: строка вверху или внизу страницы, которая после замены цифр на # повторяется
   на половине страниц и больше, удаляется. Для документа из одной или двух страниц правило не работает.
-- Перенесённые строки склеиваются: строка без точки, двоеточия или точки с запятой в конце
+- Колонтитул таблицей: таблица у края страницы с тем же правилом повтора удаляется целиком.
+- Перенесённые строки склеиваются, и через границу страницы тоже: строка без точки, двоеточия или точки с запятой в конце
   и следующая со строчной буквы. Перенос слова через дефис склеивается без дефиса.
   Строки таблиц, пункты списков и заголовки не склеиваются.
 - Заголовки по шаблону «1.2 Название», «Раздел 3», «Приложение А».
@@ -52,7 +53,23 @@ class ScanError(Exception):
     """В PDF нет текстового слоя на большей части страниц."""
 
 
+# Лигатуры. Без таблицы Unicode у шрифта pypdf выдаёт имя глифа («Speci/f_ication»),
+# с таблицей приходит символ из блока U+FB00. Оба вида дают обычные буквы,
+# иначе цитаты модели не сойдутся с текстом.
+LIGATURE_NAME_RE = re.compile(r"/(f_f_i|f_f_l|f_f|f_i|f_l|f_j|f_t|s_t)")
+LIGATURE_CHARS = str.maketrans({
+    "\ufb00": "ff", "\ufb01": "fi", "\ufb02": "fl", "\ufb03": "ffi", "\ufb04": "ffl", "\ufb05": "st", "\ufb06": "st",
+})
+# Точки-заполнители в строке оглавления.
+LEADER_RE = re.compile(r"(?:\s*\.){5,}\s*")
+
+
+def _ligatures(text: str) -> str:
+    return LIGATURE_NAME_RE.sub(lambda m: m.group(1).replace("_", ""), text).translate(LIGATURE_CHARS)
+
+
 def _clean(text: str) -> str:
+    text = LEADER_RE.sub(" ", _ligatures(text))
     # Выравнивание по ширине даёт двойные пробелы между словами.
     return re.sub(r"[ \t ]{2,}", " ", text.replace(" ", " ")).strip()
 
@@ -61,7 +78,7 @@ def _cell(value: str | None) -> str:
     """Перенос внутри ячейки склеивается пробелом, пустая ячейка остаётся пустой (Ч-03)."""
     if not value:
         return ""
-    return " ".join(value.split()).replace("|", "\\|")
+    return " ".join(_ligatures(value).split()).replace("|", "\\|")
 
 
 def _table_lines(rows: list[list[str | None]], page: int) -> list[PdfLine]:
@@ -101,11 +118,40 @@ def _header_key(text: str) -> str:
     return re.sub(r"\d+", "#", " ".join(text.split())).casefold()
 
 
+def _table_blocks(page: list[PdfLine]) -> list[tuple[int, int]]:
+    """Границы таблиц на странице: (первая, последняя строка) подряд идущих строк таблицы."""
+    blocks: list[tuple[int, int]] = []
+    start = None
+    for index, line in enumerate(page + [PdfLine("", 0)]):
+        if line.kind == "table" and start is None:
+            start = index
+        elif line.kind != "table" and start is not None:
+            blocks.append((start, index - 1))
+            start = None
+    return blocks
+
+
+def _edge_tables(page: list[PdfLine]) -> list[tuple[int, int]]:
+    """Таблицы у края страницы: до или после них не больше двух строк текста."""
+    content = [i for i, line in enumerate(page) if line.text]
+    if not content:
+        return []
+    head, tail = set(content[:3]), set(content[-3:])
+    return [(a, b) for a, b in _table_blocks(page) if a in head or b in tail]
+
+
+def _table_key(page: list[PdfLine], block: tuple[int, int]) -> str:
+    a, b = block
+    return "\n".join(_header_key(line.text) for line in page[a : b + 1])
+
+
 def _drop_headers(pages: list[list[PdfLine]]) -> int:
     """Колонтитулы: повтор вверху или внизу страницы на половине страниц и больше (Ч-04).
 
     Верх и низ считаются вместе: pypdf отдаёт строки в порядке потока страницы, и нижний
     колонтитул часто стоит вторым сверху (проверено на PDF из reportlab).
+    Колонтитул бывает свёрстан таблицей (документ PURE «puget sound»): таблица у края страницы,
+    которая повторяется так же часто, удаляется целиком вместе с пустыми строками вокруг.
     """
     with_text = [p for p in pages if any(line.text for line in p)]
     if len(with_text) < 3:
@@ -117,15 +163,26 @@ def _drop_headers(pages: list[list[PdfLine]]) -> int:
         return text[:2] + [line for line in text[-2:] if all(line is not t for t in text[:2])]
 
     counts: dict[str, int] = {}
+    table_counts: dict[str, int] = {}
     for page in with_text:
         for key in {_header_key(line.text) for line in edges(page)}:
             counts[key] = counts.get(key, 0) + 1
+        for key in {_table_key(page, block) for block in _edge_tables(page)}:
+            table_counts[key] = table_counts.get(key, 0) + 1
     repeated = {k for k, v in counts.items() if v >= need}
+    repeated_tables = {k for k, v in table_counts.items() if v >= need}
     removed = 0
     for page in with_text:
         drop = {id(line) for line in edges(page) if _header_key(line.text) in repeated}
+        removed += len(drop)
+        for a, b in _edge_tables(page):
+            if _table_key(page, (a, b)) not in repeated_tables:
+                continue
+            removed += sum(1 for line in page[a : b + 1] if not set(line.text) <= set("|- "))
+            a = a - 1 if a > 0 and not page[a - 1].text else a
+            b = b + 1 if b + 1 < len(page) and not page[b + 1].text else b
+            drop.update(id(line) for line in page[a : b + 1])
         if drop:
-            removed += len(drop)
             page[:] = [line for line in page if id(line) not in drop]
     return removed
 
@@ -147,12 +204,13 @@ def heading_level(text: str) -> int:
 
 
 def _join_wrapped(lines: list[PdfLine]) -> list[PdfLine]:
-    """Склейка перенесённых строк внутри страницы (Ч-05)."""
+    """Склейка перенесённых строк (Ч-05), в том числе через границу страницы:
+    колонтитулы к этому времени уже удалены. Склеенная строка остаётся на странице начала."""
     out: list[PdfLine] = []
     for line in lines:
         prev = out[-1] if out else None
         if (prev is not None and prev.kind == "text" and line.kind == "text" and prev.text and line.text
-                and prev.page == line.page and line.text[0].islower() and not LIST_RE.match(line.text)):
+                and line.text[0].islower() and not LIST_RE.match(line.text)):
             tail = prev.text.rstrip()
             if tail.endswith("-") and len(tail) > 1 and tail[-2].isalpha():
                 prev.text = tail[:-1] + line.text
@@ -167,7 +225,12 @@ def _join_wrapped(lines: list[PdfLine]) -> list[PdfLine]:
 def read_pdf(path: Path) -> PdfText:
     """Бросает ScanError для скана; ошибки pypdf пробрасывает вызывающему."""
     import pdfplumber
+    import logging
+
     from pypdf import PdfReader
+
+    # Мелкие поломки структуры файла pypdf пишет в журнал предупреждениями, на чтение они не влияют.
+    logging.getLogger("pypdf").setLevel(logging.ERROR)
 
     reader = PdfReader(str(path))
     if reader.is_encrypted and not reader.decrypt(""):
@@ -181,9 +244,7 @@ def read_pdf(path: Path) -> PdfText:
     if total == 0 or len(empty) * 2 > total:
         raise ScanError(f"текста нет на {len(empty)} из {total} страниц")
     removed = _drop_headers(pages)
-    lines: list[PdfLine] = []
-    for page in pages:
-        lines.extend(_join_wrapped(page))
+    lines = _join_wrapped([line for page in pages for line in page])
     _mark_headings(lines)
     return PdfText(lines=lines, pages=total, empty_pages=empty, removed_headers=removed)
 
