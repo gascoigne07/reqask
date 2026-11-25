@@ -66,7 +66,7 @@ CONTEXT_MARGIN_LINES = 40
 MAX_EVIDENCE_CHARS = 300
 _NO_ID = {"", "-", "null", "none", "нет", "n/a", "отсутствует"}
 _REQ_REF_RE = re.compile(r"REQ-?(\d+)", re.IGNORECASE)
-# Идентификатор требования в начале строки: «FR-1.», «**Ф-2**», «| NFR-3.1 |». Буквы, дефис, номер.
+# Идентификатор требования в начале строки: «FR-1.», «**ФТ-2**», «| NFR-3.1 |». Буквы, дефис, номер.
 _DOC_ID_RE = re.compile(r"^[\s>|#*_`-]*\**([A-ZА-ЯЁ][A-Za-zА-Яа-яЁё]{0,7}-\d+(?:\.\d+)*)\**[.:)]?(?=[\s*|`]|$)")
 _ADDRESSEE_DEFAULT = "analyst"
 
@@ -107,7 +107,7 @@ def tidy(text: str | None) -> str | None:
     if not text:
         return text
     text = re.sub(r"(\d)\s*[\u2013\u2014]\s*(\d)", r"\1-\2", text)
-    # Диапазон идентификаторов «Ф-1 — Ф-4»: остаётся диапазоном, через дефис.
+    # Диапазон идентификаторов «ФТ-1 — ФТ-4»: остаётся диапазоном, через дефис.
     text = re.sub(r"(\d)\s+[\u2013\u2014]\s+(?=\w+-\d)", r"\1 - ", text)
     text = re.sub(r"\s+[\u2013\u2014]\s+", ", ", text)
     text = _RANGE_DASH_RE.sub(r"\1-\2", text)

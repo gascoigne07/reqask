@@ -560,7 +560,7 @@ def test_model_text_has_no_dashes_but_quotes_stay():
     from reqask.pipeline import tidy
 
     assert tidy("длина 1–64 символа") == "длина 1-64 символа"
-    assert tidy("Ф-1 — Ф-4 покрыты") == "Ф-1 - Ф-4 покрыты"
+    assert tidy("ФТ-1 — ФТ-4 покрыты") == "ФТ-1 - ФТ-4 покрыты"
     assert tidy("порог — главное") == "порог, главное"
     assert tidy(None) is None
 
