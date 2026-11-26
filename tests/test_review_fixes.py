@@ -381,3 +381,25 @@ def test_placeholder_marks_exist_before_step_5():
 
 def test_epilog_names_internal_error_for_code_1():
     assert "1 модель недоступна или внутренняя ошибка агента" in cli.build_parser().epilog
+
+
+# ---------- 15. обрезки ответа и деления порций в паспорте ----------
+
+
+def test_truncation_with_split_is_counted_in_passport(doc):
+    llm = _Batches(LLMTruncated("[проверка] ответ обрезан по лимиту длины"))
+    result = Pipeline(llm, SETTINGS).run(doc, "test")
+    q = result.quality
+    assert (q.truncations, q.splits, q.truncation_retries) == (1, 1, 0)
+    assert ("| Обрезки ответа | обрезано по лимиту длины 1; делений куска нарезки или порции пополам 1; "
+            "повторов после обрезки 0 |") in render(result)
+
+
+def test_old_json_without_truncation_counters_still_loads(doc):
+    from reqask.schemas import RunResult
+
+    data = Pipeline(FakeLLM(), SETTINGS).run(doc, "test").model_dump()
+    for name in ("truncations", "splits", "truncation_retries"):
+        del data["quality"][name]
+    old = RunResult.model_validate(data)
+    assert old.quality.truncations == 0 and "| Обрезки ответа | обрезано по лимиту длины 0;" in render(old)

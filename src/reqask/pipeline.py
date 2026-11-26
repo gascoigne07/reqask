@@ -27,6 +27,7 @@
 from __future__ import annotations
 
 import re
+import threading
 import time
 from collections import Counter
 from concurrent.futures import ThreadPoolExecutor
@@ -277,6 +278,8 @@ class Pipeline:
         self.n_requirements = 0
         self.grounding = GroundingStats()
         self.quality = QualityStats()
+        # Шаг 4 идёт в потоках: счётчики обрезок и делений меняются под замком.
+        self._count_lock = threading.Lock()
         self.skipped: list[SkippedSpan] = []
         # Куски документа, по которым нарезка получила ответ модели: только в них код добирает пропущенные идентификаторы.
         self._seg_answered: list[tuple[int, int]] = []
@@ -291,6 +294,13 @@ class Pipeline:
         self.set_pass_counts: dict[str, int] = {}
         # Фатальная ошибка модели (К-10): после неё шаги с моделью пропускаются, отчёт пишется частичным.
         self.fatal: str | None = None
+
+    def _tally(self, truncated: bool = False, split: bool = False, retry: bool = False) -> None:
+        """Обрезка ответа, деление порции, повтор после обрезки: в паспорт (строка «Обрезки ответа»)."""
+        with self._count_lock:
+            self.quality.truncations += int(truncated)
+            self.quality.splits += int(split)
+            self.quality.truncation_retries += int(retry)
 
     # ---------- фатальные ошибки ----------
 
@@ -345,7 +355,9 @@ class Pipeline:
             self._on_fatal(exc, step)
             return []
         except LLMTruncated as exc:
-            if depth < 2 and end - start >= 20:
+            can_split = depth < 2 and end - start >= 20
+            self._tally(truncated=True, split=can_split)
+            if can_split:
                 mid = (start + end) // 2
                 self.log(f"  {step}: ответ обрезан, делю строки {start}-{end} пополам")
                 return (self._segment_part(doc, start, mid, step + "a", whole, depth + 1)
@@ -543,6 +555,7 @@ class Pipeline:
             self._on_fatal(exc, f"проверка {label}")
             return {}
         except (LLMTruncated, LLMSchemaError) as exc:
+            self._tally(truncated=isinstance(exc, LLMTruncated), split=len(batch) > 1)
             if len(batch) > 1:
                 # Ответ обрезан или не прошёл схему: меньшая порция может пройти, делим пополам.
                 self.log(f"  проверка {label}: сбой, делю порцию пополам ({error_reason(exc)})")
@@ -799,6 +812,7 @@ class Pipeline:
                 self._on_fatal(exc, step)
                 return None
             except LLMTruncated as exc:
+                self._tally(truncated=True, retry=attempt == 1)
                 if attempt == 1:
                     effort = "low"
                     self.log(f"  {step}: ответ обрезан, повторяю с reasoning_effort=low")
@@ -1025,6 +1039,7 @@ class Pipeline:
                 self._on_fatal(exc, "критик")
                 return None
             except LLMTruncated as exc:
+                self._tally(truncated=True, retry=attempt == 1)
                 if attempt == 1:
                     effort = "low"
                     self.log("  критик: ответ обрезан, повторяю с reasoning_effort=low")
@@ -1175,6 +1190,7 @@ class Pipeline:
                 self._on_fatal(exc, "итог")
                 break
             except LLMTruncated as exc:
+                self._tally(truncated=True, retry=attempt == 1 and limit > 3)
                 if attempt == 1 and limit > 3:
                     # Ответ не влез в лимит длины: один повтор с вдвое меньшим числом вопросов.
                     limit = max(3, limit // 2)

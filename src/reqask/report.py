@@ -446,6 +446,10 @@ class _Report:
             f"уровень поднят кодом по виду расхождения {q.severity_raised} |"
         )
         self.add(
+            f"| Обрезки ответа | обрезано по лимиту длины {q.truncations}; делений куска нарезки или порции "
+            f"пополам {q.splits}; повторов после обрезки {q.truncation_retries} |"
+        )
+        self.add(
             f"| Сводные вопросы | {'от модели' if r.verdict.questions_by_model else 'запасной путь из полей замечаний'}; "
             f"отброшено проверкой {q.questions_dropped}, слито дублей {q.questions_merged}, "
             f"добавлено кодом для CRITICAL {q.questions_added} |"

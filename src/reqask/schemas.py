@@ -422,6 +422,11 @@ class QualityStats(BaseModel):
     # документу, и те из них, на которые ссылается хотя бы одно активное замечание.
     placeholder_lines: list[int] = Field(default_factory=list)
     placeholder_lines_cited: list[int] = Field(default_factory=list)
+    # Обрезки ответа по лимиту длины на всех шагах, деления куска нарезки или порции шага 4 пополам
+    # (при обрезке или ошибке схемы) и повторы после обрезки (набор и критик с low, итог с меньшим потолком).
+    truncations: int = 0
+    splits: int = 0
+    truncation_retries: int = 0
 
 
 class LLMStats(BaseModel):
