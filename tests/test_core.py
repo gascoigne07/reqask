@@ -817,6 +817,7 @@ def test_question_text_helpers():
     """Цитаты без повторов, суть без пересказа цитаты, аббревиатура в начале фразы не портится."""
     from reqask.grounding import distinct_quotes
     from reqask.report import _question_body, _sentence_case
+    from reqask.schemas import Option
 
     long = Evidence(quote="Ответ, если доступ к ресурсу запрещен.", line=7, status="exact")
     part = Evidence(quote="доступ к ресурсу запрещен", line=7, status="exact")
@@ -829,6 +830,26 @@ def test_question_text_helpers():
     assert not any(row.startswith("- Суть:") for row in _question_body(q))
     q.doc_says = "Для одного случая заданы два разных кода"
     assert "- Суть: Для одного случая заданы два разных кода" in _question_body(q)
+    q.blocks = "Нельзя написать тест на ответ."
+    q.options = [Option(answer="Код 404", consequence="Клиент не узнает, что ресурс есть."),
+                 Option(answer="Код 403", consequence="GET отдаёт отказ")]
+    body = _question_body(q)
+    assert "- Без ответа: нельзя написать тест на ответ." in body
+    assert "  1. Код 404. Последствие: клиент не узнает, что ресурс есть." in body
+    assert "  2. Код 403. Последствие: GET отдаёт отказ." in body
+
+
+def test_priority_caps_requirement_bonus():
+    """Вопрос по таблице, порезанной на много требований, не обгоняет вопрос того же уровня (К-08)."""
+    from reqask.schemas import Finding
+
+    def finding(fid: str, reqs: list[str]) -> Finding:
+        return Finding(id=fid, scope="set", criterion="CONSISTENT", severity="CRITICAL",
+                       problem="п", recommendation="р", req_ids=reqs)
+
+    assert Pipeline._priority([finding("S-01", ["REQ-01", "REQ-02", "REQ-03", "REQ-04"])])[0] == 5.5
+    assert Pipeline._priority([finding("S-02", ["REQ-05", "REQ-06"])])[0] == 5.5
+    assert Pipeline._priority([finding("S-03", ["REQ-07"])])[0] == 5.25
 
 
 def test_line_marks_become_words():

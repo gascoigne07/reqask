@@ -793,12 +793,13 @@ def _question_body(q: Question) -> list[str]:
     if q.options:
         rows.append("- Варианты:")
         for number, option in enumerate(q.options, start=1):
-            rows.append(f"  {number}. {option.answer.rstrip('.')}. Последствие: {option.consequence}")
+            rows.append(f"  {number}. {option.answer.rstrip('.')}. Последствие: {_no_dot(_sentence_case(option.consequence))}.")
     if q.recommended:
         why = f", потому что {_no_dot(_sentence_case(q.why_recommended))}." if q.why_recommended else "."
         rows.append(f"- Рекомендуем: вариант {q.recommended}{why}")
     if q.blocks:
-        rows.append(f"- Без ответа нельзя: {q.blocks}")
+        # Модель пишет blocks с «Нельзя …», поэтому подпись без этого слова и со строчной буквы.
+        rows.append(f"- Без ответа: {_no_dot(_sentence_case(q.blocks))}.")
     return rows
 
 

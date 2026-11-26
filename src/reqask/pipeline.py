@@ -99,6 +99,8 @@ _DOUBLE_QUESTION = re.compile(r"\?.*\?|\bи\s*/\s*или\b", re.S)
 FOLD_MIN_PLACES = 3
 # Вес уровня в приоритете сводного вопроса (К-08).
 SEVERITY_WEIGHT = {"CRITICAL": 5.0, "MAJOR": 2.0, "MINOR": 0.5}
+# Сколько требований учитывается в весе сводного вопроса (по 0,25 за каждое).
+REQ_BONUS_MAX = 2
 
 
 class JsonLLM(Protocol):
@@ -1066,13 +1068,17 @@ class Pipeline:
 
     @staticmethod
     def _priority(linked: list[Finding]) -> tuple[float, list[str]]:
-        """Вес уровня связанных замечаний плюс 0,25 за каждое затронутое требование (К-08)."""
+        """Вес уровня связанных замечаний плюс 0,25 за каждое затронутое требование, не больше чем за два (К-08).
+
+        Потолок нужен, чтобы таблица, порезанная на много требований, не поднимала свой вопрос выше
+        бизнес-правила того же уровня. При равном весе остаётся порядок модели (сортировка устойчивая).
+        """
         req_ids: list[str] = []
         for f in linked:
             for req_id in f.req_ids:
                 if req_id not in req_ids:
                     req_ids.append(req_id)
-        weight = sum(SEVERITY_WEIGHT[f.severity] for f in linked) + 0.25 * len(req_ids)
+        weight = sum(SEVERITY_WEIGHT[f.severity] for f in linked) + 0.25 * min(len(req_ids), REQ_BONUS_MAX)
         return round(weight, 2), req_ids
 
     @staticmethod
