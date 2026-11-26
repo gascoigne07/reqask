@@ -195,8 +195,9 @@ def _main(argv: list[str] | None = None) -> int:
         _error(str(exc))
         return EXIT_INPUT
     except LLMFatal as exc:
-        # Ключ не принят или модель не найдена на первом же вызове: отчёт не пишется (К-10).
-        print(f"Модель недоступна, отчёт не записан. {exc}", file=sys.stderr)
+        # Модель не ответила ни разу (ключ, модель, квота, лимит, сеть): файлы отчёта не пишутся
+        # и не трогаются, прежний отчёт остаётся на месте (К-10).
+        print(f"Модель недоступна, отчёт не записан, прежние файлы отчёта не тронуты. {exc}", file=sys.stderr)
         return EXIT_NO_MODEL
     except LLMError as exc:
         print(f"Ошибка модели: {exc}", file=sys.stderr)

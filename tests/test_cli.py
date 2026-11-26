@@ -76,12 +76,12 @@ def test_fatal_in_review_skips_remaining_model_steps(workdir, monkeypatch):
     assert "требования без проверки: REQ-01, REQ-02, REQ-03" in report
 
 
-def test_fatal_segmentation_gives_report_with_reason(workdir, monkeypatch):
+def test_fatal_segmentation_before_any_answer_is_code_1_without_report(workdir, monkeypatch, capsys):
+    """Лимит на первом же вызове: модель не ответила ни разу, отчёт не пишется (ревью кода, пункт 1)."""
     use(monkeypatch, FatalAt(SegmentationOut, "rate"))
-    assert run() == cli.EXIT_PARTIAL
-    report = (workdir / "out" / "report.md").read_text(encoding="utf-8")
-    assert "Отчёт неполный" in report and "Требований: 0" in report
-    assert "**Вердикт: Не вынесен.**" in report and "Допускается" not in report.split("## 1.")[0]
+    assert run() == cli.EXIT_NO_MODEL
+    assert not (workdir / "out" / "report.md").exists()
+    assert "суточная квота исчерпана" in capsys.readouterr().err
 
 
 def test_bad_key_on_first_call_is_code_1_without_report(workdir, monkeypatch, capsys):
