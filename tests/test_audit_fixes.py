@@ -10,7 +10,7 @@ from reqask.config import ConfigError, load_settings
 from reqask.loader import LoadError, load_document
 
 from test_cli import run, use, workdir  # noqa: F401  фикстура workdir нужна тестам ниже
-from test_core import FakeLLM
+from test_core import FakeLLM, doc  # noqa: F401
 
 
 # ---------- вход (В-2, С-2, Н-2) ----------
@@ -109,3 +109,41 @@ def test_unexpected_error_is_message_and_code_1(workdir, monkeypatch, capsys):
     monkeypatch.setenv("REQASK_DEBUG", "1")
     assert run() == cli.EXIT_NO_MODEL
     assert "Traceback" in capsys.readouterr().err
+
+
+# ---------- клиент модели (В-4, В-5) ----------
+
+from reqask.llm import LLMFatal  # noqa: E402
+from test_llm import ONE, OneOut, ask, client_with, completion  # noqa: E402,F401
+
+
+@pytest.mark.parametrize("mode", ["parse", "none"])
+def test_answer_not_in_openai_format_is_fatal_with_address_hint(client_with, mode):
+    client, sent, _ = client_with(lambda b, n: (200, {"hello": "world"}), json_mode=mode)
+    with pytest.raises(LLMFatal, match="LLM_BASE_URL") as err:
+        ask(client)
+    assert err.value.kind == "model" and len(sent) == 1
+
+
+def test_cache_key_follows_model_that_answered(client_with, tmp_path):
+    body = [{"error": {"code": 429, "message": "requests per day limit exceeded"}}]
+    client, sent, _ = client_with(
+        lambda b, n: (429, body) if b["model"] == "m" else (200, completion(ONE)),
+        fallback_models=("b",), cache_dir=str(tmp_path))
+    assert ask(client).answer == "ок"
+    files = [p.stem for p in tmp_path.glob("*.json")]
+    assert files == [client._cache_key("system", "user", OneOut, "review", model="b")]
+    assert files != [client._cache_key("system", "user", OneOut, "review", model="m")]
+
+
+def test_result_names_the_model_that_answered(doc):
+    from test_core import SETTINGS
+    from reqask.pipeline import Pipeline
+
+    llm = FakeLLM()
+    llm.model = "fallback-model"
+    result = Pipeline(llm, SETTINGS).run(doc, "test")
+    assert result.model == "fallback-model (запасная: основная fake-model не ответила)"
+    same = FakeLLM()
+    same.model = SETTINGS.model
+    assert Pipeline(same, SETTINGS).run(doc, "test").model == SETTINGS.model

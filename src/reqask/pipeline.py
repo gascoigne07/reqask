@@ -1303,6 +1303,13 @@ class Pipeline:
         verdict.partial = True
         return self._result(doc, agent_version, started, t0, [], [], {}, [], verdict)
 
+    def _answered_model(self) -> str:
+        """Модель, которая отвечала на деле (В-5). После перехода на запасную видна и основная."""
+        answered = getattr(self.llm, "model", None) or self.s.model
+        if answered == self.s.model:
+            return answered
+        return f"{answered} (запасная: основная {self.s.model} не ответила)"
+
     def _result(self, doc: Document, agent_version: str, started: datetime, t0: float, requirements: list[Requirement],
                 findings: list[Finding], rewritten: dict[str, str], questions: list[Question], verdict: Verdict) -> RunResult:
         # Строка с заглушкой засчитывается, только если цитата замечания содержит сам маркер:
@@ -1321,7 +1328,7 @@ class Pipeline:
             started_at=started.strftime("%Y-%m-%d %H:%M:%S %z"),
             duration_sec=round(time.monotonic() - t0, 1),
             provider=self.s.provider,
-            model=self.s.model,
+            model=self._answered_model(),
             agent_version=agent_version,
             requirements=requirements,
             findings=findings,

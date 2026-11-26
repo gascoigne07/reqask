@@ -1,4 +1,4 @@
-"""Клиент модели: один OpenAI-совместимый интерфейс для Gemini, OpenAI, Ollama и других.
+"""Клиент модели: один OpenAI-совместимый интерфейс для Anthropic (Claude), Gemini, OpenAI, Ollama и других.
 
 Что делает сверх простого вызова:
 - требует ответ в JSON и проверяет его по схеме pydantic;
@@ -21,6 +21,7 @@ from typing import Callable, TypeVar
 
 from openai import (
     APIConnectionError,
+    APIResponseValidationError,
     APIStatusError,
     APITimeoutError,
     AuthenticationError,
@@ -219,9 +220,11 @@ class LLMClient:
 
     # ---------- кэш ----------
 
-    def _cache_key(self, system: str, user: str, schema: type[BaseModel], kind: str, effort: str | None = None) -> str:
+    def _cache_key(self, system: str, user: str, schema: type[BaseModel], kind: str, effort: str | None = None,
+                   model: str | None = None) -> str:
+        """Ключ по модели, которой идёт запрос: ответ запасной модели не ложится под именем основной."""
         payload = json.dumps(
-            [self.s.base_url, self.s.model, effort or self.s.step_params(kind)[0],
+            [self.s.base_url, model or self.model, effort or self.s.step_params(kind)[0],
              system, user, schema.model_json_schema()],
             ensure_ascii=False, sort_keys=True,
         )
@@ -292,7 +295,8 @@ class LLMClient:
                 ]
                 continue
             if use_cache:
-                self._cache_put(key, obj)
+                # Модель могла смениться внутри вызова (переход на запасную): ключ по той, что ответила.
+                self._cache_put(self._cache_key(system, user, schema, kind, effort), obj)
             return obj
         raise LLMError(f"[{step}] модель не вернула валидный JSON: {last_error}")
 
@@ -354,15 +358,41 @@ class LLMClient:
             kwargs["max_tokens"] = max_tokens
         return kwargs
 
+    def _not_api(self, detail: str) -> LLMFatal:
+        """Адрес ответил, но не в формате OpenAI API: веб-страница, прокси, другой сервис (В-4)."""
+        return LLMFatal(
+            f"Адрес модели ответил не в формате OpenAI API (похоже на веб-страницу или другой сервис). "
+            f"Проверьте адрес LLM_BASE_URL (обычно он кончается на /v1) и провайдера в .env. "
+            f"Провайдер {self.s.provider}, адрес {self.s.base_url or 'по умолчанию'}. Ответ: {' '.join(detail.split())[:300]}",
+            kind="model",
+        )
+
     def _request(self, kwargs: dict) -> ChatCompletion:
-        if not isinstance(kwargs.get("response_format"), type):
-            return self._client.chat.completions.create(**kwargs)
-        raw = self._client.beta.chat.completions.with_raw_response.parse(**kwargs)
         try:
-            return raw.parse()
-        except ValidationError:
-            # SDK не разобрал ответ по схеме. Отдаём сырой текст дальше: там модель попросят исправить JSON.
-            return ChatCompletion.model_validate_json(raw.text)
+            if not isinstance(kwargs.get("response_format"), type):
+                response = self._client.chat.completions.create(**kwargs)
+            else:
+                raw = self._client.beta.chat.completions.with_raw_response.parse(**kwargs)
+                try:
+                    response = raw.parse()
+                except ValidationError:
+                    # SDK не разобрал ответ по схеме. Отдаём сырой текст дальше: там модель попросят исправить JSON.
+                    response = ChatCompletion.model_validate_json(raw.text)
+                except TypeError as exc:
+                    # Тело без списка choices: SDK падает, перебирая None. Ошибка в теле ответа, не в запросе.
+                    raise self._not_api(raw.text) from exc
+        except APIResponseValidationError as exc:
+            raise self._not_api(str(exc)) from exc
+        except (AttributeError, ValueError) as exc:
+            # Тело не JSON или не ответ чата: SDK отдаёт строку вместо объекта и падает на ней.
+            # ValueError включает ошибку проверки pydantic и разбора JSON.
+            raise self._not_api(f"{type(exc).__name__}: {exc}") from exc
+        if not isinstance(response, ChatCompletion):
+            raise self._not_api(str(response))
+        if getattr(response, "choices", None) is None:
+            # JSON пришёл, но без choices: SDK собрал объект без проверки полей.
+            raise self._not_api(response.model_dump_json()[:300])
+        return response
 
     def _downgrade(self, error: BadRequestError, schema: type[BaseModel]) -> bool:
         """Убирает одну возможность, которую провайдер назвал в ошибке. False, если ошибка про другое (М-04, М-05)."""
