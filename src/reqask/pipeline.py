@@ -87,6 +87,8 @@ DECISION_RULE = (
 )
 # Потолок сводных вопросов в одном ответе модели: больше не влезает в лимит длины (живой прогон 26.11).
 MAX_QUESTIONS = 15
+# Сводный вопрос с двумя знаками вопроса или с «и/или» склеивает два решения (К-08).
+_DOUBLE_QUESTION = re.compile(r"\?.*\?|\bи\s*/\s*или\b", re.S)
 # Свёртка: одинаковое замечание минимум в стольких требованиях становится системным (К-07).
 FOLD_MIN_PLACES = 3
 # Вес уровня в приоритете сводного вопроса (К-08).
@@ -815,11 +817,9 @@ class Pipeline:
 
     @staticmethod
     def _merge_into(src: Finding, target: Finding) -> None:
-        seen = {(e.line, e.quote) for e in target.evidence}
-        for e in src.evidence:
-            if e.status != "missing" and (e.line, e.quote) not in seen:
-                target.evidence.append(e)
-                seen.add((e.line, e.quote))
+        # Повтор цитаты, в том числе часть уже взятой строки, не добавляется; ненайденные цитаты цели остаются.
+        missing = [e for e in target.evidence if e.status == "missing"]
+        target.evidence = distinct_quotes(target.evidence + src.evidence) + missing
         for rid in src.req_ids:
             if rid not in target.req_ids:
                 target.req_ids.append(rid)
@@ -983,7 +983,7 @@ class Pipeline:
                 for o in item.options if o.answer.strip()
             ][:4]
             text = " ".join(item.text.split())
-            if not ids or not text or len(options) < 2:
+            if not ids or not text or len(options) < 2 or _DOUBLE_QUESTION.search(text):
                 self.quality.questions_dropped += 1
                 continue
             key = frozenset(ids)

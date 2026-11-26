@@ -764,3 +764,39 @@ def test_final_prompt_marks_findings_without_question(doc):
     text = prompts.final_prompt("spec.md", 3, [f], "решение", 5, doc.numbered())
     assert f"{f.id} | {f.severity}" in text and "| вопроса нет" in text
     assert "Документ (слева номера строк)" in text and doc.numbered() in text
+
+
+def test_merge_keeps_distinct_quotes_only():
+    """Слияние не копирует ту же цитату и её часть; ненайденная цитата цели остаётся."""
+    from reqask.schemas import Finding
+
+    target = Finding(id="S-01", scope="set", criterion="SET_CONSISTENT", severity="MAJOR", problem="п",
+                     recommendation="р", evidence=[Evidence(quote="Ответ 403, доступ запрещен.", line=7),
+                                                   Evidence(quote="нет такой строки", line=None, status="missing")])
+    src = Finding(id="D-01", scope="requirement", criterion="COMPLETE", severity="MAJOR", problem="п",
+                  recommendation="р", evidence=[Evidence(quote="доступ запрещен", line=7),
+                                                Evidence(quote="Ответ 403, доступ запрещен.", line=7),
+                                                Evidence(quote="Другая строка документа", line=9)])
+    Pipeline._merge_into(src, target)
+    assert [(e.line, e.status) for e in target.evidence] == [(7, "exact"), (9, "exact"), (None, "missing")]
+
+
+def test_question_with_two_choices_is_dropped():
+    """Сводный вопрос с двумя знаками вопроса или с «и/или» склеивает два решения и отбрасывается."""
+    from reqask.schemas import Finding
+
+    ranked = [Finding(id="D-01", scope="requirement", criterion="COMPLETE", severity="MAJOR", problem="п",
+                      recommendation="р", req_ids=["REQ-01"], question="в?")]
+    opts = [{"answer": "да", "consequence": "c"}, {"answer": "нет", "consequence": "c"}]
+
+    def q(text):
+        return {"text": text, "addressee": "business", "options": opts, "recommended": None,
+                "why_recommended": None, "blocks": "б", "doc_says": None, "finding_ids": ["D-01"]}
+
+    out = FinalOut.model_validate({"rationale": "r", "top_fixes": [], "questions": [
+        q("Сколько дней хранится заказ? Кто его отменяет?"), q("Нужен ли отчёт и/или выгрузка?"),
+        q("Сколько дней хранится заказ: 1 или 3?")]})
+    pipe = Pipeline(FakeLLM(), SETTINGS)
+    questions = pipe._questions(out, ranked)
+    assert [x.text for x in questions] == ["Сколько дней хранится заказ: 1 или 3?"]
+    assert pipe.quality.questions_dropped == 2
