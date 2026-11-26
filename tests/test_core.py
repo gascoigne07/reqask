@@ -68,10 +68,12 @@ def _defect(criterion, severity, evidence, question=None, addressee=None, line=N
             "problem": "п", "impact": "и", "recommendation": "р", "question": question, "addressee": addressee}
 
 
-def _set_finding(kind, criterion, severity, title, evidence, req_ids=(), question=None, section=None, addressee=None):
+def _set_finding(kind, criterion, severity, title, evidence, req_ids=(), question=None, section=None, addressee=None,
+                 divergence="none"):
     return {"kind": kind, "criterion": criterion, "severity": severity, "title": title, "req_ids": list(req_ids),
             "section": section, "evidence": [{"quote": q, "line": None} for q in evidence], "problem": "п",
-            "impact": "и", "recommendation": "р", "question": question, "addressee": addressee}
+            "impact": "и", "recommendation": "р", "question": question, "addressee": addressee,
+            "divergence": divergence}
 
 
 def _question(ids, n_options, recommended=None, addressee=None):
@@ -800,3 +802,60 @@ def test_question_with_two_choices_is_dropped():
     questions = pipe._questions(out, ranked)
     assert [x.text for x in questions] == ["Сколько дней хранится заказ: 1 или 3?"]
     assert pipe.quality.questions_dropped == 2
+
+
+def test_divergence_raises_to_critical_only_with_two_places(doc):
+    """Расхождение поведения, расчёта или единиц в двух местах поднимается до CRITICAL; формат и имена нет."""
+    two = ["Читатель может взять на руки не больше 5 книг", "Не больше 3 книг на читателя, integer"]
+
+    class DivergenceLLM(FakeLLM):
+        def complete_json(self, step, system, user, schema, kind=""):
+            if schema is SetReviewOut and "согласованность" in step:
+                self.stats.calls += 1
+                return SetReviewOut.model_validate({"analyses": [], "findings": [
+                    _set_finding("contradiction", "SET_CONSISTENT", "MAJOR", "Разный лимит", two,
+                                 question="Сколько книг: 3 или 5?", divergence="Result"),
+                    _set_finding("other", "SET_CONSISTENT", "MAJOR", "Разный тип", two,
+                                 question="Какой тип поля?", divergence="format"),
+                    _set_finding("other", "SET_CONSISTENT", "MAJOR", "Разные имена", two,
+                                 question="Какое имя верное?", divergence="naming"),
+                    _set_finding("other", "SET_COMPLETE", "MAJOR", "Единицы в одном месте", two[:1],
+                                 question="В чём лимит?", divergence="units"),
+                    _set_finding("other", "SET_CONSISTENT", "MAJOR", "Неизвестный вид", two,
+                                 question="Что верно?", divergence="странный"),
+                ]})
+            return super().complete_json(step, system, user, schema, kind)
+
+    result = Pipeline(DivergenceLLM(), SETTINGS).run(doc, "test")
+    by_title = {f.title: f for f in result.findings if f.scope == "set"}
+    raised = by_title["Разный лимит"]
+    assert raised.severity == "CRITICAL" and raised.severity_raised_from == "MAJOR" and raised.divergence == "result"
+    for title in ("Разный тип", "Разные имена", "Единицы в одном месте", "Неизвестный вид"):
+        assert by_title[title].severity == "MAJOR" and by_title[title].severity_raised_from is None
+    assert by_title["Неизвестный вид"].divergence == "none"
+    assert result.quality.severity_raised == 1
+    assert raised.id in result.verdict.blockers
+    report = render(result)
+    assert "Уровень поднят кодом с MAJOR до CRITICAL: два места документа задают разный результат расчёта." in report
+    assert "уровень поднят кодом по виду расхождения 1" in report
+
+
+def test_critical_keeps_question_when_model_question_is_dropped(doc):
+    """Сводный вопрос с двумя «?» отброшен: CRITICAL всё равно получает вопрос из своего поля."""
+
+    class DoubleLLM(FakeLLM):
+        def complete_json(self, step, system, user, schema, kind=""):
+            if schema is FinalOut:
+                self.stats.calls += 1
+                bad = _question(["S-01"], 2)
+                bad["text"] = "Сколько книг можно взять? И на какой срок?"
+                return FinalOut.model_validate({"rationale": "r", "top_fixes": [
+                    {"finding_ids": ["S-01"], "action": "Оставить одно число."}],
+                    "questions": [bad, _question(["S-02"], 2)]})
+            return super().complete_json(step, system, user, schema, kind)
+
+    result = Pipeline(DoubleLLM(), SETTINGS).run(doc, "test")
+    critical = [f for f in result.findings if f.severity == "CRITICAL" and f.status not in ("merged", "dropped")]
+    assert critical and all(f.question_id for f in critical)
+    assert result.quality.questions_dropped == 1 and result.quality.questions_added >= 1
+    assert all("?" not in q.text[:-1] for q in result.questions)

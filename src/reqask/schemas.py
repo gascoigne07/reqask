@@ -23,6 +23,9 @@ Addressee = Literal["business", "analyst", "architect", "security", "qa"]
 ADDRESSEE_SET = set(Addressee.__args__)  # type: ignore[attr-defined]
 SkipReason = Literal["heading", "service", "history", "checklist", "template", "intro", "other"]
 SKIP_REASONS = set(SkipReason.__args__)  # type: ignore[attr-defined]
+# Вид расхождения двух мест документа у замечания по набору. Первые три код поднимает до CRITICAL.
+DIVERGENCES = ("behavior", "result", "units", "format", "naming", "none")
+DIVERGENCE_RAISE = {"behavior", "result", "units"}
 FindingStatus = Literal[
     "confirmed", "unreviewed", "downgraded", "merged", "dropped", "quarantine", "question_only",
 ]
@@ -147,9 +150,16 @@ class SetFindingOut(BaseModel):
     recommendation: str
     question: str | None = Field(description="Вопрос автору ТЗ. Обязателен для gap, CRITICAL и MAJOR")
     addressee: Addressee | None
+    divergence: str = _enum_str(
+        DIVERGENCES,
+        "Что расходится между местами документа. behavior: разное наблюдаемое поведение системы; "
+        "result: разный результат расчёта или правила; units: разные единицы одной величины; "
+        "format: разный тип или формат одного поля; naming: только названия, обозначения или оформление "
+        "при одном смысле; none: замечание не о расхождении двух мест (пробел, прочее)",
+    )
 
     _norm = field_validator("criterion", "severity", mode="before")(_upper)
-    _kind = field_validator("kind", mode="before")(_lower)
+    _kind = field_validator("kind", "divergence", mode="before")(_lower)
     _addr = field_validator("addressee", mode="before")(_addressee)
 
 
@@ -281,6 +291,9 @@ class Finding(BaseModel):
     merged_into: str | None = None
     # Уровень до решения критика, если он понизил замечание или поднял его при слиянии.
     severity_before: Severity | None = None
+    # Вид расхождения у замечания по набору (DIVERGENCES) и уровень до подъёма кодом.
+    divergence: str | None = None
+    severity_raised_from: Severity | None = None
     # Места системного замечания, свёрнутого кодом из одинаковых (К-07, Р-11).
     places: list[str] = Field(default_factory=list)
 
@@ -381,6 +394,8 @@ class QualityStats(BaseModel):
     checks_missing: int = 0
     checks_pass_overridden: int = 0
     defects_without_question: int = 0
+    # Замечания по набору, которым код поднял уровень до CRITICAL по виду расхождения.
+    severity_raised: int = 0
     # Сводные вопросы: отброшены проверкой (нет ссылок, меньше двух вариантов), слиты как дубли,
     # добавлены кодом для CRITICAL, которые модель не покрыла вопросом.
     questions_dropped: int = 0

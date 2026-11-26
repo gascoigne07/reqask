@@ -33,6 +33,8 @@ from .lint import lint
 from .llm import LLMError, LLMFatal, LLMTruncated
 from .loader import Document
 from .schemas import (
+    DIVERGENCE_RAISE,
+    DIVERGENCES,
     INACTIVE_STATUSES,
     SEVERITY_SET,
     BatchReviewOut,
@@ -573,12 +575,21 @@ class Pipeline:
                     continue
                 if question is None and item.severity != "MINOR":
                     self.quality.defects_without_question += 1
+                divergence = item.divergence if item.divergence in DIVERGENCES else "none"
+                severity, raised_from = item.severity, None
+                if divergence in DIVERGENCE_RAISE and severity != "CRITICAL" \
+                        and len({e.line for e in found}) >= 2:
+                    # Два места документа задают разное поведение, расчёт или единицы: реализовать оба нельзя.
+                    severity, raised_from = "CRITICAL", item.severity
+                    self.quality.severity_raised += 1
                 findings.append(
                     Finding(
                         scope="set",
                         kind=kind,
                         criterion=item.criterion,
-                        severity=item.severity,
+                        severity=severity,
+                        divergence=divergence,
+                        severity_raised_from=raised_from,
                         title=item.title.strip(),
                         req_ids=req_ids,
                         section=section,

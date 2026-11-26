@@ -32,6 +32,7 @@ SKIP_REASONS_RU = {
     "intro": "вводный и поясняющий текст", "other": "прочее",
 }
 SET_STATUS_RU = {"ok": "выполнен", "partial": "частично", "fail": "нарушен", "unknown": "нельзя оценить"}
+_DIVERGENCE_RU = {"behavior": "разное поведение", "result": "разный результат расчёта", "units": "разные единицы одной величины"}
 KIND_RU = {"contradiction": "противоречие", "gap": "пробел", "other": "прочее", "defect": "дефект"}
 FINDING_STATUS_RU = {
     "dropped": "снято критиком", "merged": "слито с другим замечанием", "downgraded": "уровень понижен критиком", "quarantine": "цитата не найдена в документе",
@@ -348,7 +349,8 @@ class _Report:
             f"| Ответы модели | исправлений JSON {llm.repairs}, отброшено дефектов проверкой {q.dropped_defects}, "
             f"оценок {q.dropped_checks}; оценок не вернула модель {q.checks_missing}, "
             f"pass заменён на fail по дефекту {q.checks_pass_overridden}; "
-            f"CRITICAL и MAJOR без вопроса {q.defects_without_question} |"
+            f"CRITICAL и MAJOR без вопроса {q.defects_without_question}; "
+            f"уровень поднят кодом по виду расхождения {q.severity_raised} |"
         )
         self.add(
             f"| Сводные вопросы | {'от модели' if r.verdict.questions_by_model else 'запасной путь из полей замечаний'}; "
@@ -543,6 +545,9 @@ class _Report:
         self.add("")
 
     def critic_line(self, f: Finding) -> None:
+        if f.severity_raised_from:
+            what = _DIVERGENCE_RU.get(f.divergence or "", "разное поведение")
+            self.add(f"- Уровень поднят кодом с {f.severity_raised_from} до CRITICAL: два места документа задают {what}.")
         absorbed = self.absorbed.get(f.id)
         if absorbed:
             self.add(f"- Критик слил сюда: {_links(absorbed)}, их текст в [приложении Б](#appendix-b).")
