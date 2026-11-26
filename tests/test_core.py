@@ -1120,8 +1120,8 @@ def test_critic_retries_once_for_findings_without_decision(doc):
     assert report_row in render(result)
 
 
-def test_blockers_set_first_and_all_on_first_screen_up_to_eight(doc):
-    """Блокеры: S раньше D; на первом экране все, если их не больше восьми, иначе пять и ссылка."""
+def test_blockers_set_first_and_all_on_first_screen_up_to_ten(doc):
+    """Блокеры: S раньше D; на первом экране все, если их не больше десяти, иначе восемь и ссылка."""
     from reqask.schemas import Finding
 
     def crit(fid):
@@ -1139,11 +1139,13 @@ def test_blockers_set_first_and_all_on_first_screen_up_to_eight(doc):
         report = render(result)
         return report[report.index("**Блокеры:**"):report.index("**Блокеры:**") + 3000].split("\n\n")[1]
 
-    eight = first_screen(6)
-    assert eight.count("\n- ") + 1 == 8 and "и ещё" not in eight
-    assert eight.index("[S-01]") < eight.index("[D-01]")
     nine = first_screen(7)
-    assert nine.count("\n- ") + 1 == 6 and "- и ещё 4, полный список" in nine
+    assert nine.count("\n- ") + 1 == 9 and "и ещё" not in nine
+    assert nine.index("[S-01]") < nine.index("[D-01]")
+    ten = first_screen(8)
+    assert ten.count("\n- ") + 1 == 10 and "и ещё" not in ten
+    eleven = first_screen(9)
+    assert eleven.count("\n- ") + 1 == 9 and "- и ещё 3, полный список" in eleven
 
 
 def test_check_walks_fallback_chain(client_with, capsys):

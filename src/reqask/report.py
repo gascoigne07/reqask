@@ -50,8 +50,8 @@ BLOCKER_GROUPS = (
 # Подраздел раздела 4 для системного замечания, свёрнутого из критерия отдельного требования.
 SYSTEM_GROUP = {"CONSISTENT": "consistency", "FEASIBLE": "feasibility", "CORRECT": "feasibility", "APPROPRIATE": "feasibility"}
 # Блокеры на первом экране: все, если их не больше FIRST_SCREEN_BLOCKERS_ALL, иначе первые FIRST_SCREEN_BLOCKERS.
-FIRST_SCREEN_BLOCKERS = 5
-FIRST_SCREEN_BLOCKERS_ALL = 8
+FIRST_SCREEN_BLOCKERS = 8
+FIRST_SCREEN_BLOCKERS_ALL = 10
 FIRST_SCREEN_QUESTIONS = 5
 BLOCKER_TEXT = 160
 # Вопросы сгруппированы по адресату, а номер у вопроса один на оба файла: внутри группы номера идут не подряд.
