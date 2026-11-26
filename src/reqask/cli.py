@@ -71,6 +71,25 @@ def _check_output(path: str) -> Path:
     return output
 
 
+def _report_files(output: Path) -> list[Path]:
+    """Все файлы, которые пишет прогон: отчёт, вопросы автору, report.json."""
+    return [output, output.with_name(output.stem + ".questions.md"), output.with_suffix(".json")]
+
+
+def _check_not_input(output: Path, source: str) -> None:
+    """Отчёт не должен лечь поверх документа: --output равен --input, и документ потерян."""
+    try:
+        doc = Path(source).resolve()
+        clash = next((p for p in _report_files(output) if p.resolve() == doc), None)
+    except OSError:
+        return
+    if clash is not None:
+        raise ConfigError(
+            f"отчёт записался бы поверх проверяемого документа «{source}» (файл «{clash.name}»). "
+            "Укажите для --output другой путь, например reports/report.md"
+        )
+
+
 def _make_output_dir(output: Path) -> None:
     """Папку отчёта создаём после чтения входа, но до вызовов модели, чтобы не потерять прогон на записи."""
     try:
@@ -83,10 +102,12 @@ def _write_unreadable(output: Path, source: str, reason: str) -> None:
     """Документ есть, но прочитать его нельзя (повреждён, пуст, скан, не тот формат): причина идёт и в файл отчёта.
 
     Тот, кто откроет отчёт, увидит диагностику, а не вчерашний отчёт по другому документу.
+    Вопросы и report.json прежнего прогона рядом удаляются по той же причине.
     Если файла по пути нет, отчёт не пишется: это ошибка в команде, а не в документе.
     """
     if not Path(source).exists():
         return
+    _, questions, json_path = _report_files(output)
     text = (
         f"# Отчёт о проверке требований: {Path(source).name}\n\n"
         f"Отчёт сформирован агентом reqask автоматически. Дата: {time.strftime('%Y-%m-%d %H:%M:%S %z')}.\n\n"
@@ -99,6 +120,9 @@ def _write_unreadable(output: Path, source: str, reason: str) -> None:
     try:
         output.parent.mkdir(parents=True, exist_ok=True)
         output.write_text(text, encoding="utf-8")
+        # Вопросы и report.json от прежнего прогона рядом с новым отчётом сбивали бы с толку.
+        for stale in (questions, json_path):
+            stale.unlink(missing_ok=True)
     except OSError as exc:
         _error(f"не удалось записать отчёт: {exc}")
         return
@@ -174,6 +198,7 @@ def _main(argv: list[str] | None = None) -> int:
             _error(f"--batch-size должен быть 1 или больше, указано {args.batch_size}")
             return EXIT_INPUT
         output = _check_output(args.output)
+        _check_not_input(output, args.input)
         try:
             doc = load_document(args.input)
         except LoadError as exc:
@@ -206,10 +231,10 @@ def _main(argv: list[str] | None = None) -> int:
         print("Прогон прерван.", file=sys.stderr)
         return EXIT_INTERRUPTED
 
-    questions_path = output.with_name(output.stem + ".questions.md")
+    _, questions_path, json_path = _report_files(output)
     log("Шаг 9. Отчёт")
     t9 = time.monotonic()
-    written = [output, questions_path] + ([] if args.no_json else [output.with_suffix(".json")])
+    written = [output, questions_path] + ([] if args.no_json else [json_path])
     result.steps.append(StepStat(
         number="9", name="Отчёт", summary="записаны: " + ", ".join(p.name for p in written),
     ))
@@ -217,7 +242,7 @@ def _main(argv: list[str] | None = None) -> int:
         output.write_text(render(result), encoding="utf-8")
         questions_path.write_text(render_questions(result), encoding="utf-8")
         if not args.no_json:
-            output.with_suffix(".json").write_text(result.model_dump_json(indent=2), encoding="utf-8")
+            json_path.write_text(result.model_dump_json(indent=2), encoding="utf-8")
     except OSError as exc:
         _error(f"не удалось записать отчёт: {exc}")
         return EXIT_INPUT

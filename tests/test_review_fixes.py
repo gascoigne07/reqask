@@ -137,3 +137,44 @@ def test_network_counter_resets_on_answer_and_is_fatal_before_first_answer(clien
     with pytest.raises(LLMFatal):
         client.complete_json("шаг", "s", "u", OneOut, kind="review", use_cache=False)
     assert issubclass(LLMNetworkError, LLMError)
+
+
+# ---------- 5. отчёт поверх документа ----------
+
+
+@pytest.mark.parametrize("output", ["spec.md", "./spec.md", "sub/../spec.md"])
+def test_output_equal_to_input_is_refused(workdir, monkeypatch, capsys, output):
+    llm = use(monkeypatch, FakeLLM())
+    before = (workdir / "spec.md").read_bytes()
+    assert cli.main(["-i", "spec.md", "-o", output, "-q"]) == cli.EXIT_INPUT
+    assert (workdir / "spec.md").read_bytes() == before and llm.steps == []
+    assert "поверх проверяемого документа" in capsys.readouterr().err
+
+
+def test_questions_file_equal_to_input_is_refused(workdir, monkeypatch):
+    (workdir / "report.questions.md").write_text("FR-1. Система должна работать.\n", encoding="utf-8")
+    use(monkeypatch, FakeLLM())
+    assert cli.main(["-i", "report.questions.md", "-o", "report.md", "-q"]) == cli.EXIT_INPUT
+    assert (workdir / "report.questions.md").read_text(encoding="utf-8").startswith("FR-1.")
+
+
+def test_unreadable_input_does_not_overwrite_itself(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "broken.md").write_bytes(b"\x00\x01")
+    assert cli.main(["-i", "broken.md", "-o", "broken.md", "-q"]) == cli.EXIT_INPUT
+    assert (tmp_path / "broken.md").read_bytes() == b"\x00\x01"
+
+
+# ---------- 6. нечитаемый документ: старые соседние файлы удаляются ----------
+
+
+def test_unreadable_document_removes_stale_questions_and_json(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    out = tmp_path / "out"
+    out.mkdir()
+    for name, text in OLD_FILES.items():
+        (out / name).write_text(text, encoding="utf-8")
+    (tmp_path / "broken.pdf").write_bytes(b"%PDF-1.4 broken")
+    assert cli.main(["-i", "broken.pdf", "-o", "out/report.md", "-q"]) == cli.EXIT_INPUT
+    assert "**Вердикт: Не вынесен.**" in (out / "report.md").read_text(encoding="utf-8")
+    assert not (out / "report.questions.md").exists() and not (out / "report.json").exists()
