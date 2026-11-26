@@ -339,7 +339,8 @@ class _Report:
         if c.done:
             self.add(
                 f"| Критик | проверено CRITICAL и MAJOR {c.reviewed}: оставлено {c.keep}, понижено {c.downgraded}, "
-                f"снято {c.dropped}, слито {c.merged}, без решения {c.no_decision}, решений отклонено кодом {c.rejected} |"
+                f"снято {c.dropped}, слито {c.merged}, без решения {c.no_decision}, решений отклонено кодом {c.rejected}"
+                + (f"; повтор по замечаниям без решения: решено {c.retry_resolved}" if c.retry_calls else "") + " |"
             )
         else:
             step = next((x for x in r.steps if x.number == "7"), None)

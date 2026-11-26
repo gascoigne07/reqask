@@ -760,30 +760,30 @@ class Pipeline:
         context, is_full = self._critic_context(doc, pool)
         candidates = self._merge_candidates(pool)
         st.candidate_groups = len(candidates)
-        try:
-            out = self.llm.complete_json(
-                "критик", prompts.SYSTEM, prompts.critic_prompt(pool, context, is_full, candidates), CriticOut,
-                kind="critic")
-        except LLMFatal as exc:
-            self._on_fatal(exc, "критик")
+        by_id = {f.id: f for f in pool}
+        decisions: dict = {}
+        out = self._critic_call(prompts.critic_prompt(pool, context, is_full, candidates))
+        if out is None:
             return
-        except LLMError as exc:
-            self.failed_steps.append(f"критик: {exc}")
-            return
-
-        if not out.decisions:
+        self._collect_decisions(out, by_id, set(by_id), decisions)
+        missing = [f for f in pool if f.id not in decisions]
+        if missing and not self._blocked("критик"):
+            # Один повтор только по замечаниям без решения, остальные даны как возможные цели слияния.
+            ids = {f.id for f in missing}
+            st.retry_calls = 1
+            groups = [(line, g) for line, g in candidates if ids & set(g)]
+            targets = [f for f in pool if f.id not in ids]
+            self.log(f"  критик: без решения {len(missing)}, повторный запрос только по ним")
+            retry = self._critic_call(prompts.critic_prompt(missing, context, is_full, groups, targets=targets))
+            if retry is not None:
+                before = len(decisions)
+                self._collect_decisions(retry, by_id, ids, decisions)
+                st.retry_resolved = len(decisions) - before
+        if not decisions:
             # Пустой ответ не считается перепроверкой: в отчёте остаётся пометка «не перепроверены».
             st.no_decision = len(pool)
             self.failed_steps.append("критик: модель не вернула ни одного решения")
             return
-        by_id = {f.id: f for f in pool}
-        decisions = {}
-        for d in out.decisions:
-            fid = d.finding_id.strip().upper()
-            if fid not in by_id or fid in decisions:
-                st.rejected += 1
-                continue
-            decisions[fid] = d
         st.no_decision = len(pool) - len(decisions)
 
         merges: dict[str, tuple[str, str]] = {}
@@ -828,6 +828,24 @@ class Pipeline:
             src.status, src.merged_into, src.critic_reason = "merged", target.id, reason
             st.merged += 1
         st.done = True
+
+    def _critic_call(self, user: str) -> CriticOut | None:
+        try:
+            return self.llm.complete_json("критик", prompts.SYSTEM, user, CriticOut, kind="critic")
+        except LLMFatal as exc:
+            self._on_fatal(exc, "критик")
+        except LLMError as exc:
+            self.failed_steps.append(f"критик: {exc}")
+        return None
+
+    def _collect_decisions(self, out: CriticOut, by_id: dict, allowed: set[str], decisions: dict) -> None:
+        """Первое решение по каждому замечанию из allowed; чужие и повторные идут в отклонённые."""
+        for d in out.decisions:
+            fid = d.finding_id.strip().upper()
+            if fid not in by_id or fid not in allowed or fid in decisions:
+                self.critic.rejected += 1
+                continue
+            decisions[fid] = d
 
     @staticmethod
     def _merge_candidates(pool: list[Finding]) -> list[tuple[int, list[str]]]:

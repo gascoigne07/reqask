@@ -409,8 +409,17 @@ def _critic_row(f: Finding) -> str:
 
 
 def critic_prompt(findings: list[Finding], context: str, context_is_full: bool,
-                  candidates: list[tuple[int, list[str]]] | None = None) -> str:
+                  candidates: list[tuple[int, list[str]]] | None = None,
+                  targets: list[Finding] | None = None) -> str:
+    """targets задан для повторного запроса: решения нужны только по findings, targets лишь цели merge."""
     rows = "\n".join(_critic_row(f) for f in findings)
+    retry_head = retry_block = ""
+    if targets is not None:
+        retry_head = ("\n\nЭто повторный запрос. В прошлом ответе не было решений по замечаниям из списка ниже. "
+                      "Верни решение по каждому из них.")
+        if targets:
+            retry_block = ("\n\nУже проверенные замечания. Решения по ним не нужны, их можно указать в into для merge:\n"
+                           + "\n".join(_critic_row(f) for f in targets))
     candidates_block = ""
     if candidates:
         listed = "\n".join(f"- строка {line}: {', '.join(ids)}" for line, ids in candidates)
@@ -425,7 +434,7 @@ def critic_prompt(findings: list[Finding], context: str, context_is_full: bool,
         else "Фрагменты документа вокруг цитат (слева номера строк)"
     )
     return f"""Задача: перепроверить замечания первого ревьюера к документу требований. Ты второй ревьюер. \
-Твоя цель: убрать повторы и ошибки, чтобы автор документа получил короткий и верный список.
+Твоя цель: убрать повторы и ошибки, чтобы автор документа получил короткий и верный список.{retry_head}
 
 Уровни критичности:
 {SEVERITY_RULES}
@@ -451,7 +460,7 @@ into: идентификатор замечания, которое остаёт
 Верни decisions: по одному решению на каждое замечание списка, finding_id из списка.
 
 Замечания (идентификатор | уровень | критерий | где | суть | цитаты):
-{rows}{candidates_block}
+{rows}{retry_block}{candidates_block}
 
 {context_title}:
 {context}"""

@@ -680,6 +680,8 @@ def test_critic_decisions_and_limits(doc):
         def complete_json(self, step, system, user, schema, kind=""):
             assert schema is CriticOut and kind == "critic"
             self.users.append(user)
+            if len(self.users) > 1:
+                return CriticOut.model_validate({"decisions": []})  # повтор по D-10 тоже без решения
             return CriticOut.model_validate({"decisions": [
                 d("d-01", "downgrade", "major", reason="число есть в разделе данных"),
                 d("D-02", "downgrade", "CRITICAL"),          # повысить нельзя
@@ -711,6 +713,8 @@ def test_critic_decisions_and_limits(doc):
     assert by["D-06"].status == by["D-07"].status == by["D-08"].status == "unreviewed"
     assert by["D-09"].status == "unreviewed" and by["D-10"].status == "unreviewed"
     assert (c.reviewed, c.keep, c.downgraded, c.dropped, c.merged, c.no_decision, c.rejected) == (10, 1, 1, 1, 1, 1, 7)
+    assert (c.retry_calls, c.retry_resolved) == (1, 0) and len(llm.users) == 2
+    assert "D-10 |" in llm.users[1] and "Это повторный запрос" in llm.users[1]
     assert c.done and pipe._verdict(findings, rationale="").critic_done
     # Слитое и снятое не входят в вердикт: блокер теперь S-01, а не D-05.
     assert Pipeline.decide(findings)[3] == ["S-01"]
@@ -886,3 +890,44 @@ def test_critic_gets_merge_candidates_by_shared_line(doc):
     assert "- строка 5: D-01, S-01" in llm.users[0] and "- строка 9: S-01, D-02" in llm.users[0]
     assert pipe.critic.candidate_groups == 2
     assert "Кандидаты на слияние" not in prompts.critic_prompt(pool, "", True, [])
+
+
+def test_critic_retries_once_for_findings_without_decision(doc):
+    """Повтор только по замечаниям без решения; цели слияния из первого списка доступны."""
+    from reqask.schemas import Finding
+
+    def f(fid, line, severity="MAJOR"):
+        return Finding(id=fid, scope="set" if fid.startswith("S") else "requirement", criterion="COMPLETE",
+                       severity=severity, problem=f"п {fid}", recommendation="р", question="в?",
+                       evidence=[Evidence(quote=f"цитата {fid}", line=line)])
+
+    pool = [f("S-01", 5, "CRITICAL"), f("D-01", 5, "CRITICAL"), f("D-02", 9), f("D-03", 11)]
+
+    def d(fid, action, into=None):
+        return {"finding_id": fid, "action": action, "severity": None, "into": into, "reason": "причина"}
+
+    class RetryLLM(FakeLLM):
+        def complete_json(self, step, system, user, schema, kind=""):
+            self.users.append(user)
+            if len(self.users) == 1:
+                return CriticOut.model_validate({"decisions": [d("S-01", "keep"), d("D-02", "keep")]})
+            # Повтор: решение по D-01 и D-03 принимается, по уже решённому S-01 отклоняется.
+            return CriticOut.model_validate({"decisions": [
+                d("D-01", "merge", into="S-01"), d("D-03", "keep"), d("S-01", "drop")]})
+
+    llm = RetryLLM()
+    pipe = Pipeline(llm, SETTINGS)
+    pipe.critique(doc, pool)
+    by = {x.id: x for x in pool}
+    c = pipe.critic
+    retry_rows = llm.users[1].split("Уже проверенные замечания")[0]
+    assert "D-01 |" in retry_rows and "D-03 |" in retry_rows and "S-01 |" not in retry_rows
+    assert "- строка 5: S-01, D-01" in llm.users[1]
+    assert by["D-01"].status == "merged" and by["D-01"].merged_into == "S-01"
+    assert by["S-01"].status == "confirmed" and by["D-03"].status == "confirmed"
+    assert (c.retry_calls, c.retry_resolved, c.no_decision, c.rejected, c.merged) == (1, 2, 0, 1, 1)
+    report_row = "повтор по замечаниям без решения: решено 2"
+    pipe2 = Pipeline(FakeLLM(), SETTINGS)
+    result = pipe2.run(doc, "test")
+    result.critic = c
+    assert report_row in render(result)

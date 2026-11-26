@@ -378,6 +378,9 @@ class CriticStats(BaseModel):
     rejected: int = 0
     # Группы замечаний с подтверждёнными цитатами на одной строке: кандидаты на слияние для критика.
     candidate_groups: int = 0
+    # Повторный вызов по замечаниям, на которые первый ответ не дал решения, и сколько решений он добавил.
+    retry_calls: int = 0
+    retry_resolved: int = 0
 
 
 class QualityStats(BaseModel):
