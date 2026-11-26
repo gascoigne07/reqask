@@ -10,6 +10,20 @@
 
 Нужен Python 3.10 или новее.
 
+**0. Выбрать, как запускать: uv или venv.** С [uv](https://docs.astral.sh/uv/) окружение и зависимости создаются сами, команды ниже начинаются с `uv run`. Установка uv одной строкой:
+
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
+
+Без uv один раз создайте окружение и поставьте зависимости:
+
+```bash
+python3 -m venv .venv && source .venv/bin/activate && pip install -e .
+```
+
+В Windows активация выглядит так: `.venv\Scripts\activate`. Дальше вместо `uv run main.py` пишите `python main.py`. В новом терминале сначала снова активируйте `.venv`.
+
 **1. Получить ключ модели.** Откройте [Google AI Studio](https://aistudio.google.com/), нажмите Get API key и создайте ключ. Бесплатного тарифа хватает на один прогон в сутки: лимит 20 запросов в день на модель, прогону нужно 13-14. Когда серверы Gemini перегружены и отвечают ошибками, квота уходит на повторы, и прогон может остановиться с неполным отчётом. Отчёт в `reports/` сделан на `claude-haiku-5-5` с ключом Anthropic: этот путь проверен полными прогонами. Другие провайдеры (Anthropic, OpenAI, Ollama, любой OpenAI-совместимый адрес) описаны в `.env.example`.
 
 **2. Положить ключ в `.env`.**
@@ -26,24 +40,21 @@ cp .env.example .env
 uv run main.py --check
 ```
 
-Команда скажет, принят ли ключ и какая модель отвечает. Если основная модель не отвечает, проверка идёт по запасным и пишет, на какой пойдёт прогон. Без uv то же самое: `python main.py --check`.
+Команда скажет, принят ли ключ и какая модель отвечает. Если основная модель не отвечает, проверка идёт по запасным и пишет, на какой пойдёт прогон. Без uv то же самое в окружении из шага 0: `python main.py --check`.
 
 **4. Запустить прогон одной командой.**
 
-С [uv](https://docs.astral.sh/uv/), он сам создаст окружение и поставит зависимости:
+С uv:
 
 ```bash
 uv run main.py --input input/requirements.md --output reports/report.md
 ```
 
-Без uv, окружение и зависимости ставятся вручную:
+Без uv, в окружении из шага 0:
 
 ```bash
-python -m venv .venv && source .venv/bin/activate && pip install -e .
 python main.py --input input/requirements.md --output reports/report.md
 ```
-
-Нет uv: поставьте его одной строкой `curl -LsSf https://astral.sh/uv/install.sh | sh` или идите по пути без uv выше.
 
 `--input` принимает путь к документу требований, `--output` путь к файлу отчёта. PDF передаётся так же: `--input spec.pdf`.
 
