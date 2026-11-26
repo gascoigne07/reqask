@@ -172,3 +172,18 @@ def test_review_prompt_checks_every_sentence():
     assert "каждый нарушенный критерий записывай отдельным дефектом" in text
     assert "если все девять критериев проверены и ни один не нарушен" in text
     assert "—" not in text and "–" not in text
+
+
+def test_general_rule_without_exceptions_covers_cases():
+    edge = prompts.edge_prompt([], "L0001 текст")
+    assert "Общее правило без оговорок покрывает и частные случаи" in edge
+    assert "Перед тем как записать случай, найди такую строку" in edge
+    critic = prompts.critic_prompt([], "L0001 текст", True)
+    rule = critic[critic.index("Замечание о том, что случай или сведения не описаны"):]
+    rule = rule[:rule.index("\n- ")]
+    for part in ("SET_COMPLETE или COMPLETE", "общее правило без оговорок", "Отвечает: drop",
+                 "в reason номер строки", "только на часть: keep"):
+        assert part in rule, part
+    assert "Сомневаешься, оставь: keep" in critic
+    for text in (edge, critic):
+        assert "—" not in text and "–" not in text
