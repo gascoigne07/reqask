@@ -772,6 +772,16 @@ def test_final_prompt_marks_findings_without_question(doc):
     assert "Документ (слева номера строк)" in text and doc.numbered() in text
 
 
+def test_review_prompt_rewrites_in_language_of_requirement(doc):
+    """Готовая формулировка заменяет текст требования: язык требования, остальное по-русски."""
+    result = Pipeline(FakeLLM(), SETTINGS).run(doc, "test")
+    text = prompts.review_prompt(result.requirements[:1], doc.numbered(), True)
+    rule = text[text.index("Язык rewritten"):]
+    assert "язык текста этого требования" in rule and "<N seconds>" in rule
+    assert "остальные поля ответа пиши по-русски" in rule
+    assert "если задача прямо не велит для поля другой язык" in prompts.SYSTEM
+
+
 def test_merge_keeps_distinct_quotes_only():
     """Слияние не копирует ту же цитату и её часть; ненайденная цитата цели остаётся."""
     from reqask.schemas import Finding
