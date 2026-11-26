@@ -302,9 +302,13 @@ def _check_report(result):
     assert len(first.splitlines()) <= 40
     assert "[S-01](#s-01)" in first and "[Q-01](#q-01)" in first
     assert '<a id="q-01"></a>' in report and '<a id="req-01"></a>' in report and '<a id="d-01"></a>' in report
-    # Блок требования (9.2): заголовок, таблица оценок, дефект с вопросом и ссылкой на сводный вопрос.
+    # Блок требования (9.2): заголовок, оценки одной строкой, дефект с вопросом и ссылкой на сводный вопрос.
     assert "### REQ-01 · ID в документе: FR-1 · раздел" in report
-    assert "| Проверяемость | ❌ |" in report and "| Необходимость | ➖ |" in report
+    marks = next(line for line in report.splitlines() if line.startswith("Оценки: "))
+    assert "❌ Пров." in marks and "➖ Необх." in marks
+    # Пояснение печатается у «не применим», а у нарушения с дефектом его даёт сам дефект.
+    assert "- ➖ Необходимость: " in report and "- ❌ Проверяемость: " not in report
+    assert "| Критерий | Оценка |" not in report
     assert "**D-01 [CRITICAL] Проверяемость.**" in report
     assert "- Вопрос заказчику (бизнес): Какое время ответа, в секундах? См. [Q-02](#q-02)." in report
     assert "**Готовая формулировка:** Система отвечает за <N секунд>." in report

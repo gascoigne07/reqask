@@ -61,7 +61,12 @@ def _cell(text: str) -> str:
 def _one_line(text: str, limit: int | None = None) -> str:
     text = " ".join(text.split())
     if limit and len(text) > limit:
-        text = text[: limit - 3].rstrip() + "..."
+        cut = text[: limit - 3]
+        # Режем по границе слова, если пробел не слишком далеко от края.
+        space = cut.rfind(" ")
+        if space > limit // 2:
+            cut = cut[:space]
+        text = cut.rstrip(" ,;:(") + "..."
     return text
 
 
@@ -125,6 +130,19 @@ def _evidence(item: Evidence) -> str:
         "missing": ", не найдена в документе",
     }.get(item.status, "")
     return f"{_code(item.quote)}{line}{note}"
+
+
+def _found(evidence: list[Evidence]) -> list[Evidence]:
+    """Подтверждённые цитаты без повторов: одна строка документа с точкой и без точки это одна цитата."""
+    seen, out = set(), []
+    for e in evidence:
+        if e.status == "missing":
+            continue
+        key = (e.line, " ".join(e.quote.split()).rstrip(".").lower())
+        if key not in seen:
+            seen.add(key)
+            out.append(e)
+    return out
 
 
 def _active(f: Finding) -> bool:
@@ -405,34 +423,40 @@ class _Report:
             marks = " ".join(f"{ICONS['pass']} {c.short}" for c in visible)
             self.add(f"Замечаний нет: {marks}\n")
             return
-        self.add("| Критерий | Оценка | Пояснение |")
-        self.add("| :--- | :---: | :--- |")
+        # Оценки одной строкой. Пояснение печатается только там, где его не даёт дефект ниже:
+        # у «не применим», «нельзя оценить» и у нарушения, дефект по которому слит или снят.
+        statuses = {c.code: (checks[c.code].status if checks.get(c.code) else "pass") for c in visible}
+        self.add("Оценки: " + " ".join(f"{ICONS[statuses[c.code]]} {c.short}" for c in visible))
+        explained = {f.criterion for f in shown}
         for c in visible:
+            status = statuses[c.code]
+            if status == "pass" or (status == "fail" and c.code in explained):
+                continue
             check = checks.get(c.code)
-            status = check.status if check else "pass"
-            note = (check.note if check and check.note else STATUS_RU[status]) if status != "pass" else PASS_NOTE
-            self.add(f"| {c.name} | {ICONS[status]} | {_cell(note)} |")
+            note = check.note if check and check.note else STATUS_RU[status]
+            self.add(f"- {ICONS[status]} {c.name}: {_one_line(note)}")
         self.add("")
-        if not shown:
-            self.add("Дефектов нет, открытые вопросы по критериям в таблице.\n")
         for f in shown:
             self.defect(f)
+        moved = []
         for f in findings:
             if f.status == "merged" and f.merged_into and f.critic_reason:
-                self.add(f"{_link(f.id)} [{f.severity}] {_criterion(f.criterion)}: тот же дефект, что {_link(f.merged_into)}, слито критиком.\n")
+                moved.append(f"- {_link(f.id)} [{f.severity}] {_criterion(f.criterion)}: тот же дефект, что {_link(f.merged_into)}, слито критиком.")
             elif f.status == "merged" and f.merged_into:
-                self.add(f"{_link(f.id)} [{f.severity}] {_criterion(f.criterion)}: повторяется в нескольких требованиях, см. {_link(f.merged_into)}.\n")
+                moved.append(f"- {_link(f.id)} [{f.severity}] {_criterion(f.criterion)}: повторяется в нескольких требованиях, см. {_link(f.merged_into)}.")
             elif not _active(f):
-                self.add(f"{_link(f.id)} снято: {FINDING_STATUS_RU.get(f.status, f.status)}, см. [приложение Б](#appendix-b).\n")
+                moved.append(f"- {_link(f.id)} снято: {FINDING_STATUS_RU.get(f.status, f.status)}, см. [приложение Б](#appendix-b).")
+        if moved:
+            self.out.extend(moved)
+            self.add("")
         if x.id in r.rewritten:
             self.add(f"**Готовая формулировка:** {_one_line(r.rewritten[x.id])}\n")
 
     def defect(self, f: Finding) -> None:
-        quotes = "; ".join(_evidence(e) for e in f.evidence if e.status != "missing")
+        quotes = "; ".join(_evidence(e) for e in _found(f.evidence))
         quote = f" Цитата: {quotes}." if quotes else ""
         impact = f" Последствие: {f.impact}" if f.impact else ""
-        self.add(_target(f.id))
-        self.add(f"**{f.id} [{f.severity}] {_criterion(f.criterion)}.** {f.problem}{quote}{impact}")
+        self.add(f"{_target(f.id)}**{f.id} [{f.severity}] {_criterion(f.criterion)}.** {f.problem}{quote}{impact}")
         others = [i for i in f.req_ids[1:] if i in self.reqs]
         if others:
             self.add(f"- Тот же дефект: {_links(others)}.")
@@ -488,14 +512,16 @@ class _Report:
     def set_finding(self, f: Finding) -> None:
         self.add(_target(f.id))
         self.add(f"#### {f.id} [{f.severity}] {f.title or _criterion(f.criterion)}\n")
-        self.add(f"- Вид: {KIND_RU.get(f.kind, f.kind)}. Критерий: {_criterion(f.criterion)}.")
-        if f.req_ids:
-            self.add(f"- Требования: {_links([i for i in f.req_ids if i in self.reqs])}.")
+        meta = f"- Вид: {KIND_RU.get(f.kind, f.kind)}. Критерий: {_criterion(f.criterion)}."
+        req_ids = [i for i in f.req_ids if i in self.reqs]
+        if req_ids:
+            meta += f" Требования: {_links(req_ids)}."
         if f.section:
-            self.add(f"- Раздел: {f.section}.")
+            meta += f" Раздел: {_no_dot(f.section)}."
+        self.add(meta)
         if f.places:
             self.add(f"- Места: {'; '.join(f.places)}.")
-        found = [e for e in f.evidence if e.status != "missing"]
+        found = _found(f.evidence)
         for e in found:
             self.add(f"- Цитата: {_evidence(e)}")
         if not found:
@@ -629,8 +655,10 @@ class _Report:
                 f"- **{f.id} [{f.severity}] {_criterion(f.criterion)}** · {_where_finding(f, self.reqs)} · "
                 f"{_no_dot(_one_line(f.title or f.problem, 200))}. Причина: {reason}."
             )
-            for e in f.evidence:
-                self.add(f"  - Цитата модели: {_evidence(e)}")
+            # У слитого цитаты уже стоят у цели слияния. Здесь они нужны там, где замечание снято или не подтверждено.
+            if f.status != "merged":
+                for e in f.evidence:
+                    self.add(f"  - Цитата модели: {_evidence(e)}")
         self.add("")
 
     def render(self) -> str:
