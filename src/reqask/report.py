@@ -65,6 +65,12 @@ def _one_line(text: str, limit: int | None = None) -> str:
     return text
 
 
+def _no_dot(text: str) -> str:
+    """Убирает точку в конце, чтобы после склейки фраз не было двух точек подряд."""
+    text = text.rstrip()
+    return text if text.endswith("...") else text.rstrip(".")
+
+
 def _code(text: str) -> str:
     """Инлайн-код для дословной цитаты: разметка внутри не срабатывает."""
     text = " ".join(text.split())
@@ -165,6 +171,11 @@ class _Report:
         self.by_id = {f.id: f for f in result.findings}
         self.active = [f for f in result.findings if _active(f)]
         self.inactive = [f for f in result.findings if not _active(f)]
+        # Что критик слил в каждое замечание: цель показывает список, чтобы слияние можно было проверить.
+        self.absorbed: dict[str, list[str]] = {}
+        for f in result.findings:
+            if f.status == "merged" and f.merged_into and f.critic_reason:
+                self.absorbed.setdefault(f.merged_into, []).append(f.id)
         self.req_findings: dict[str, list[Finding]] = {}
         for f in result.findings:
             if f.scope == "requirement" and f.req_ids:
@@ -430,6 +441,9 @@ class _Report:
         self.add(f"- Как исправить: {f.recommendation}\n")
 
     def critic_line(self, f: Finding) -> None:
+        absorbed = self.absorbed.get(f.id)
+        if absorbed:
+            self.add(f"- Критик слил сюда: {_links(absorbed)}, их текст в [приложении Б](#appendix-b).")
         if f.status == "downgraded" and f.severity_before:
             self.add(f"- Критик понизил уровень с {f.severity_before}: {f.critic_reason}")
         elif f.severity_before:
@@ -606,14 +620,14 @@ class _Report:
             return
         for f in self.inactive:
             reason = FINDING_STATUS_RU.get(f.status, f.status)
-            if f.critic_reason:
-                reason += f": {f.critic_reason}"
             if f.merged_into:
-                reason += f", слито в {_link(f.merged_into)}"
+                reason += f" {_link(f.merged_into)}"
+            if f.critic_reason:
+                reason += f": {_no_dot(f.critic_reason)}"
             self.add(_target(f.id))
             self.add(
                 f"- **{f.id} [{f.severity}] {_criterion(f.criterion)}** · {_where_finding(f, self.reqs)} · "
-                f"{_one_line(f.title or f.problem, 200)}. Причина: {reason}."
+                f"{_no_dot(_one_line(f.title or f.problem, 200))}. Причина: {reason}."
             )
             for e in f.evidence:
                 self.add(f"  - Цитата модели: {_evidence(e)}")

@@ -705,3 +705,16 @@ def test_critic_decisions_and_limits(doc):
     assert c.done and pipe._verdict(findings, rationale="").critic_done
     # Слитое и снятое не входят в вердикт: блокер теперь S-01, а не D-05.
     assert Pipeline.decide(findings)[3] == ["S-01"]
+
+
+def test_report_shows_critic_merges(doc):
+    """Цель слияния перечисляет слитые замечания, в приложении Б нет двух точек подряд."""
+    result = Pipeline(FakeLLM(), SETTINGS).run(doc, "test")
+    src = next(f for f in result.findings if f.id.startswith("D-"))
+    src.status, src.merged_into, src.critic_reason = "merged", "S-01", "то же исправление."
+    src.problem = src.problem.rstrip(".") + "."
+    report = render(result)
+    assert f"- Критик слил сюда: [{src.id}](#{src.id.lower()})" in report
+    assert "Причина: слито с другим замечанием [S-01](#s-01): то же исправление." in report
+    appendix = report[report.index("## Приложение Б."):]
+    assert not re.search(r"[^.]\.\.(?!\.)", appendix)
