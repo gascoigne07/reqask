@@ -21,7 +21,7 @@ from .version import agent_version
 
 # Коды возврата (К-11).
 EXIT_OK = 0          # отчёт записан полностью
-EXIT_NO_MODEL = 1    # модель недоступна, отчёта нет
+EXIT_NO_MODEL = 1    # модель недоступна или внутренняя ошибка агента, отчёта нет
 EXIT_INPUT = 2       # ошибка входа или настроек
 EXIT_PARTIAL = 3     # отчёт записан, но неполный
 EXIT_CRITICAL = 10   # с --fail-on-critical: вердикт «Не рекомендуется начинать»
@@ -34,7 +34,7 @@ def build_parser() -> argparse.ArgumentParser:
         prog="reqask",
         description="Статическая проверка документа требований по ISO/IEC/IEEE 29148 и IEEE 830.",
         epilog="Коды возврата: 0 отчёт полный, 3 отчёт неполный, 2 ошибка входа или настроек, "
-               "1 модель недоступна, 130 прервано, 10 вердикт «Не рекомендуется» (только с --fail-on-critical).",
+               "1 модель недоступна или внутренняя ошибка агента, 130 прервано, 10 вердикт «Не рекомендуется» (только с --fail-on-critical).",
     )
     parser.add_argument("--input", "-i", help="документ требований: PDF, Markdown, DOCX или TXT")
     parser.add_argument("--output", "-o", help="куда записать отчёт, файл .md")

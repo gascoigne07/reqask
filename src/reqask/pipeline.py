@@ -280,6 +280,8 @@ class Pipeline:
         self.skipped: list[SkippedSpan] = []
         # Куски документа, по которым нарезка получила ответ модели: только в них код добирает пропущенные идентификаторы.
         self._seg_answered: list[tuple[int, int]] = []
+        # Строки с заглушками (TODO, TBD) и сами маркеры: ищет шаг 5, засчитывает _result.
+        self._placeholder_marks: dict[int, list[str]] = {}
         self.checks: dict[str, list[CriterionCheck]] = {}
         self.set_analyses: list[SetAnalysis] = []
         self._req_by_number: dict[int, str] = {}
@@ -1511,7 +1513,7 @@ class Pipeline:
                 findings: list[Finding], rewritten: dict[str, str], questions: list[Question], verdict: Verdict) -> RunResult:
         # Строка с заглушкой засчитывается, только если цитата замечания содержит сам маркер:
         # замечание про другое место той же строки заглушку не закрывает.
-        marks = getattr(self, "_placeholder_marks", {})
+        marks = self._placeholder_marks
         cited = {
             e.line for f in findings if f.status not in INACTIVE_STATUSES for e in f.evidence
             if e.status != "missing" and any(m.casefold() in e.quote.casefold() for m in marks.get(e.line, ()))

@@ -153,6 +153,10 @@ def _looks_binary(text: str) -> bool:
     return control > MAX_CONTROL_SHARE * max(1, len(text))
 
 
+# Разделители, которые не переводят строку в редакторе: внутри строки они становятся пробелом.
+_SOFT_BREAKS_RE = re.compile("[\f\v\x1c-\x1e\x85\u2028\u2029]")
+
+
 def _load_text(data: bytes, path: Path) -> list[tuple[str, int | None]]:
     text = _decode(data)
     if _looks_binary(text):
@@ -160,7 +164,12 @@ def _load_text(data: bytes, path: Path) -> list[tuple[str, int | None]]:
             f"Файл похож на двоичный, а не на текст: {path.name}. Передайте PDF, Markdown, DOCX или TXT "
             "в кодировке UTF-8."
         )
-    return [(raw.rstrip(), None) for raw in text.splitlines()]
+    # Строки делим только по переводу строки, как редактор: str.splitlines() режет ещё по \f, \v,
+    # \x1c-\x1e, \x85, U+2028 и U+2029, и номера строк в отчёте расходились бы с редактором.
+    rows = text.replace("\r\n", "\n").replace("\r", "\n").split("\n")
+    if rows and rows[-1] == "":
+        rows.pop()  # перевод строки в конце файла не даёт лишней строки
+    return [(_SOFT_BREAKS_RE.sub(" ", raw).rstrip(), None) for raw in rows]
 
 
 def _load_pdf(path: Path):

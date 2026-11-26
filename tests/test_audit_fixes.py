@@ -65,7 +65,8 @@ def test_binary_file_with_text_extension_is_refused(tmp_path):
 def test_ordinary_text_with_tabs_is_not_binary(tmp_path):
     path = tmp_path / "spec.md"
     path.write_text("| a\t| b |\r\n\fСистема должна работать.\n", encoding="utf-8")
-    assert load_document(path).n == 3  # \f тоже делит строки (str.splitlines)
+    spec = load_document(path)
+    assert spec.n == 2 and spec.lines[1].text == " Система должна работать."  # \f строку не делит (как в редакторе)
 
 
 # ---------- аргументы и настройки (В-3, С-5, Н-1) ----------

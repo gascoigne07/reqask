@@ -361,3 +361,23 @@ def test_questions_file_keeps_review_only_mark():
     text = render_questions(_result(findings, questions=questions))
     assert "## Требует проверки" in text
     assert text.index("### Q-01.") < text.index("## Требует проверки") < text.index("### Q-02.")
+
+
+# ---------- 11, 12, 14. мелочи ----------
+
+
+def test_text_lines_follow_editor_numbering(tmp_path):
+    from reqask.loader import load_document
+
+    path = tmp_path / "spec.txt"
+    path.write_text("Строка 1\fпродолжение\r\nСтрока 2 ещё\nСтрока 3\x85\rСтрока 4\n", encoding="utf-8")
+    spec = load_document(path)
+    assert [line.text for line in spec.lines] == ["Строка 1 продолжение", "Строка 2 ещё", "Строка 3", "Строка 4"]
+
+
+def test_placeholder_marks_exist_before_step_5():
+    assert Pipeline(FakeLLM(), SETTINGS)._placeholder_marks == {}
+
+
+def test_epilog_names_internal_error_for_code_1():
+    assert "1 модель недоступна или внутренняя ошибка агента" in cli.build_parser().epilog
