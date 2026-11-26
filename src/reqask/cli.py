@@ -79,6 +79,32 @@ def _make_output_dir(output: Path) -> None:
         raise ConfigError(f"не удалось создать папку для отчёта «{output.parent}»: {exc}") from exc
 
 
+def _write_unreadable(output: Path, source: str, reason: str) -> None:
+    """Документ есть, но прочитать его нельзя (повреждён, пуст, скан, не тот формат): причина идёт и в файл отчёта.
+
+    Тот, кто откроет отчёт, увидит диагностику, а не вчерашний отчёт по другому документу.
+    Если файла по пути нет, отчёт не пишется: это ошибка в команде, а не в документе.
+    """
+    if not Path(source).exists():
+        return
+    text = (
+        f"# Отчёт о проверке требований: {Path(source).name}\n\n"
+        f"Отчёт сформирован агентом reqask автоматически. Дата: {time.strftime('%Y-%m-%d %H:%M:%S %z')}.\n\n"
+        "**Вердикт: Не вынесен.**\n\n"
+        "Документ не прочитан, проверка не проводилась, модель не вызывалась.\n\n"
+        f"- Причина: {reason.rstrip('.')}.\n"
+        "- Что сделать: исправить файл по подсказке выше и запустить агента ещё раз. "
+        "Агент читает PDF с текстовым слоем, DOCX, Markdown и TXT в кодировке UTF-8.\n"
+    )
+    try:
+        output.parent.mkdir(parents=True, exist_ok=True)
+        output.write_text(text, encoding="utf-8")
+    except OSError as exc:
+        _error(f"не удалось записать отчёт: {exc}")
+        return
+    print(f"Отчёт с причиной: {output}", file=sys.stderr)
+
+
 def run_check(settings, log) -> int:
     """--check: ключ, модель, режим JSON и уровень рассуждения одним вызовом (М-14).
 
@@ -148,7 +174,12 @@ def _main(argv: list[str] | None = None) -> int:
             _error(f"--batch-size должен быть 1 или больше, указано {args.batch_size}")
             return EXIT_INPUT
         output = _check_output(args.output)
-        doc = load_document(args.input)
+        try:
+            doc = load_document(args.input)
+        except LoadError as exc:
+            _error(str(exc))
+            _write_unreadable(output, args.input, str(exc))
+            return EXIT_INPUT
         settings = load_settings(args.env_file).with_overrides(model=args.model, batch_size=args.batch_size)
         _make_output_dir(output)
         if args.no_cache:

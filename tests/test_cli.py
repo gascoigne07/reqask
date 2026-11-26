@@ -125,3 +125,18 @@ def test_interrupt_is_code_130(workdir, monkeypatch):
 
     use(monkeypatch, Stop())
     assert run() == cli.EXIT_INTERRUPTED
+
+
+def test_unreadable_document_gets_diagnostic_report(tmp_path, monkeypatch):
+    """Повреждённый или пустой документ: код 2, причина в stderr и в файле отчёта; модель не вызывается."""
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "broken.pdf").write_bytes(b"%PDF-1.4 broken")
+    (tmp_path / "empty.md").write_text("  \n", encoding="utf-8")
+    assert cli.main(["-i", "broken.pdf", "-o", "out/report.md", "-q"]) == cli.EXIT_INPUT
+    report = (tmp_path / "out" / "report.md").read_text(encoding="utf-8")
+    assert "broken.pdf" in report and "**Вердикт: Не вынесен.**" in report and "- Причина: " in report
+    assert cli.main(["-i", "empty.md", "-o", "empty-report.md", "-q"]) == cli.EXIT_INPUT
+    assert "Файл пуст" in (tmp_path / "empty-report.md").read_text(encoding="utf-8")
+    # Файла нет вовсе: это ошибка в команде, отчёт не пишется.
+    assert cli.main(["-i", "nope.md", "-o", "nope-report.md", "-q"]) == cli.EXIT_INPUT
+    assert not (tmp_path / "nope-report.md").exists()
