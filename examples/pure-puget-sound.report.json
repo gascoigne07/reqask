@@ -1,0 +1,5551 @@
+{
+  "document_name": "pure-puget-sound.pdf",
+  "document_format": "pdf",
+  "document_lines": 258,
+  "document_sha256": "bc8fea411b7e40f114e453f09451cd3777da5f218f0d1414fbb640ec5ed9dce8",
+  "started_at": "2026-11-26 23:32:19 +0500",
+  "duration_sec": 200.3,
+  "provider": "custom",
+  "model": "claude-haiku-5-5",
+  "agent_version": "0.1.0, коммит ddf8472, есть незакоммиченные правки",
+  "requirements": [
+    {
+      "id": "REQ-01",
+      "source_id": null,
+      "section": "3. Specific Requirements",
+      "line_start": 156,
+      "line_end": 156,
+      "page": 8,
+      "kind": "constraint",
+      "summary": "Первый релиз включает требования приоритетов 1 и 2 и возможные из приоритета 3",
+      "quote": "The initial production release of the University of Puget Sound’s enhancements to Moodle will deliver the Priority 1 (Core) and Priority 2 set of requirements, along with such Priority 3 requirements as can be developed within the project timeframe and budget constraints.",
+      "lint_hints": [],
+      "lint_confirmed": []
+    },
+    {
+      "id": "REQ-02",
+      "source_id": null,
+      "section": "3.1 Multiple File Transfer",
+      "line_start": 158,
+      "line_end": 158,
+      "page": 8,
+      "kind": "functional",
+      "summary": "Система захватывает и управляет файлами там, где это уместно",
+      "quote": "The system must be able to capture and manage files where appropriate.",
+      "lint_hints": [],
+      "lint_confirmed": []
+    },
+    {
+      "id": "REQ-03",
+      "source_id": "3.1.1",
+      "section": "3.1 Multiple File Transfer",
+      "line_start": 162,
+      "line_end": 163,
+      "page": 9,
+      "kind": "functional",
+      "summary": "Множественная загрузка файлов настраивается для каждой страницы",
+      "quote": "3.1.1 The system must allow for multiple file upload to be configured on a per-page basis.\nActors in the capacity of course administrator or professor should be able to enable multiple file uploads on a page of his or her choosing. For collaborative projects, it becomes important for actors to be able to upload more than one file to a given page, especially in the case of an assignment submission where the assignment might include multiple parts. Such a construct should be offered to the actor during a page’s creation and editing stages.",
+      "lint_hints": [],
+      "lint_confirmed": []
+    },
+    {
+      "id": "REQ-04",
+      "source_id": null,
+      "section": "3.2 Audio Recording",
+      "line_start": 165,
+      "line_end": 165,
+      "page": 9,
+      "kind": "functional",
+      "summary": "Система захватывает и организует голосовые клипы там, где уместно",
+      "quote": "The system must be able to capture and organize voice clips that can be used where appropriate.",
+      "lint_hints": [],
+      "lint_confirmed": []
+    },
+    {
+      "id": "REQ-05",
+      "source_id": "3.2.1",
+      "section": "3.2 Audio Recording",
+      "line_start": 168,
+      "line_end": 172,
+      "page": 9,
+      "kind": "functional",
+      "summary": "Актор организует свои голосовые клипы в портфолио",
+      "quote": "3.2.1 The system must allow actors to organize their voice clips into a portfolio.\nEqual and finite drive space needs to be allotted to each actor in the role of professor or administrator to allow for the storing of voice clips recorded and submitted by all actors in the roles of students. Actors in the role of professor or system administrator should be allowed to partition this space for actors in the roles of students. This can be done one of two ways: 1) the actor can be allowed to preview the voice clip before it is archived and determine whether or not he or she would like that clip to be archived, or 2) a newly created voice clip can be automatically archived. The first option would allow the actor to throw out an audio clip that is deemed to be unsuitable or inappropriate for an assignment without having to take it out of an archive of voice clips. The actor should have the option to have the voice clip be archived after a preview has taken place. The second option would automatically archive a voice clip once submitted but would require that the actor interact with the archived file. Thus, if the actor chooses to delete the file, it would need to be deleted from the archive of voice clips.\nMaintaining an archive of voice clips makes it possible for comparisons to be made between clips to determine whether an actor is improving his or her language skills over multiple courses.\nThe actor should be able to optionally attach one of his or her archived items to any page where uploads are permitted.\nThe term archive used above may also be referred to as a portfolio.",
+      "lint_hints": [],
+      "lint_confirmed": []
+    },
+    {
+      "id": "REQ-06",
+      "source_id": "3.2.2",
+      "section": "3.2 Audio Recording",
+      "line_start": 173,
+      "line_end": 174,
+      "page": 9,
+      "kind": "interface",
+      "summary": "Актор скачивает голосовые клипы в гибком формате, например mp3",
+      "quote": "3.2.2 The system must allow actors to download their voice clips in a flexible format.\nVoice clips should be optionally downloadable in a format such as MPEG Audio (mp3) format, since it is widely supported across different web browsers and operating systems. Voice clips should be downloadable for archival purposes or for the purpose of presenting them to other actors.",
+      "lint_hints": [
+        "«flexible»: расплывчатая формулировка"
+      ],
+      "lint_confirmed": [
+        "«flexible»: расплывчатая формулировка"
+      ]
+    },
+    {
+      "id": "REQ-07",
+      "source_id": "3.2.3",
+      "section": "3.2 Audio Recording",
+      "line_start": 175,
+      "line_end": 176,
+      "page": 9,
+      "kind": "data",
+      "summary": "Аудиоклипы хранятся в формате, оптимизированном для речи",
+      "quote": "3.2.3 The system must store audio clips in a format conducive to speech.\nVoice clips should be stored in a format optimized for speech since this feature is meant to catalog voice recordings. Recordings should only be converted to MPEG Audio (mp3) format when they are being downloaded; a separate viewer should be provided in a cross-platform language for listening to clips in Moodle.",
+      "lint_hints": [],
+      "lint_confirmed": []
+    },
+    {
+      "id": "REQ-08",
+      "source_id": "3.2.4",
+      "section": "3.2 Audio Recording",
+      "line_start": 177,
+      "line_end": 178,
+      "page": 10,
+      "kind": "functional",
+      "summary": "Актор удаляет записанные голосовые клипы из своего портфолио",
+      "quote": "3.2.4 The system must allow actors to delete recorded clips.\nSince voice clips should be stored in a portfolio for each actor during his or her existence in the course management system, he or she should be able to examine his or her portfolio to select and delete clips if he or she chooses to. This allows him or her to manage archived voice clips and to create a cohesive portfolio that actors in the role of professor can use to judge improvement over time.",
+      "lint_hints": [],
+      "lint_confirmed": []
+    },
+    {
+      "id": "REQ-09",
+      "source_id": null,
+      "section": "3.3 Web Feeds",
+      "line_start": 180,
+      "line_end": 180,
+      "page": 10,
+      "kind": "functional",
+      "summary": "Система отображает веб-ленты для страниц с блоками информации",
+      "quote": "The system must be able to display web feeds, such as RSS 2.0 feeds, for all pages of the course management system where elements such as forum posts, assignment postings, announcements, wiki alterations and other blocks of information that an actor may view are added. Actors in the role of course administrators should have the ability to determine which of these components have feeds and to whom these feeds should pertain.",
+      "lint_hints": [],
+      "lint_confirmed": []
+    },
+    {
+      "id": "REQ-10",
+      "source_id": "3.3.1",
+      "section": "3.3 Web Feeds",
+      "line_start": 183,
+      "line_end": 184,
+      "page": 10,
+      "kind": "functional",
+      "summary": "Веб-ленты включаются и выключаются для каждой страницы",
+      "quote": "3.3.1 The system must allow web feeds to be turned on or off on a per-page basis.\nActors in the course administrator role may not feel the need to provide web feeds for every page in their course. During the creation and editing of a page, that actor should be able to toggle web feed availability.",
+      "lint_hints": [],
+      "lint_confirmed": []
+    },
+    {
+      "id": "REQ-11",
+      "source_id": null,
+      "section": "3.4 Search",
+      "line_start": 186,
+      "line_end": 186,
+      "page": 10,
+      "kind": "functional",
+      "summary": "Поиск используется для навигации по страницам вместо иерархических ссылок",
+      "quote": "The system must be able to use search functionality as a way to navigate Moodle pages instead of using hierarchical links.",
+      "lint_hints": [],
+      "lint_confirmed": []
+    },
+    {
+      "id": "REQ-12",
+      "source_id": "3.4.1",
+      "section": "3.4 Search",
+      "line_start": 189,
+      "line_end": 194,
+      "page": 10,
+      "kind": "functional",
+      "summary": "Актор ищет страницы в пределах курса с фильтрами и категориями результатов",
+      "quote": "3.4.1 An actor must be able to search through pages in a course.\nActors should be able to search for pages at the course level, since most actors will be searching for material in a given course. The search feature should be present in two ways.\nFirst, it should be present in the form of a search box and a “Search” button on the top or bottom of every page. More information on this topic is given in sub-section 3.4.2 below.\nSecond, a single page should be dedicated specifically to the task of searching the course management system. In addition to the basic search field, this page should allow an actor to filter out certain results (such as forum posts or grades, etc.) and search specific sections (or components) of the course management system. Results should appear in categories (e.g.,\nAssignments, Wiki Pages, Forum Posts, etc.) based on relevance. In this case, relevance is determined by results that having the highest number terms matching the search terms. When the actor clicks a search result link, they should be taken to the page corresponding to the search result.\nIn addition, the search page described above might allow for the possibility of searching the world wide web using a standard search engine such as Google.",
+      "lint_hints": [
+        "«etc»: расплывчатая формулировка"
+      ],
+      "lint_confirmed": [
+        "«etc»: расплывчатая формулировка"
+      ]
+    },
+    {
+      "id": "REQ-13",
+      "source_id": "3.4.2",
+      "section": "3.4 Search",
+      "line_start": 195,
+      "line_end": 196,
+      "page": 11,
+      "kind": "ui",
+      "summary": "Поле поиска отображается на каждой странице после входа",
+      "quote": "3.4.2 The system must display a search box on every page after an actor has logged in.\nActors should be able to search from any page. If the actor is hierarchically outside of a particular course, each of his or her courses should be searched and results should be grouped by course. If the actor is hierarchically inside of a course, that course should be searched with an option to search all courses.",
+      "lint_hints": [],
+      "lint_confirmed": []
+    },
+    {
+      "id": "REQ-14",
+      "source_id": null,
+      "section": "3.5 Gradebook",
+      "line_start": 198,
+      "line_end": 198,
+      "page": 11,
+      "kind": "functional",
+      "summary": "Администратор курса публикует оценки за задания студентов",
+      "quote": "The system must allow actors in the capacity of course administrator to post grades associated with assignments for a particular actor in the capacity of student. Actors in the role of professor may want to optionally grade assignments online since they are being submitted electronically by actors in the role of student.",
+      "lint_hints": [],
+      "lint_confirmed": []
+    },
+    {
+      "id": "REQ-15",
+      "source_id": "3.5.1",
+      "section": "3.5 Gradebook",
+      "line_start": 200,
+      "line_end": 201,
+      "page": 11,
+      "kind": "functional",
+      "summary": "Администратор курса оценивает задание по отношению баллов с отметкой времени",
+      "quote": "3.5.1 A course administrator must be able to grade an assignment.\nCourse administrators should be able to post grades for an assignment based on the ratio of points earned to points possible. The course administrator should also be able to attach feedback in the form of text or an attachment (as described above). Time stamps should be attached to the last time the grade was modified so that actors may examine when particular grades were submitted and how an actor in the role of student has improved or lessened his performance in the course.",
+      "lint_hints": [],
+      "lint_confirmed": []
+    },
+    {
+      "id": "REQ-16",
+      "source_id": "3.5.2",
+      "section": "3.5 Gradebook",
+      "line_start": 202,
+      "line_end": 203,
+      "page": 11,
+      "kind": "nonfunctional",
+      "summary": "Оценки видны только их владельцу и администратору курса",
+      "quote": "3.5.2 The system should display grade information to the appropriate actor.\nThe system should display grade information such as the grade for each assignment, averages, and overall grade to the actor to whom the grades belong. No other actor should be able to view another’s grades except an actor in the role of course administrator for the course to which the grades belong.",
+      "lint_hints": [],
+      "lint_confirmed": []
+    },
+    {
+      "id": "REQ-17",
+      "source_id": "3.5.3",
+      "section": "3.5 Gradebook",
+      "line_start": 204,
+      "line_end": 205,
+      "page": 11,
+      "kind": "data",
+      "summary": "Система хранит историю изменений оценок за задание",
+      "quote": "3.5.3 The system should maintain a grade history.\nThe system should maintain a history of grades for a particular assignment if the course administrator changes them. This way, another actor can review the grade information if their score on an assignment has changed and they wish to dispute it. Course administrators can also track how they have changed a score over time using the timestamps associated with each change to the gradebook.",
+      "lint_hints": [],
+      "lint_confirmed": []
+    },
+    {
+      "id": "REQ-18",
+      "source_id": "3.6.1",
+      "section": "3.6 Social Networking Applications",
+      "line_start": 209,
+      "line_end": 210,
+      "page": 12,
+      "kind": "functional",
+      "summary": "Система предоставляет wiki для совместного создания документов",
+      "quote": "3.6.1 The system must provide a wiki where actors can collaboratively create networks of documents.\nA freely available wiki should provide a simple markup language that actors can use to style their input, as well as link to other pages in the wiki. More importantly, having the wiki inside Moodle reduces confusion and allows for the integration of notifications and logins.",
+      "lint_hints": [
+        "«simple»: расплывчатая формулировка"
+      ],
+      "lint_confirmed": [
+        "«simple»: расплывчатая формулировка"
+      ]
+    },
+    {
+      "id": "REQ-19",
+      "source_id": "3.6.2",
+      "section": "3.6 Social Networking Applications",
+      "line_start": 211,
+      "line_end": 212,
+      "page": 12,
+      "kind": "functional",
+      "summary": "Система предоставляет блоговый движок с общей аутентификацией и уведомлениями",
+      "quote": "3.6.2 The system must provide a blog engine.\nA freely available blog engine should provide all modern blog functionality, such as tagging, drafting, and comments. These blogs should share authentication and notification with Moodle.",
+      "lint_hints": [],
+      "lint_confirmed": []
+    },
+    {
+      "id": "REQ-20",
+      "source_id": "3.7.1",
+      "section": "3.7 Notifications",
+      "line_start": 216,
+      "line_end": 218,
+      "page": 12,
+      "kind": "functional",
+      "summary": "Система отправляет уведомления по e-mail и SMS для страниц",
+      "quote": "3.7.1 The system must provide both e-mail and SMS notifications for pages.\nFor this requirement, page refers to any distinct page (e.g., an assignment, a wiki page, a forum post, etc.). When a page is created, the actor in the role of course administrator should be able to toggle whether notifications are turned on. By default, they should be turned on for announcements. If notifications are turned off, actors in the capacity of student should be able to subscribe to notifications.\nStudents should be able to select in their preferences whether notifications are sent to their mobile telephone (via SMS) or e-mail account. They should also be able to manage their notification subscriptions (for example, remove themselves from notifications).",
+      "lint_hints": [
+        "«etc»: расплывчатая формулировка"
+      ],
+      "lint_confirmed": [
+        "«etc»: расплывчатая формулировка"
+      ]
+    },
+    {
+      "id": "REQ-21",
+      "source_id": "4.1.1",
+      "section": "4.1 Usability",
+      "line_start": 221,
+      "line_end": 224,
+      "page": 12,
+      "kind": "nonfunctional",
+      "summary": "Простой адаптивный интерфейс и единая административная настройка",
+      "quote": "4.1.1 As far as possible, the system should provide a simple, responsive interface.\nAlthough any courseware solution may be composed of diverse systems, applications, and processes, the underlying architecture should be transparent to the administrators. The system should be configurable from a single source at a central administrative position, and should provide a central, easy-to-use interface that will allow administrators to configure the user interface and features in a way that reduces page clutter.\nA system will be considered to meet this requirement if it has a single administrative interface rather than individual links for editing each page. Furthermore, this interface must allow administrators to easily change themes and other setting that affect page layout across the entire courseware system.\nPriority: 3",
+      "lint_hints": [
+        "«simple»: расплывчатая формулировка",
+        "«easy»: расплывчатая формулировка"
+      ],
+      "lint_confirmed": [
+        "«simple»: расплывчатая формулировка"
+      ]
+    },
+    {
+      "id": "REQ-22",
+      "source_id": "4.2.1",
+      "section": "4.2 Reliability",
+      "line_start": 226,
+      "line_end": 229,
+      "page": 13,
+      "kind": "nonfunctional",
+      "summary": "Резервное копирование по настраиваемому расписанию и восстановление за шесть часов",
+      "quote": "4.2.1 The system must be backed up on a configurable schedule.\nBack-up requirements will need to be determined, based on individual components of the system. The system should be backed up with a frequency that ensures system and course data is protected. Since assignments will be submitted via the system, it should be backed up on a nightly basis, with options for weekly, off-site backup when necessary.\nThe system must have the ability and capacity to restore back-up data within six hours so that the system is never offline for an inordinate period of time.\nPriority: 2",
+      "lint_hints": [
+        "«to be determined»: незаполненное место"
+      ],
+      "lint_confirmed": [
+        "«to be determined»: незаполненное место"
+      ]
+    },
+    {
+      "id": "REQ-23",
+      "source_id": "4.2.2",
+      "section": "4.2 Reliability",
+      "line_start": 230,
+      "line_end": 233,
+      "page": 13,
+      "kind": "nonfunctional",
+      "summary": "Система доступна круглосуточно с доступностью не ниже 99 процентов",
+      "quote": "4.2.2 The system should be available 24 hours a day, 7 days a week.\nThis statement provides a general sense of system availability. It is not intended to demand the system maintain reliability, or to require the system to be highly available. It should not exclude maintenance windows, or scheduled downtime. It is only intended to convey the expectation that our customers should have access to the system during off-hours as well as business hours.\n99% up-time should be considered sufficient to meet this requirement.\nPriority: 1",
+      "lint_hints": [],
+      "lint_confirmed": []
+    },
+    {
+      "id": "REQ-24",
+      "source_id": "4.3.1",
+      "section": "4.3 Performance",
+      "line_start": 235,
+      "line_end": 237,
+      "page": 13,
+      "kind": "nonfunctional",
+      "summary": "Система поддерживает не менее 1000 одновременных пользователей",
+      "quote": "4.3.1 The system should support at least 1000 concurrent users.\nThis statement provides a general sense of reliability when the system is under load. It is important that a substantial number of actors be able to access the system at the same time, since a courseware system is important to the courses that employ it. The times when the system will be under the most stress are likely during midterm and finals weeks. Therefore, it must be able to handle at least 1,000 concurrent users.\nPriority: 1",
+      "lint_hints": [],
+      "lint_confirmed": []
+    },
+    {
+      "id": "REQ-25",
+      "source_id": "4.4.1",
+      "section": "4.4 Supportability",
+      "line_start": 239,
+      "line_end": 241,
+      "page": 13,
+      "kind": "nonfunctional",
+      "summary": "Система сопровождается без существенных изменений в коде",
+      "quote": "4.4.1 The system must be maintainable without substantial modification.\nDue to limited staff in the Office of Information Services, it is important that the system be mostly self-sustaining. This will reduce the number of FTE hours spent maintaining the system and simplify maintenance tasks.\nPriority: 3",
+      "lint_hints": [],
+      "lint_confirmed": []
+    },
+    {
+      "id": "REQ-26",
+      "source_id": "4.6.1",
+      "section": "4.6 On-line User Documentation and Help System Requirements",
+      "line_start": 244,
+      "line_end": 246,
+      "page": 14,
+      "kind": "ui",
+      "summary": "Актуальная онлайн-документация доступна на каждой странице",
+      "quote": "4.6.1 Relevant, online documentation for users should be available on each page.\nUsers must have easy access to help while interacting with the system. Adequate user documentation should be provided to minimize the number of calls to the Help Desk about problems with the system. Modifications should be reported via the main page to inform actors of unexpected changes. This electronic documentation should be supplemented with phone and on-site support provided by the Office of Information Services.\nPriority: 3",
+      "lint_hints": [
+        "«easy»: расплывчатая формулировка"
+      ],
+      "lint_confirmed": [
+        "«easy»: расплывчатая формулировка"
+      ]
+    },
+    {
+      "id": "REQ-27",
+      "source_id": "4.6.2",
+      "section": "4.6 On-line User Documentation and Help System Requirements",
+      "line_start": 247,
+      "line_end": 250,
+      "page": 14,
+      "kind": "other",
+      "summary": "Администраторы получают полную доступную для поиска документацию",
+      "quote": "4.6.2 System administrators must have access to comprehensive, searchable documentation.\nA comprehensive database of maintenance tasks and help files should be compiled to make the courseware system easier to maintain from an IT staff point-of-view. Search results should be displayed based on relevance.\nThis documentation must cover all procedures necessary for regular maintenance with links to additional information, all common errors, and links or documentation for advanced troubleshooting.\nPriority: 3",
+      "lint_hints": [],
+      "lint_confirmed": []
+    }
+  ],
+  "findings": [
+    {
+      "id": "D-01",
+      "scope": "requirement",
+      "kind": "defect",
+      "criterion": "UNAMBIGUOUS",
+      "severity": "MAJOR",
+      "title": "",
+      "req_ids": [
+        "REQ-01"
+      ],
+      "section": null,
+      "evidence": [
+        {
+          "quote": "as can be developed within the project timeframe and budget constraints",
+          "line": 156,
+          "status": "exact"
+        }
+      ],
+      "problem": "Фраза не задаёт, какие Priority 3 требования входят в выпуск. Набор зависит от оценки, которой в тексте нет.",
+      "impact": "Нельзя определить состав первого выпуска по Priority 3.",
+      "recommendation": "Перечислить Priority 3 требования, входящие в выпуск, по их идентификаторам.",
+      "question": "Какие Priority 3 требования входят в первый производственный выпуск: перечень их ID?",
+      "addressee": "business",
+      "question_id": null,
+      "status": "merged",
+      "critic_reason": "Тот же дефект: состав приоритета 3 в строке 156 не определён. Исправление общее со сроками и бюджетом, его закрывает замечание по набору.",
+      "merged_into": "S-12",
+      "severity_before": null,
+      "divergence": null,
+      "severity_raised_from": null,
+      "places": []
+    },
+    {
+      "id": "D-02",
+      "scope": "requirement",
+      "kind": "defect",
+      "criterion": "VERIFIABLE",
+      "severity": "MAJOR",
+      "title": "",
+      "req_ids": [
+        "REQ-01"
+      ],
+      "section": null,
+      "evidence": [
+        {
+          "quote": "such Priority 3 requirements as can be developed",
+          "line": 156,
+          "status": "exact"
+        }
+      ],
+      "problem": "Критерий приёмки выпуска для Priority 3 не задан, поэтому состав выпуска нельзя сверить с требованием.",
+      "impact": "Нельзя проверить, что выпуск содержит нужные Priority 3 требования.",
+      "recommendation": "Задать перечень Priority 3 требований и дату выпуска как критерий приёмки.",
+      "question": "До какой даты должна быть готова первая производственная версия: задать дату?",
+      "addressee": "business",
+      "question_id": null,
+      "status": "merged",
+      "critic_reason": "Строка 156 не даёт перечня выпуска для приоритета 3, поэтому критерий приёмки закрывается тем же исправлением, что и S-12.",
+      "merged_into": "S-12",
+      "severity_before": null,
+      "divergence": null,
+      "severity_raised_from": null,
+      "places": []
+    },
+    {
+      "id": "D-03",
+      "scope": "requirement",
+      "kind": "defect",
+      "criterion": "VERIFIABLE",
+      "severity": "CRITICAL",
+      "title": "",
+      "req_ids": [
+        "REQ-02"
+      ],
+      "section": null,
+      "evidence": [
+        {
+          "quote": "manage files where appropriate",
+          "line": 158,
+          "status": "exact"
+        }
+      ],
+      "problem": "Формулировка не задаёт результат, который можно наблюдать и проверить.",
+      "impact": "Нельзя написать тест и принять решение о выполнении требования.",
+      "recommendation": "Указать действия над файлами и наблюдаемый результат каждого из них.",
+      "question": "Какой наблюдаемый результат подтверждает выполнение: файл загружен и показан в списке страницы (да или нет)?",
+      "addressee": "qa",
+      "question_id": "Q-09",
+      "status": "confirmed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": null,
+      "severity_raised_from": null,
+      "places": []
+    },
+    {
+      "id": "D-04",
+      "scope": "requirement",
+      "kind": "defect",
+      "criterion": "UNAMBIGUOUS",
+      "severity": "MAJOR",
+      "title": "",
+      "req_ids": [
+        "REQ-02"
+      ],
+      "section": null,
+      "evidence": [
+        {
+          "quote": "manage files where appropriate",
+          "line": 158,
+          "status": "exact"
+        }
+      ],
+      "problem": "Фраза where appropriate оставляет открытым, на каких страницах допустима загрузка и управление файлами.",
+      "impact": "Нельзя определить, для каких страниц реализовывать функцию.",
+      "recommendation": "Заменить where appropriate перечнем типов страниц, например, из раздела 3.1.",
+      "question": "На какие типы страниц распространяется загрузка и управление файлами: задать список страниц?",
+      "addressee": "business",
+      "question_id": null,
+      "status": "merged",
+      "critic_reason": "Та же фраза «where appropriate» в строке 158, исправление одно: перечислить страницы для загрузки файлов.",
+      "merged_into": "D-03",
+      "severity_before": null,
+      "divergence": null,
+      "severity_raised_from": null,
+      "places": []
+    },
+    {
+      "id": "D-05",
+      "scope": "requirement",
+      "kind": "defect",
+      "criterion": "VERIFIABLE",
+      "severity": "CRITICAL",
+      "title": "",
+      "req_ids": [
+        "REQ-04"
+      ],
+      "section": null,
+      "evidence": [
+        {
+          "quote": "capture and organize voice clips that can be used where appropriate",
+          "line": 165,
+          "status": "exact"
+        }
+      ],
+      "problem": "Формулировка не задаёт наблюдаемый результат захвата и организации клипов.",
+      "impact": "Нельзя написать тест, подтверждающий выполнение требования.",
+      "recommendation": "Указать действие записи и место, где клип считается сохранённым и организованным.",
+      "question": "Что подтверждает успешный захват: клип сохранён и виден в портфолио актора (да или нет)?",
+      "addressee": "qa",
+      "question_id": "Q-10",
+      "status": "confirmed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": null,
+      "severity_raised_from": null,
+      "places": []
+    },
+    {
+      "id": "D-06",
+      "scope": "requirement",
+      "kind": "defect",
+      "criterion": "UNAMBIGUOUS",
+      "severity": "MAJOR",
+      "title": "",
+      "req_ids": [
+        "REQ-04"
+      ],
+      "section": null,
+      "evidence": [
+        {
+          "quote": "that can be used where appropriate",
+          "line": 165,
+          "status": "exact"
+        }
+      ],
+      "problem": "Условие where appropriate не задаёт, для каких заданий или страниц клипы используются.",
+      "impact": "Нельзя определить область применения функции записи и хранения клипов.",
+      "recommendation": "Заменить where appropriate перечнем типов страниц или заданий.",
+      "question": "Для каких типов страниц и заданий используются голосовые клипы: задать список?",
+      "addressee": "business",
+      "question_id": null,
+      "status": "merged",
+      "critic_reason": "Условие «where appropriate» в строке 165 устраняется тем же уточнением, что и критерий результата.",
+      "merged_into": "D-05",
+      "severity_before": null,
+      "divergence": null,
+      "severity_raised_from": null,
+      "places": []
+    },
+    {
+      "id": "D-07",
+      "scope": "requirement",
+      "kind": "defect",
+      "criterion": "CONSISTENT",
+      "severity": "CRITICAL",
+      "title": "",
+      "req_ids": [
+        "REQ-05"
+      ],
+      "section": null,
+      "evidence": [
+        {
+          "quote": "would automatically archive a voice clip once submitted but would require that the actor interact",
+          "line": 169,
+          "status": "exact"
+        }
+      ],
+      "problem": "Вторая опция описана как автоматическая архивация и одновременно как требующая действия актора с архивным файлом.",
+      "impact": "Нельзя определить, архивируется ли клип без участия актора, поэтому разработка и тесты невозможны.",
+      "recommendation": "Убрать одно из двух утверждений и описать, нужно ли действие актора для архивации.",
+      "question": "Архивируется ли клип автоматически после отправки, или архивация требует действия актора с файлом?",
+      "addressee": "business",
+      "question_id": "Q-02",
+      "status": "confirmed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": null,
+      "severity_raised_from": null,
+      "places": []
+    },
+    {
+      "id": "D-08",
+      "scope": "requirement",
+      "kind": "defect",
+      "criterion": "UNAMBIGUOUS",
+      "severity": "MAJOR",
+      "title": "",
+      "req_ids": [
+        "REQ-05"
+      ],
+      "section": null,
+      "evidence": [
+        {
+          "quote": "This can be done one of two ways",
+          "line": 169,
+          "status": "exact"
+        }
+      ],
+      "problem": "Фраза не определяет, какой из двух способов архивации применяется в системе.",
+      "impact": "Нельзя выбрать модель архивации для реализации и тестирования.",
+      "recommendation": "Указать один способ архивации или правило выбора между ними.",
+      "question": "Кто выбирает способ архивации голосового клипа: администратор системы или актор при каждой загрузке?",
+      "addressee": "business",
+      "question_id": "Q-02",
+      "status": "confirmed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": null,
+      "severity_raised_from": null,
+      "places": []
+    },
+    {
+      "id": "D-09",
+      "scope": "requirement",
+      "kind": "defect",
+      "criterion": "COMPLETE",
+      "severity": "MAJOR",
+      "title": "",
+      "req_ids": [
+        "REQ-05"
+      ],
+      "section": null,
+      "evidence": [
+        {
+          "quote": "Equal and finite drive space needs to be allotted",
+          "line": 169,
+          "status": "exact"
+        }
+      ],
+      "problem": "Не указан объём выделяемого пространства и порядок действий при его исчерпании.",
+      "impact": "Нельзя реализовать квоту и проверить её границу.",
+      "recommendation": "Задать объём квоты в единицах измерения и поведение при её исчерпании.",
+      "question": "Какой объём дискового пространства выделяется каждому профессору для клипов студентов: задать значение в мегабайтах?",
+      "addressee": "business",
+      "question_id": null,
+      "status": "confirmed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": null,
+      "severity_raised_from": null,
+      "places": []
+    },
+    {
+      "id": "D-10",
+      "scope": "requirement",
+      "kind": "defect",
+      "criterion": "VERIFIABLE",
+      "severity": "CRITICAL",
+      "title": "",
+      "req_ids": [
+        "REQ-06"
+      ],
+      "section": null,
+      "evidence": [
+        {
+          "quote": "download their voice clips in a flexible format",
+          "line": 173,
+          "status": "exact"
+        },
+        {
+          "quote": "in a format such as MPEG Audio (mp3) format",
+          "line": 174,
+          "status": "exact"
+        }
+      ],
+      "problem": "Формулировка не задаёт проверяемый результат, так как формат flexible нельзя сравнить с ожидаемым.",
+      "impact": "Нельзя написать тест, подтверждающий выполнение требования.",
+      "recommendation": "Перечислить форматы и для каждого указать проверку успешного скачивания.",
+      "question": "Какой формат тестировщик должен получить при скачивании клипа: задать конкретный формат?",
+      "addressee": "qa",
+      "question_id": "Q-08",
+      "status": "confirmed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": null,
+      "severity_raised_from": null,
+      "places": []
+    },
+    {
+      "id": "D-11",
+      "scope": "requirement",
+      "kind": "defect",
+      "criterion": "UNAMBIGUOUS",
+      "severity": "MAJOR",
+      "title": "",
+      "req_ids": [
+        "REQ-06"
+      ],
+      "section": null,
+      "evidence": [
+        {
+          "quote": "download their voice clips in a flexible format",
+          "line": 173,
+          "status": "exact"
+        }
+      ],
+      "problem": "Слово flexible оценочное и не определяет набор поддерживаемых форматов.",
+      "impact": "Нельзя определить, какие форматы реализовывать.",
+      "recommendation": "Заменить flexible перечнем поддерживаемых форматов.",
+      "question": "Какие форматы скачивания клипа должны поддерживаться: задать закрытый список форматов?",
+      "addressee": "business",
+      "question_id": null,
+      "status": "merged",
+      "critic_reason": "Слово «flexible» в строке 173 устраняется тем же исправлением: перечислить поддерживаемые форматы.",
+      "merged_into": "D-10",
+      "severity_before": null,
+      "divergence": null,
+      "severity_raised_from": null,
+      "places": []
+    },
+    {
+      "id": "D-12",
+      "scope": "requirement",
+      "kind": "defect",
+      "criterion": "COMPLETE",
+      "severity": "MAJOR",
+      "title": "",
+      "req_ids": [
+        "REQ-06"
+      ],
+      "section": null,
+      "evidence": [
+        {
+          "quote": "in a format such as MPEG Audio (mp3) format",
+          "line": 174,
+          "status": "exact"
+        }
+      ],
+      "problem": "Формат mp3 назван примером, поэтому полный набор форматов не определён.",
+      "impact": "Нельзя оценить объём работ по форматам и покрыть их тестами.",
+      "recommendation": "Указать закрытый список форматов и отдельно отметить, какой из них обязателен.",
+      "question": "Должен ли mp3 быть единственным поддерживаемым форматом скачивания: да или нет?",
+      "addressee": "business",
+      "question_id": null,
+      "status": "merged",
+      "critic_reason": "Пример «such as» в строке 174 закрывается тем же списком форматов, что и D-10.",
+      "merged_into": "D-10",
+      "severity_before": null,
+      "divergence": null,
+      "severity_raised_from": null,
+      "places": []
+    },
+    {
+      "id": "D-13",
+      "scope": "requirement",
+      "kind": "defect",
+      "criterion": "VERIFIABLE",
+      "severity": "CRITICAL",
+      "title": "",
+      "req_ids": [
+        "REQ-07"
+      ],
+      "section": null,
+      "evidence": [
+        {
+          "quote": "The system must store audio clips in a format",
+          "line": 175,
+          "status": "exact"
+        },
+        {
+          "quote": "a format conducive to speech",
+          "line": 175,
+          "status": "exact"
+        },
+        {
+          "quote": "a format optimized for speech",
+          "line": 176,
+          "status": "exact"
+        }
+      ],
+      "problem": "Без конкретного формата нельзя проверить, что хранение соответствует требованию: критерия успеха нет.",
+      "impact": "Тестировщик не может написать проверку формата хранения.",
+      "recommendation": "Задать конкретный формат хранения, который можно проверить тестом.",
+      "question": "Какой формат хранения аудиоклипов задать: название кодека и контейнера?",
+      "addressee": "architect",
+      "question_id": "Q-06",
+      "status": "confirmed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": null,
+      "severity_raised_from": null,
+      "places": []
+    },
+    {
+      "id": "D-14",
+      "scope": "requirement",
+      "kind": "defect",
+      "criterion": "UNAMBIGUOUS",
+      "severity": "MAJOR",
+      "title": "",
+      "req_ids": [
+        "REQ-07"
+      ],
+      "section": null,
+      "evidence": [
+        {
+          "quote": "a format conducive to speech",
+          "line": 175,
+          "status": "exact"
+        }
+      ],
+      "problem": "Фраза «conducive to speech» не задаёт формат: нет ни кодека, ни контейнера, ни параметров.",
+      "impact": "Реализовать хранение без выбора формата нельзя, разные разработчики выберут разные решения.",
+      "recommendation": "Назвать конкретный формат хранения и его параметры в требовании.",
+      "question": "Какой кодек хранения аудиоклипов задать (например, Ogg Vorbis)?",
+      "addressee": "architect",
+      "question_id": null,
+      "status": "merged",
+      "critic_reason": "Фраза «conducive to speech» в строке 175 закрывается указанием конкретного формата, как и D-13.",
+      "merged_into": "D-13",
+      "severity_before": null,
+      "divergence": null,
+      "severity_raised_from": null,
+      "places": []
+    },
+    {
+      "id": "D-15",
+      "scope": "requirement",
+      "kind": "defect",
+      "criterion": "COMPLETE",
+      "severity": "MAJOR",
+      "title": "",
+      "req_ids": [
+        "REQ-07"
+      ],
+      "section": null,
+      "evidence": [
+        {
+          "quote": "a format optimized for speech",
+          "line": 176,
+          "status": "exact"
+        }
+      ],
+      "problem": "Формула «optimized for speech» не задаёт значений: не указаны битрейт и другие параметры кодирования.",
+      "impact": "Нельзя настроить запись и проверить качество и размер хранимых клипов.",
+      "recommendation": "Указать параметры кодирования хранимых клипов с единицами измерения.",
+      "question": "Какой битрейт хранения задать, в кбит/с?",
+      "addressee": "architect",
+      "question_id": null,
+      "status": "merged",
+      "critic_reason": "Строка 176 не задаёт параметры кодирования, исправление то же: описать формат хранения с параметрами.",
+      "merged_into": "D-13",
+      "severity_before": null,
+      "divergence": null,
+      "severity_raised_from": null,
+      "places": []
+    },
+    {
+      "id": "D-16",
+      "scope": "requirement",
+      "kind": "defect",
+      "criterion": "APPROPRIATE",
+      "severity": "MINOR",
+      "title": "",
+      "req_ids": [
+        "REQ-07"
+      ],
+      "section": null,
+      "evidence": [
+        {
+          "quote": "a separate viewer should be provided in a cross-platform language",
+          "line": 176,
+          "status": "exact"
+        }
+      ],
+      "problem": "Требование хранения задаёт проектное решение: отдельный просмотрщик на кроссплатформенном языке. Это требование к просмотру, а не к хранению.",
+      "impact": "Проверить хранение отдельно от просмотра по этому тексту нельзя.",
+      "recommendation": "Вынести требование к просмотрщику в отдельное требование или убрать его из текста хранения.",
+      "question": null,
+      "addressee": null,
+      "question_id": "Q-06",
+      "status": "unreviewed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": null,
+      "severity_raised_from": null,
+      "places": []
+    },
+    {
+      "id": "D-17",
+      "scope": "requirement",
+      "kind": "defect",
+      "criterion": "UNAMBIGUOUS",
+      "severity": "MAJOR",
+      "title": "",
+      "req_ids": [
+        "REQ-08"
+      ],
+      "section": null,
+      "evidence": [
+        {
+          "quote": "The system must allow actors to delete recorded clips.",
+          "line": 177,
+          "status": "exact"
+        }
+      ],
+      "problem": "Требование говорит про любых актёров, а пояснение описывает удаление только из своего портфеля.",
+      "impact": "Нельзя определить права доступа и написать тест на удаление чужих клипов.",
+      "recommendation": "Указать, из каких портфелей актор может удалять клипы.",
+      "question": "Может ли актор удалять клипы только из своего портфеля или также из чужих портфелей?",
+      "addressee": "business",
+      "question_id": null,
+      "status": "confirmed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": null,
+      "severity_raised_from": null,
+      "places": []
+    },
+    {
+      "id": "D-18",
+      "scope": "requirement",
+      "kind": "defect",
+      "criterion": "COMPLETE",
+      "severity": "MAJOR",
+      "title": "",
+      "req_ids": [
+        "REQ-08"
+      ],
+      "section": null,
+      "evidence": [
+        {
+          "quote": "delete clips if he or she chooses to",
+          "line": 178,
+          "status": "exact"
+        }
+      ],
+      "problem": "Не описано, что происходит с клипом, прикреплённым к странице, при удалении из портфеля.",
+      "impact": "Нельзя реализовать удаление без правила для уже прикреплённых клипов.",
+      "recommendation": "Описать поведение страницы, к которой клип прикреплён, при его удалении.",
+      "question": "Что происходит с клипом, прикреплённым к странице, при его удалении из портфеля: вложение удаляется или удаление запрещено?",
+      "addressee": "business",
+      "question_id": "Q-14",
+      "status": "confirmed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": null,
+      "severity_raised_from": null,
+      "places": []
+    },
+    {
+      "id": "D-19",
+      "scope": "requirement",
+      "kind": "defect",
+      "criterion": "VERIFIABLE",
+      "severity": "CRITICAL",
+      "title": "",
+      "req_ids": [
+        "REQ-09"
+      ],
+      "section": null,
+      "evidence": [
+        {
+          "quote": "for all pages of the course management system",
+          "line": 180,
+          "status": "exact"
+        },
+        {
+          "quote": "and other blocks of information that an actor may view",
+          "line": 180,
+          "status": "exact"
+        }
+      ],
+      "problem": "Без полного списка компонентов нельзя проверить, что ленты выведены для всех нужных страниц.",
+      "impact": "Тестировщик не может определить набор проверяемых страниц и компонентов.",
+      "recommendation": "Задать полный список компонентов и страниц с лентами.",
+      "question": "Для каких страниц курса должны выводиться ленты: все страницы или только страницы с перечисленными компонентами?",
+      "addressee": "analyst",
+      "question_id": "Q-01",
+      "status": "confirmed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": null,
+      "severity_raised_from": null,
+      "places": []
+    },
+    {
+      "id": "D-20",
+      "scope": "requirement",
+      "kind": "defect",
+      "criterion": "UNAMBIGUOUS",
+      "severity": "MAJOR",
+      "title": "",
+      "req_ids": [
+        "REQ-09"
+      ],
+      "section": null,
+      "evidence": [
+        {
+          "quote": "and other blocks of information that an actor may view",
+          "line": 180,
+          "status": "exact"
+        }
+      ],
+      "problem": "Фраза and other blocks не перечисляет блоки, список остаётся открытым.",
+      "impact": "Нельзя составить полный перечень страниц и компонентов, для которых выводятся ленты.",
+      "recommendation": "Перечислить все блоки, для которых выводятся ленты, без открытого списка.",
+      "question": "Какие блоки, помимо перечисленных, должны выводить ленту?",
+      "addressee": "business",
+      "question_id": null,
+      "status": "merged",
+      "critic_reason": "Открытый список «and other blocks» в строке 180 закрывается тем же полным перечнем компонентов.",
+      "merged_into": "D-19",
+      "severity_before": null,
+      "divergence": null,
+      "severity_raised_from": null,
+      "places": []
+    },
+    {
+      "id": "D-21",
+      "scope": "requirement",
+      "kind": "defect",
+      "criterion": "COMPLETE",
+      "severity": "MAJOR",
+      "title": "",
+      "req_ids": [
+        "REQ-09"
+      ],
+      "section": null,
+      "evidence": [
+        {
+          "quote": "to whom these feeds should pertain",
+          "line": 180,
+          "status": "exact"
+        }
+      ],
+      "problem": "Не указано, для каких актёров предназначена лента: значение получателя не задано.",
+      "impact": "Нельзя реализовать настройку адресатов лент и проверить её.",
+      "recommendation": "Указать роли, которым адресуется лента компонента.",
+      "question": "Кому адресуется лента компонента: всем актёрам курса, только студентам или только преподавателям?",
+      "addressee": "business",
+      "question_id": null,
+      "status": "dropped",
+      "critic_reason": "Строка 180 прямо говорит, что курсовые администраторы определяют, для кого предназначены ленты.",
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": null,
+      "severity_raised_from": null,
+      "places": []
+    },
+    {
+      "id": "D-22",
+      "scope": "requirement",
+      "kind": "defect",
+      "criterion": "SINGULAR",
+      "severity": "MINOR",
+      "title": "",
+      "req_ids": [
+        "REQ-09"
+      ],
+      "section": null,
+      "evidence": [
+        {
+          "quote": "Actors in the role of course administrators should have the ability",
+          "line": 180,
+          "status": "exact"
+        }
+      ],
+      "problem": "В одном требовании описаны вывод лент и право администратора курса настраивать их.",
+      "impact": "Тесты на вывод лент и на настройку придётся вести одним пунктом.",
+      "recommendation": "Разделить на два требования: вывод лент и настройка администратором курса.",
+      "question": null,
+      "addressee": null,
+      "question_id": "Q-12",
+      "status": "unreviewed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": null,
+      "severity_raised_from": null,
+      "places": []
+    },
+    {
+      "id": "D-23",
+      "scope": "requirement",
+      "kind": "defect",
+      "criterion": "COMPLETE",
+      "severity": "MAJOR",
+      "title": "",
+      "req_ids": [
+        "REQ-10"
+      ],
+      "section": null,
+      "evidence": [
+        {
+          "quote": "The system must allow web feeds to be turned on or off",
+          "line": 183,
+          "status": "exact"
+        }
+      ],
+      "problem": "В требовании не указано, какой актор переключает ленты: роль администратора курса есть только в пояснении.",
+      "impact": "Нельзя задать права доступа и написать тест на переключение лент.",
+      "recommendation": "Добавить в требование роль актора, который переключает ленты.",
+      "question": "Кто переключает ленты страницы: только администратор курса или любой актор?",
+      "addressee": "business",
+      "question_id": "Q-12",
+      "status": "confirmed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": null,
+      "severity_raised_from": null,
+      "places": []
+    },
+    {
+      "id": "D-24",
+      "scope": "requirement",
+      "kind": "defect",
+      "criterion": "CONSISTENT",
+      "severity": "CRITICAL",
+      "title": "",
+      "req_ids": [
+        "REQ-11"
+      ],
+      "section": null,
+      "evidence": [
+        {
+          "quote": "instead of using hierarchical links",
+          "line": 186,
+          "status": "exact"
+        }
+      ],
+      "problem": "Требование заменяет иерархические ссылки поиском, а пояснение в строке 187 сохраняет иерархический доступ.",
+      "impact": "Нельзя решить, убирать ли иерархическую навигацию, и тестировать её состояние.",
+      "recommendation": "Выбрать одно: поиск заменяет ссылки или дополняет их, и исправить пояснение.",
+      "question": "Поиск заменяет иерархические ссылки навигации или дополняет их?",
+      "addressee": "business",
+      "question_id": null,
+      "status": "merged",
+      "critic_reason": "Противоречие строк 186 и 187 о замене или дополнении иерархических ссылок то же самое, что и S-01.",
+      "merged_into": "S-01",
+      "severity_before": null,
+      "divergence": null,
+      "severity_raised_from": null,
+      "places": []
+    },
+    {
+      "id": "D-25",
+      "scope": "requirement",
+      "kind": "defect",
+      "criterion": "UNAMBIGUOUS",
+      "severity": "MAJOR",
+      "title": "",
+      "req_ids": [
+        "REQ-11"
+      ],
+      "section": null,
+      "evidence": [
+        {
+          "quote": "use search functionality as a way to navigate",
+          "line": 186,
+          "status": "exact"
+        }
+      ],
+      "problem": "Фраза as a way to navigate не задаёт, какие страницы должны быть достижимы поиском.",
+      "impact": "Нельзя определить набор страниц, который должен находиться через поиск.",
+      "recommendation": "Указать, какие страницы должны быть достижимы поиском.",
+      "question": "Какие страницы должны быть достижимы через поиск: все страницы Moodle или только страницы курса?",
+      "addressee": "business",
+      "question_id": null,
+      "status": "confirmed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": null,
+      "severity_raised_from": null,
+      "places": []
+    },
+    {
+      "id": "D-26",
+      "scope": "requirement",
+      "kind": "defect",
+      "criterion": "VERIFIABLE",
+      "severity": "MAJOR",
+      "title": "",
+      "req_ids": [
+        "REQ-11"
+      ],
+      "section": null,
+      "evidence": [
+        {
+          "quote": "must be able to use search functionality",
+          "line": 186,
+          "status": "exact"
+        }
+      ],
+      "problem": "Не задан критерий успеха: сколько переходов допустимо и до каких страниц.",
+      "impact": "Тестировщик не может определить, выполнено ли требование.",
+      "recommendation": "Задать максимальное число переходов или условие успешного поиска.",
+      "question": "Сколько переходов от входа до страницы через поиск допустимо: задать число (например, 2)?",
+      "addressee": "qa",
+      "question_id": null,
+      "status": "confirmed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": null,
+      "severity_raised_from": null,
+      "places": []
+    },
+    {
+      "id": "D-27",
+      "scope": "requirement",
+      "kind": "defect",
+      "criterion": "UNAMBIGUOUS",
+      "severity": "MAJOR",
+      "title": "",
+      "req_ids": [
+        "REQ-12"
+      ],
+      "section": null,
+      "evidence": [
+        {
+          "quote": "(such as forum posts or grades, etc.)",
+          "line": 192,
+          "status": "exact"
+        }
+      ],
+      "problem": "Слово etc делает список фильтруемых результатов открытым, неясно, какие типы можно отфильтровать.",
+      "impact": "Нельзя составить полный перечень фильтров и тестовых сценариев.",
+      "recommendation": "Перечислить все типы результатов, которые можно отфильтровать.",
+      "question": "Какие типы результатов, помимо форумов и оценок, должны фильтроваться на странице поиска?",
+      "addressee": "business",
+      "question_id": null,
+      "status": "confirmed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": null,
+      "severity_raised_from": null,
+      "places": []
+    },
+    {
+      "id": "D-28",
+      "scope": "requirement",
+      "kind": "defect",
+      "criterion": "VERIFIABLE",
+      "severity": "MAJOR",
+      "title": "",
+      "req_ids": [
+        "REQ-12"
+      ],
+      "section": null,
+      "evidence": [
+        {
+          "quote": "might allow for the possibility of searching the world wide web",
+          "line": 194,
+          "status": "exact"
+        }
+      ],
+      "problem": "Слово might делает поиск в интернете необязательным, и неясно, входит ли он в выпуск.",
+      "impact": "Нельзя ни реализовать, ни проверить эту возможность, так как её наличие не определено.",
+      "recommendation": "Заменить might allow на must allow или исключить поиск в интернете.",
+      "question": "Поиск в интернете через внешний поисковик входит в требование: да или нет?",
+      "addressee": "business",
+      "question_id": null,
+      "status": "confirmed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": null,
+      "severity_raised_from": null,
+      "places": []
+    },
+    {
+      "id": "D-29",
+      "scope": "requirement",
+      "kind": "defect",
+      "criterion": "SINGULAR",
+      "severity": "MINOR",
+      "title": "",
+      "req_ids": [
+        "REQ-12"
+      ],
+      "section": null,
+      "evidence": [
+        {
+          "quote": "The search feature should be present in two ways.",
+          "line": 190,
+          "status": "exact"
+        }
+      ],
+      "problem": "Требование описывает поле поиска на каждой странице, отдельную страницу поиска и возможный поиск в интернете.",
+      "impact": "Эти возможности нельзя тестировать и оценивать порознь.",
+      "recommendation": "Разделить на отдельные требования по каждому способу поиска.",
+      "question": null,
+      "addressee": null,
+      "question_id": "Q-05",
+      "status": "unreviewed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": null,
+      "severity_raised_from": null,
+      "places": []
+    },
+    {
+      "id": "D-30",
+      "scope": "requirement",
+      "kind": "defect",
+      "criterion": "UNAMBIGUOUS",
+      "severity": "MAJOR",
+      "title": "",
+      "req_ids": [
+        "REQ-13"
+      ],
+      "section": null,
+      "evidence": [
+        {
+          "quote": "If the actor is hierarchically outside of a particular course",
+          "line": 196,
+          "status": "exact"
+        }
+      ],
+      "problem": "Понятие «hierarchically outside of a particular course» не определено, поэтому неясно, какие страницы считаются вне курса. От этого зависит, какие курсы и как попадают в поиск.",
+      "impact": "Нельзя реализовать правило выбора области поиска для страниц вне курса без решения, что считать вне курса.",
+      "recommendation": "Определить, какие страницы относятся к вне курса, и переписать условие через это определение.",
+      "question": "Что считается нахождением вне курса: страницы без привязки к курсу или любые страницы, кроме страниц данного курса?",
+      "addressee": "analyst",
+      "question_id": null,
+      "status": "confirmed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": null,
+      "severity_raised_from": null,
+      "places": []
+    },
+    {
+      "id": "D-31",
+      "scope": "requirement",
+      "kind": "defect",
+      "criterion": "COMPLETE",
+      "severity": "MAJOR",
+      "title": "",
+      "req_ids": [
+        "REQ-13"
+      ],
+      "section": null,
+      "evidence": [
+        {
+          "quote": "with an option to search all courses",
+          "line": 196,
+          "status": "exact"
+        }
+      ],
+      "problem": "Не описано, как пользователь включает поиск по всем курсам и как выглядит результат при выборе этого варианта.",
+      "impact": "Нельзя спроектировать интерфейс этого варианта и проверить результат поиска.",
+      "recommendation": "Описать вид управления для варианта поиска по всем курсам и формат результата.",
+      "question": "Как реализуется вариант поиска по всем курсам: отдельная кнопка или переключатель области поиска?",
+      "addressee": "analyst",
+      "question_id": null,
+      "status": "confirmed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": null,
+      "severity_raised_from": null,
+      "places": []
+    },
+    {
+      "id": "D-32",
+      "scope": "requirement",
+      "kind": "defect",
+      "criterion": "VERIFIABLE",
+      "severity": "MAJOR",
+      "title": "",
+      "req_ids": [
+        "REQ-14"
+      ],
+      "section": null,
+      "evidence": [
+        {
+          "quote": "Actors in the role of professor may want to optionally grade assignments online",
+          "line": 198,
+          "status": "exact"
+        }
+      ],
+      "problem": "Фраза «may want to optionally grade» выражает желание, а не обязательное поведение системы, и не даёт условия, по которому можно принять результат.",
+      "impact": "Нельзя определить, входит ли онлайн-оценивание профессорами в объём работ и как это проверять.",
+      "recommendation": "Либо переписать фразу как обязательное поведение с указанием роли, либо убрать её из требования.",
+      "question": "Должна ли система обязательно поддерживать онлайн-оценивание работ профессорами: да или нет?",
+      "addressee": "business",
+      "question_id": null,
+      "status": "dropped",
+      "critic_reason": "Фраза строки 198 описывает желание преподавателя, а проверяемое требование «must allow» в той же строке задано.",
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": null,
+      "severity_raised_from": null,
+      "places": []
+    },
+    {
+      "id": "D-33",
+      "scope": "requirement",
+      "kind": "defect",
+      "criterion": "UNAMBIGUOUS",
+      "severity": "MAJOR",
+      "title": "",
+      "req_ids": [
+        "REQ-15"
+      ],
+      "section": null,
+      "evidence": [
+        {
+          "quote": "attach feedback in the form of text or an attachment (as described above)",
+          "line": 201,
+          "status": "exact"
+        }
+      ],
+      "problem": "Ссылка «as described above» указывает на описание вложений, которого в разделах выше нет, поэтому правила вложения к отзыву не определены.",
+      "impact": "Нельзя определить допустимые вложения к отзыву без отсылки к несуществующему описанию.",
+      "recommendation": "Задать правила вложения к отзыву прямо в этом требовании вместо ссылки.",
+      "question": "Задать правила вложения к отзыву в этом требовании или сослаться на конкретный раздел документа, где они описаны?",
+      "addressee": "analyst",
+      "question_id": null,
+      "status": "confirmed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": null,
+      "severity_raised_from": null,
+      "places": []
+    },
+    {
+      "id": "D-34",
+      "scope": "requirement",
+      "kind": "defect",
+      "criterion": "COMPLETE",
+      "severity": "MAJOR",
+      "title": "",
+      "req_ids": [
+        "REQ-15"
+      ],
+      "section": null,
+      "evidence": [
+        {
+          "quote": "attach feedback in the form of text or an attachment",
+          "line": 201,
+          "status": "exact"
+        }
+      ],
+      "problem": "Для вложения не указаны допустимые форматы и максимальный размер файла.",
+      "impact": "Нельзя реализовать загрузку вложения и проверить, какие файлы принимаются.",
+      "recommendation": "Указать допустимые форматы файлов и максимальный размер вложения.",
+      "question": "Какой максимальный размер вложения к отзыву: задать значение в мегабайтах?",
+      "addressee": "architect",
+      "question_id": null,
+      "status": "confirmed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": null,
+      "severity_raised_from": null,
+      "places": []
+    },
+    {
+      "id": "D-35",
+      "scope": "requirement",
+      "kind": "defect",
+      "criterion": "CONSISTENT",
+      "severity": "MAJOR",
+      "title": "",
+      "req_ids": [
+        "REQ-15"
+      ],
+      "section": null,
+      "evidence": [
+        {
+          "quote": "Time stamps should be attached to the last time the grade was modified",
+          "line": 201,
+          "status": "exact"
+        }
+      ],
+      "problem": "Метка времени только для последнего изменения не показывает, как менялась оценка, хотя текст требует видеть, как студент улучшил или ухудшил результаты.",
+      "impact": "Нельзя проверить, что система сохраняет данные, нужные для анализа динамики оценок.",
+      "recommendation": "Привязывать метку времени к каждому изменению оценки.",
+      "question": "Хранить метку времени только для последнего изменения оценки или для каждого изменения?",
+      "addressee": "business",
+      "question_id": "Q-15",
+      "status": "confirmed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": null,
+      "severity_raised_from": null,
+      "places": []
+    },
+    {
+      "id": "D-36",
+      "scope": "requirement",
+      "kind": "defect",
+      "criterion": "UNAMBIGUOUS",
+      "severity": "MAJOR",
+      "title": "",
+      "req_ids": [
+        "REQ-16"
+      ],
+      "section": null,
+      "evidence": [
+        {
+          "quote": "such as the grade for each assignment, averages, and overall grade",
+          "line": 203,
+          "status": "exact"
+        }
+      ],
+      "problem": "«Averages» не определены: непонятно, среднее по всем заданиям курса или по другим записям, и какой период учитывается.",
+      "impact": "Нельзя реализовать расчёт среднего и проверить отображаемое значение.",
+      "recommendation": "Указать, какие средние показывать и по каким записям их считать.",
+      "question": "Какие средние показывать студенту: среднее по всем заданиям курса или только средние баллы по каждому заданию?",
+      "addressee": "business",
+      "question_id": null,
+      "status": "confirmed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": null,
+      "severity_raised_from": null,
+      "places": []
+    },
+    {
+      "id": "D-37",
+      "scope": "requirement",
+      "kind": "defect",
+      "criterion": "UNAMBIGUOUS",
+      "severity": "MAJOR",
+      "title": "",
+      "req_ids": [
+        "REQ-17"
+      ],
+      "section": null,
+      "evidence": [
+        {
+          "quote": "another actor can review the grade information",
+          "line": 205,
+          "status": "exact"
+        }
+      ],
+      "problem": "«Another actor» не задаёт круг участников, которые могут просматривать историю оценок.",
+      "impact": "Нельзя задать права доступа к истории оценок и проверить их.",
+      "recommendation": "Назвать роли, которые могут просматривать историю изменений оценки.",
+      "question": "Кто может просматривать историю изменений оценки: только студент, которого она касается, или также курс-администратор?",
+      "addressee": "business",
+      "question_id": null,
+      "status": "confirmed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": null,
+      "severity_raised_from": null,
+      "places": []
+    },
+    {
+      "id": "D-38",
+      "scope": "requirement",
+      "kind": "defect",
+      "criterion": "COMPLETE",
+      "severity": "MAJOR",
+      "title": "",
+      "req_ids": [
+        "REQ-17"
+      ],
+      "section": null,
+      "evidence": [
+        {
+          "quote": "maintain a history of grades for a particular assignment",
+          "line": 205,
+          "status": "exact"
+        }
+      ],
+      "problem": "Не сказано, какие сведения сохраняются при каждом изменении оценки, поэтому содержимое истории не определено.",
+      "impact": "Нельзя спроектировать структуру записи истории и проверить её содержимое.",
+      "recommendation": "Перечислить поля, которые сохраняются при каждом изменении оценки.",
+      "question": "Какие сведения хранятся по каждому изменению оценки: только новое значение или старое и новое значение с временем изменения?",
+      "addressee": "analyst",
+      "question_id": null,
+      "status": "confirmed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": null,
+      "severity_raised_from": null,
+      "places": []
+    },
+    {
+      "id": "D-39",
+      "scope": "requirement",
+      "kind": "defect",
+      "criterion": "UNAMBIGUOUS",
+      "severity": "MAJOR",
+      "title": "",
+      "req_ids": [
+        "REQ-18"
+      ],
+      "section": null,
+      "evidence": [
+        {
+          "quote": "should provide a simple markup language",
+          "line": 210,
+          "status": "exact"
+        }
+      ],
+      "problem": "Слово «simple» не задаёт проверяемого критерия, а конкретный язык разметки в требовании не назван.",
+      "impact": "Нельзя выбрать язык разметки и проверить, что он соответствует требованию.",
+      "recommendation": "Назвать конкретный язык разметки или задать критерии простоты, которые можно проверить.",
+      "question": "Какой язык разметки должна поддерживать wiki: задать название конкретного языка?",
+      "addressee": "architect",
+      "question_id": null,
+      "status": "confirmed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": null,
+      "severity_raised_from": null,
+      "places": []
+    },
+    {
+      "id": "D-40",
+      "scope": "requirement",
+      "kind": "defect",
+      "criterion": "UNAMBIGUOUS",
+      "severity": "MAJOR",
+      "title": "",
+      "req_ids": [
+        "REQ-19"
+      ],
+      "section": null,
+      "evidence": [
+        {
+          "quote": "should provide all modern blog functionality",
+          "line": 212,
+          "status": "exact"
+        }
+      ],
+      "problem": "Набор функций блога задан как «все современные» без перечня, поэтому объём работ неясен.",
+      "impact": "Нельзя определить, какие функции реализовать и с чем сверять блог.",
+      "recommendation": "Заменить формулировку перечнем конкретных функций блога.",
+      "question": "Какой обязательный набор функций блога: теги, черновики и комментарии или другой список?",
+      "addressee": "business",
+      "question_id": null,
+      "status": "confirmed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": null,
+      "severity_raised_from": null,
+      "places": []
+    },
+    {
+      "id": "D-41",
+      "scope": "requirement",
+      "kind": "defect",
+      "criterion": "COMPLETE",
+      "severity": "MAJOR",
+      "title": "",
+      "req_ids": [
+        "REQ-19"
+      ],
+      "section": null,
+      "evidence": [
+        {
+          "quote": "share authentication and notification with Moodle",
+          "line": 212,
+          "status": "exact"
+        }
+      ],
+      "problem": "Не сказано, что значит общий вход и уведомления: общая учётная запись или отдельная синхронизация.",
+      "impact": "Нельзя спроектировать и проверить интеграцию блога с Moodle.",
+      "recommendation": "Описать способ общего входа и канал уведомлений.",
+      "question": "Как блоги используют вход Moodle: общая учётная запись без повторного входа или отдельная учётная запись с синхронизацией?",
+      "addressee": "analyst",
+      "question_id": null,
+      "status": "confirmed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": null,
+      "severity_raised_from": null,
+      "places": []
+    },
+    {
+      "id": "D-42",
+      "scope": "requirement",
+      "kind": "defect",
+      "criterion": "VERIFIABLE",
+      "severity": "MAJOR",
+      "title": "",
+      "req_ids": [
+        "REQ-19"
+      ],
+      "section": null,
+      "evidence": [
+        {
+          "quote": "should provide all modern blog functionality",
+          "line": 212,
+          "status": "exact"
+        }
+      ],
+      "problem": "Без перечня функций приёмка не имеет критерия успеха, так как «все современные» нельзя сверить.",
+      "impact": "Нельзя проверить, что блог соответствует требованию.",
+      "recommendation": "Привязать каждую функцию к перечню с критерием проверки.",
+      "question": "Какие функции блога проверяются при приёмке: задать перечень, например теги, черновики, комментарии?",
+      "addressee": "qa",
+      "question_id": null,
+      "status": "merged",
+      "critic_reason": "Тот же перечень функций блога из строки 212 закрывает и неясность объёма, и проверяемость приёмки.",
+      "merged_into": "D-40",
+      "severity_before": null,
+      "divergence": null,
+      "severity_raised_from": null,
+      "places": []
+    },
+    {
+      "id": "D-43",
+      "scope": "requirement",
+      "kind": "defect",
+      "criterion": "SINGULAR",
+      "severity": "MINOR",
+      "title": "",
+      "req_ids": [
+        "REQ-19"
+      ],
+      "section": null,
+      "evidence": [
+        {
+          "quote": "share authentication and notification with Moodle",
+          "line": 212,
+          "status": "exact"
+        }
+      ],
+      "problem": "В одном требовании смешаны блог и интеграция входа и уведомлений с Moodle.",
+      "impact": "Нельзя отдельно проверить и приоритизировать каждую возможность.",
+      "recommendation": "Выделить общий вход и уведомления в отдельное требование.",
+      "question": null,
+      "addressee": null,
+      "question_id": null,
+      "status": "unreviewed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": null,
+      "severity_raised_from": null,
+      "places": []
+    },
+    {
+      "id": "D-44",
+      "scope": "requirement",
+      "kind": "defect",
+      "criterion": "UNAMBIGUOUS",
+      "severity": "MAJOR",
+      "title": "",
+      "req_ids": [
+        "REQ-20"
+      ],
+      "section": null,
+      "evidence": [
+        {
+          "quote": "any distinct page (e.g., an assignment, a wiki page, a forum post, etc.)",
+          "line": 217,
+          "status": "exact"
+        }
+      ],
+      "problem": "Понятие «distinct page» и открытый список с etc не задают, для каких страниц действуют уведомления.",
+      "impact": "Нельзя определить, для каких элементов реализовать переключатель и подписку.",
+      "recommendation": "Перечислить типы страниц, для которых действуют уведомления.",
+      "question": "Для каких страниц действуют уведомления: все страницы курса или только задания, вики и сообщения форума?",
+      "addressee": "business",
+      "question_id": "Q-01",
+      "status": "confirmed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": null,
+      "severity_raised_from": null,
+      "places": []
+    },
+    {
+      "id": "D-45",
+      "scope": "requirement",
+      "kind": "defect",
+      "criterion": "COMPLETE",
+      "severity": "MAJOR",
+      "title": "",
+      "req_ids": [
+        "REQ-20"
+      ],
+      "section": null,
+      "evidence": [
+        {
+          "quote": "If notifications are turned off, actors in the capacity of student should be able to subscribe to notifications.",
+          "line": 217,
+          "status": "exact"
+        }
+      ],
+      "problem": "Не описано, могут ли студенты подписаться, когда уведомления включены, и как они тогда получают их.",
+      "impact": "Нельзя реализовать правило подписки для страниц с включёнными уведомлениями.",
+      "recommendation": "Указать поведение подписки для обоих состояний переключателя.",
+      "question": "Когда уведомления страницы включены, студенты получают их без подписки: да или нет?",
+      "addressee": "business",
+      "question_id": null,
+      "status": "confirmed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": null,
+      "severity_raised_from": null,
+      "places": []
+    },
+    {
+      "id": "D-46",
+      "scope": "requirement",
+      "kind": "defect",
+      "criterion": "UNAMBIGUOUS",
+      "severity": "MAJOR",
+      "title": "",
+      "req_ids": [
+        "REQ-20"
+      ],
+      "section": null,
+      "evidence": [
+        {
+          "quote": "whether notifications are sent to their mobile telephone (via SMS) or e-mail account",
+          "line": 218,
+          "status": "exact"
+        }
+      ],
+      "problem": "Формулировка с «or» допускает выбор одного канала или обоих, это не задано.",
+      "impact": "Нельзя определить, сколько каналов доставки студент настраивает.",
+      "recommendation": "Указать, выбирается один канал или несколько.",
+      "question": "Студент выбирает один канал уведомлений (SMS или e-mail) или оба канала одновременно?",
+      "addressee": "business",
+      "question_id": null,
+      "status": "confirmed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": null,
+      "severity_raised_from": null,
+      "places": []
+    },
+    {
+      "id": "D-47",
+      "scope": "requirement",
+      "kind": "defect",
+      "criterion": "SINGULAR",
+      "severity": "MINOR",
+      "title": "",
+      "req_ids": [
+        "REQ-20"
+      ],
+      "section": null,
+      "evidence": [
+        {
+          "quote": "The system must provide both e-mail and SMS notifications for pages.",
+          "line": 216,
+          "status": "exact"
+        }
+      ],
+      "problem": "Требование объединяет каналы, переключатель, подписку и управление подписками.",
+      "impact": "Нельзя проверить и оценить каждую возможность отдельно.",
+      "recommendation": "Разбить на отдельные требования по каналам, переключению и подписке.",
+      "question": null,
+      "addressee": null,
+      "question_id": null,
+      "status": "unreviewed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": null,
+      "severity_raised_from": null,
+      "places": []
+    },
+    {
+      "id": "D-48",
+      "scope": "requirement",
+      "kind": "defect",
+      "criterion": "UNAMBIGUOUS",
+      "severity": "MAJOR",
+      "title": "",
+      "req_ids": [
+        "REQ-21"
+      ],
+      "section": null,
+      "evidence": [
+        {
+          "quote": "a simple, responsive interface",
+          "line": 221,
+          "status": "exact"
+        }
+      ],
+      "problem": "Слова «simple» и «responsive» оценочные, без порога или метрики.",
+      "impact": "Нельзя определить, какой интерфейс считать соответствующим требованию.",
+      "recommendation": "Задать измеримый критерий простоты и предельное время отклика.",
+      "question": "Какое предельное время отклика интерфейса задать: значение в секундах, например 2?",
+      "addressee": "analyst",
+      "question_id": null,
+      "status": "confirmed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": null,
+      "severity_raised_from": null,
+      "places": []
+    },
+    {
+      "id": "D-49",
+      "scope": "requirement",
+      "kind": "defect",
+      "criterion": "VERIFIABLE",
+      "severity": "MAJOR",
+      "title": "",
+      "req_ids": [
+        "REQ-21"
+      ],
+      "section": null,
+      "evidence": [
+        {
+          "quote": "As far as possible, the system should provide",
+          "line": 221,
+          "status": "exact"
+        }
+      ],
+      "problem": "Оговорка делает выполнение необязательным, и нет критерия, по которому его можно принять.",
+      "impact": "Нельзя доказать выполнение требования при приёмке.",
+      "recommendation": "Убрать оговорку или задать условия, при которых допустимо отступление.",
+      "question": "Требование обязательно для всех случаев (без оговорки «as far as possible») или допускает исключения?",
+      "addressee": "business",
+      "question_id": null,
+      "status": "confirmed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": null,
+      "severity_raised_from": null,
+      "places": []
+    },
+    {
+      "id": "D-50",
+      "scope": "requirement",
+      "kind": "defect",
+      "criterion": "SINGULAR",
+      "severity": "MINOR",
+      "title": "",
+      "req_ids": [
+        "REQ-21"
+      ],
+      "section": null,
+      "evidence": [
+        {
+          "quote": "The system should be configurable from a single source",
+          "line": 222,
+          "status": "exact"
+        }
+      ],
+      "problem": "В требовании смешаны простота интерфейса, единая настройка и смена тем.",
+      "impact": "Нельзя проверить и приоритизировать каждую возможность отдельно.",
+      "recommendation": "Разделить на требования по интерфейсу, настройке и темам.",
+      "question": null,
+      "addressee": null,
+      "question_id": null,
+      "status": "unreviewed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": null,
+      "severity_raised_from": null,
+      "places": []
+    },
+    {
+      "id": "D-51",
+      "scope": "requirement",
+      "kind": "defect",
+      "criterion": "UNAMBIGUOUS",
+      "severity": "MAJOR",
+      "title": "",
+      "req_ids": [
+        "REQ-22"
+      ],
+      "section": null,
+      "evidence": [
+        {
+          "quote": "for an inordinate period of time",
+          "line": 228,
+          "status": "exact"
+        }
+      ],
+      "problem": "Понятие «inordinate» не задано, поэтому допустимый простой не измерен.",
+      "impact": "Нельзя установить, при каком простое требование считается нарушенным.",
+      "recommendation": "Задать максимальное допустимое время простоя в часах.",
+      "question": "Какое максимальное допустимое время простоя системы: задать значение в часах?",
+      "addressee": "business",
+      "question_id": null,
+      "status": "confirmed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": null,
+      "severity_raised_from": null,
+      "places": []
+    },
+    {
+      "id": "D-52",
+      "scope": "requirement",
+      "kind": "defect",
+      "criterion": "COMPLETE",
+      "severity": "MAJOR",
+      "title": "",
+      "req_ids": [
+        "REQ-22"
+      ],
+      "section": null,
+      "evidence": [
+        {
+          "quote": "Back-up requirements will need to be determined",
+          "line": 227,
+          "status": "exact"
+        }
+      ],
+      "problem": "Периодичность, объём и состав копий не заданы, текст откладывает решение.",
+      "impact": "Нельзя настроить расписание резервного копирования и проверить его.",
+      "recommendation": "Задать периодичность резервного копирования и состав копируемых данных.",
+      "question": "Какая периодичность резервного копирования по умолчанию: задать интервал в часах?",
+      "addressee": "architect",
+      "question_id": null,
+      "status": "merged",
+      "critic_reason": "Отложенное определение резервного копирования в строке 227 закрывает то же исправление, что и S-05.",
+      "merged_into": "S-05",
+      "severity_before": null,
+      "divergence": null,
+      "severity_raised_from": null,
+      "places": []
+    },
+    {
+      "id": "D-53",
+      "scope": "requirement",
+      "kind": "defect",
+      "criterion": "VERIFIABLE",
+      "severity": "MAJOR",
+      "title": "",
+      "req_ids": [
+        "REQ-22"
+      ],
+      "section": null,
+      "evidence": [
+        {
+          "quote": "with options for weekly, off-site backup when necessary",
+          "line": 227,
+          "status": "exact"
+        }
+      ],
+      "problem": "Условие «when necessary» не задано, поэтому нельзя проверить, когда нужна внешняя копия.",
+      "impact": "Нельзя проверить выполнение внешнего копирования в нужных случаях.",
+      "recommendation": "Задать условие запуска еженедельного внешнего копирования.",
+      "question": "Какое условие запускает еженедельное внешнее копирование: задать правило, например объём данных в ГБ?",
+      "addressee": "business",
+      "question_id": null,
+      "status": "confirmed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": null,
+      "severity_raised_from": null,
+      "places": []
+    },
+    {
+      "id": "D-54",
+      "scope": "requirement",
+      "kind": "defect",
+      "criterion": "SINGULAR",
+      "severity": "MINOR",
+      "title": "",
+      "req_ids": [
+        "REQ-22"
+      ],
+      "section": null,
+      "evidence": [
+        {
+          "quote": "The system must be backed up on a configurable schedule.",
+          "line": 226,
+          "status": "exact"
+        }
+      ],
+      "problem": "В одном требовании смешаны расписание, внешняя копия и время восстановления.",
+      "impact": "Нельзя отдельно проверить и оценить каждую часть.",
+      "recommendation": "Выделить восстановление данных в отдельное требование.",
+      "question": null,
+      "addressee": null,
+      "question_id": null,
+      "status": "unreviewed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": null,
+      "severity_raised_from": null,
+      "places": []
+    },
+    {
+      "id": "D-55",
+      "scope": "requirement",
+      "kind": "defect",
+      "criterion": "CONSISTENT",
+      "severity": "MAJOR",
+      "title": "",
+      "req_ids": [
+        "REQ-23"
+      ],
+      "section": null,
+      "evidence": [
+        {
+          "quote": "99% up-time should be considered sufficient to meet this requirement.",
+          "line": 232,
+          "status": "exact"
+        }
+      ],
+      "problem": "Требование 24x7 не допускает простоя, а 99% допускает около 87 часов простоя в год.",
+      "impact": "Нельзя понять, какой уровень доступности реализовывать и проверять.",
+      "recommendation": "Выбрать один уровень доступности и привести формулировку в соответствие с ним.",
+      "question": "Какой уровень доступности считать выполнением требования: 99% или полная доступность 24x7?",
+      "addressee": "business",
+      "question_id": "Q-11",
+      "status": "downgraded",
+      "critic_reason": "Строка 232 признаёт 99 процентов достаточными, но 24x7 в строке 230 не согласовано с допустимым простоем, это не прямой конфликт.",
+      "merged_into": null,
+      "severity_before": "CRITICAL",
+      "divergence": null,
+      "severity_raised_from": null,
+      "places": []
+    },
+    {
+      "id": "D-56",
+      "scope": "requirement",
+      "kind": "defect",
+      "criterion": "VERIFIABLE",
+      "severity": "MAJOR",
+      "title": "",
+      "req_ids": [
+        "REQ-23"
+      ],
+      "section": null,
+      "evidence": [
+        {
+          "quote": "99% up-time should be considered sufficient",
+          "line": 232,
+          "status": "exact"
+        }
+      ],
+      "problem": "Не указано, за какой период измеряется 99% и входят ли плановые окна обслуживания в простой.",
+      "impact": "Нельзя измерить и принять выполнение требования доступности.",
+      "recommendation": "Задать период измерения и правило учёта плановых окон.",
+      "question": "За какой период измеряется доступность: задать значение, например календарный месяц?",
+      "addressee": "qa",
+      "question_id": "Q-11",
+      "status": "confirmed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": null,
+      "severity_raised_from": null,
+      "places": []
+    },
+    {
+      "id": "D-57",
+      "scope": "requirement",
+      "kind": "defect",
+      "criterion": "UNAMBIGUOUS",
+      "severity": "MAJOR",
+      "title": "",
+      "req_ids": [
+        "REQ-24"
+      ],
+      "section": null,
+      "evidence": [
+        {
+          "quote": "at least 1000 concurrent users",
+          "line": 235,
+          "status": "exact"
+        }
+      ],
+      "problem": "Не определено, что считается одновременным пользователем: активная сессия или одновременный запрос.",
+      "impact": "Нельзя задать сценарий нагрузки, который нужно выдержать.",
+      "recommendation": "Определить понятие одновременного пользователя.",
+      "question": "Что считается одновременным пользователем: активная сессия входа или одновременный запрос к системе?",
+      "addressee": "analyst",
+      "question_id": null,
+      "status": "confirmed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": null,
+      "severity_raised_from": null,
+      "places": []
+    },
+    {
+      "id": "D-58",
+      "scope": "requirement",
+      "kind": "defect",
+      "criterion": "VERIFIABLE",
+      "severity": "MAJOR",
+      "title": "",
+      "req_ids": [
+        "REQ-24"
+      ],
+      "section": null,
+      "evidence": [
+        {
+          "quote": "should support at least 1000 concurrent users",
+          "line": 235,
+          "status": "exact"
+        }
+      ],
+      "problem": "Нет критерия успешной работы при нагрузке, например времени ответа или доли ошибок.",
+      "impact": "Нельзя проверить, что система выдерживает заданную нагрузку.",
+      "recommendation": "Задать предельное время ответа и допустимую долю ошибок при нагрузке.",
+      "question": "Какое предельное время ответа задать при 1000 одновременных пользователях: значение в секундах?",
+      "addressee": "qa",
+      "question_id": null,
+      "status": "confirmed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": null,
+      "severity_raised_from": null,
+      "places": []
+    },
+    {
+      "id": "D-59",
+      "scope": "requirement",
+      "kind": "defect",
+      "criterion": "VERIFIABLE",
+      "severity": "CRITICAL",
+      "title": "",
+      "req_ids": [
+        "REQ-25"
+      ],
+      "section": null,
+      "evidence": [
+        {
+          "quote": "the system be mostly self-sustaining",
+          "line": 240,
+          "status": "exact"
+        }
+      ],
+      "problem": "Формулировка mostly self-sustaining не задаёт измеримого критерия, а требование сопровождаемости без измерения не проверить.",
+      "impact": "Нельзя провести тест или измерение, которое подтвердит выполнение требования.",
+      "recommendation": "Задать измеримый порог трудозатрат на сопровождение, например в FTE-часах в месяц, и способ его измерения.",
+      "question": "Какой предельный объём трудозатрат на сопровождение допустим: задать число FTE-часов в месяц?",
+      "addressee": "business",
+      "question_id": "Q-03",
+      "status": "confirmed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": null,
+      "severity_raised_from": null,
+      "places": []
+    },
+    {
+      "id": "D-60",
+      "scope": "requirement",
+      "kind": "defect",
+      "criterion": "UNAMBIGUOUS",
+      "severity": "MAJOR",
+      "title": "",
+      "req_ids": [
+        "REQ-25"
+      ],
+      "section": null,
+      "evidence": [
+        {
+          "quote": "without substantial modification",
+          "line": 239,
+          "status": "exact"
+        }
+      ],
+      "problem": "Слово substantial допускает разные толкования объёма допустимой доработки. Оценка по тексту невозможна.",
+      "impact": "Нельзя определить, какие изменения считаются допустимыми при сопровождении.",
+      "recommendation": "Заменить substantial числовым порогом доли изменённого кода с единицей измерения.",
+      "question": "Какой предельный объём доработки системы допустим для сопровождения: задать долю изменённого кода, в процентах?",
+      "addressee": "business",
+      "question_id": "Q-03",
+      "status": "confirmed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": null,
+      "severity_raised_from": null,
+      "places": []
+    },
+    {
+      "id": "D-61",
+      "scope": "requirement",
+      "kind": "defect",
+      "criterion": "UNAMBIGUOUS",
+      "severity": "MAJOR",
+      "title": "",
+      "req_ids": [
+        "REQ-26"
+      ],
+      "section": null,
+      "evidence": [
+        {
+          "quote": "Users must have easy access to help",
+          "line": 245,
+          "status": "exact"
+        }
+      ],
+      "problem": "Слово easy и прилагательное Relevant в строке 244 не определены, что оставляет их на усмотрение исполнителя.",
+      "impact": "Нельзя однозначно реализовать и принять доступ к справке и релевантность документации.",
+      "recommendation": "Заменить easy и relevant проверяемыми условиями, например числом кликов до справки и перечнем функций страницы, которые описывает справка.",
+      "question": "Что считать релевантной справкой на странице: задать перечень функций страницы, которые справка обязана описывать?",
+      "addressee": "business",
+      "question_id": null,
+      "status": "confirmed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": null,
+      "severity_raised_from": null,
+      "places": []
+    },
+    {
+      "id": "D-62",
+      "scope": "requirement",
+      "kind": "defect",
+      "criterion": "VERIFIABLE",
+      "severity": "MAJOR",
+      "title": "",
+      "req_ids": [
+        "REQ-26"
+      ],
+      "section": null,
+      "evidence": [
+        {
+          "quote": "Adequate user documentation should be provided",
+          "line": 245,
+          "status": "exact"
+        }
+      ],
+      "problem": "Adequate не задано измеримо, поэтому выполнение нельзя подтвердить тестом или осмотром.",
+      "impact": "Нельзя определить, достаточна ли документация, и принять эту часть требования.",
+      "recommendation": "Задать целевой показатель, например число обращений в Help Desk в месяц, и порог его достижения.",
+      "question": "Какое число обращений в Help Desk в месяц считать признаком достаточной документации: задать значение, например 20?",
+      "addressee": "business",
+      "question_id": null,
+      "status": "confirmed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": null,
+      "severity_raised_from": null,
+      "places": []
+    },
+    {
+      "id": "D-63",
+      "scope": "requirement",
+      "kind": "defect",
+      "criterion": "VERIFIABLE",
+      "severity": "CRITICAL",
+      "title": "",
+      "req_ids": [
+        "REQ-27"
+      ],
+      "section": null,
+      "evidence": [
+        {
+          "quote": "This documentation must cover all procedures necessary",
+          "line": 249,
+          "status": "exact"
+        }
+      ],
+      "problem": "Фраза all procedures necessary и all common errors не перечисляет процедуры и ошибки, полноту покрытия проверить нельзя.",
+      "impact": "Нельзя составить тест или осмотр, который подтвердит полноту документации.",
+      "recommendation": "Перечислить обязательные процедуры регламентного обслуживания и типовые ошибки или сослаться на утверждённый список.",
+      "question": "Какой перечень процедур регламентного обслуживания документация обязана покрывать: задать список процедур?",
+      "addressee": "analyst",
+      "question_id": "Q-04",
+      "status": "confirmed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": null,
+      "severity_raised_from": null,
+      "places": []
+    },
+    {
+      "id": "D-64",
+      "scope": "requirement",
+      "kind": "defect",
+      "criterion": "UNAMBIGUOUS",
+      "severity": "MAJOR",
+      "title": "",
+      "req_ids": [
+        "REQ-27"
+      ],
+      "section": null,
+      "evidence": [
+        {
+          "quote": "comprehensive, searchable documentation",
+          "line": 247,
+          "status": "exact"
+        }
+      ],
+      "problem": "Слово comprehensive не определяет объём документации, поэтому граница полноты неясна.",
+      "impact": "Нельзя установить, какие разделы документация обязана содержать.",
+      "recommendation": "Заменить comprehensive перечнем обязательных разделов.",
+      "question": "Какие разделы должна содержать документация администратора: задать перечень разделов?",
+      "addressee": "business",
+      "question_id": "Q-04",
+      "status": "confirmed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": null,
+      "severity_raised_from": null,
+      "places": []
+    },
+    {
+      "id": "D-65",
+      "scope": "requirement",
+      "kind": "defect",
+      "criterion": "SINGULAR",
+      "severity": "MAJOR",
+      "title": "",
+      "req_ids": [
+        "REQ-27"
+      ],
+      "section": null,
+      "evidence": [
+        {
+          "quote": "Search results should be displayed based on relevance.",
+          "line": 248,
+          "status": "exact"
+        }
+      ],
+      "problem": "В требование о доступности документации добавлено отдельное правило ранжирования результатов поиска.",
+      "impact": "Одно требование нельзя принять или проверить отдельно от ранжирования поиска.",
+      "recommendation": "Вынести ранжирование результатов в отдельное требование или удалить его из этого пункта.",
+      "question": "Нужно ли ранжирование результатов поиска по релевантности оформлять отдельным требованием: ответ да или нет?",
+      "addressee": "analyst",
+      "question_id": null,
+      "status": "confirmed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": null,
+      "severity_raised_from": null,
+      "places": []
+    },
+    {
+      "id": "D-66",
+      "scope": "requirement",
+      "kind": "defect",
+      "criterion": "APPROPRIATE",
+      "severity": "MINOR",
+      "title": "",
+      "req_ids": [
+        "REQ-27"
+      ],
+      "section": null,
+      "evidence": [
+        {
+          "quote": "A comprehensive database of maintenance tasks",
+          "line": 248,
+          "status": "exact"
+        }
+      ],
+      "problem": "Требование задаёт способ реализации, компиляцию базы данных, вместо результата, нужного администратору.",
+      "impact": "Разработчик вынужден выбирать конкретное техническое решение без обоснования.",
+      "recommendation": "Описать нужный результат: доступ администратора к описанию задач обслуживания и ошибок, без указания формы хранения.",
+      "question": null,
+      "addressee": null,
+      "question_id": null,
+      "status": "unreviewed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": null,
+      "severity_raised_from": null,
+      "places": []
+    },
+    {
+      "id": "S-01",
+      "scope": "set",
+      "kind": "contradiction",
+      "criterion": "SET_CONSISTENT",
+      "severity": "CRITICAL",
+      "title": "Поиск одновременно заменяет и дополняет иерархические ссылки навигации",
+      "req_ids": [
+        "REQ-11",
+        "REQ-12"
+      ],
+      "section": "3.4 Search",
+      "evidence": [
+        {
+          "quote": "The system must be able to use search functionality as a way to navigate Moodle pages instead of using hierarchical links.",
+          "line": 186,
+          "status": "exact"
+        },
+        {
+          "quote": "A search utility enables actors to find what they are looking for quickly in addition to having a hierarchical approach to finding functions of the course management system.",
+          "line": 187,
+          "status": "exact"
+        }
+      ],
+      "problem": "В строке 186 поиск назван способом навигации вместо иерархических ссылок. В строке 187 поиск назван дополнением к иерархическому подходу, который сохраняется.",
+      "impact": "Нельзя определить, нужно ли сохранять иерархическое меню навигации по страницам курса и каким должен быть основной путь поиска по страницам.",
+      "recommendation": "Привести строки 186 и 187 к одному утверждению о роли поиска и иерархических ссылок и убрать второе.",
+      "question": "Поиск заменяет иерархические ссылки навигации или только дополняет их: что верно?",
+      "addressee": "business",
+      "question_id": "Q-07",
+      "status": "confirmed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": "behavior",
+      "severity_raised_from": null,
+      "places": []
+    },
+    {
+      "id": "S-02",
+      "scope": "set",
+      "kind": "contradiction",
+      "criterion": "SET_CONSISTENT",
+      "severity": "CRITICAL",
+      "title": "Термин «страница» определён в разных разделах как блок и как отдельная страница",
+      "req_ids": [
+        "REQ-10",
+        "REQ-20"
+      ],
+      "section": "3.3 Web Feeds",
+      "evidence": [
+        {
+          "quote": "For this requirement, page refers to any distinct block (e.g., assignments, wikis, forum threads, etc.).",
+          "line": 181,
+          "status": "exact"
+        },
+        {
+          "quote": "For this requirement, page refers to any distinct page, such as an assignment, a wiki page, or a forum post.",
+          "line": 187,
+          "status": "exact"
+        }
+      ],
+      "problem": "В разделе 3.3 под страницей понимается отдельный блок (например, задания или форумные темы). В разделе 3.4 и в разделе 3.7 под страницей понимается отдельная страница (например, задание, вики-страница, сообщение форума).",
+      "impact": "Нельзя определить, к чему относится включение и выключение веб-лент по страницам и к чему относятся уведомления по страницам, то есть какие объекты получают эти настройки.",
+      "recommendation": "Задать одно определение термина «страница» в разделе 1.3 и использовать его во всех требованиях, где он встречается.",
+      "question": "Что считается страницей для включения веб-лент и уведомлений: отдельный блок информации или отдельная страница целиком?",
+      "addressee": "business",
+      "question_id": "Q-01",
+      "status": "confirmed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": "behavior",
+      "severity_raised_from": null,
+      "places": []
+    },
+    {
+      "id": "S-03",
+      "scope": "set",
+      "kind": "contradiction",
+      "criterion": "SET_MODIFIABLE",
+      "severity": "CRITICAL",
+      "title": "Поле поиска описано в 3.4.1 и 3.4.2 с разным условием показа",
+      "req_ids": [
+        "REQ-12",
+        "REQ-13"
+      ],
+      "section": "3.4 Search",
+      "evidence": [
+        {
+          "quote": "First, it should be present in the form of a search box and a “Search” button on the top or bottom of every page.",
+          "line": 191,
+          "status": "exact"
+        },
+        {
+          "quote": "The system must display a search box on every page after an actor has logged in.",
+          "line": 195,
+          "status": "exact"
+        }
+      ],
+      "problem": "В 3.4.1 поле поиска показывается на каждой странице без условия входа, а в 3.4.2 только после входа. Одно и то же поле описано дважды.",
+      "impact": "Нельзя определить, видит ли неавторизованный пользователь поле поиска, и нельзя написать тест на показ поля до входа.",
+      "recommendation": "Оставить одно описание поля поиска с указанием условия показа и на него ссылаться из другого пункта.",
+      "question": "Какое из двух мест верно: поле поиска на каждой странице (3.4.1) или только после входа (3.4.2)?",
+      "addressee": "business",
+      "question_id": "Q-05",
+      "status": "confirmed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": "behavior",
+      "severity_raised_from": null,
+      "places": []
+    },
+    {
+      "id": "S-04",
+      "scope": "set",
+      "kind": "gap",
+      "criterion": "SET_COMPLETE",
+      "severity": "MAJOR",
+      "title": "Версия базовой системы Moodle не указана, в тексте стоит пометка TODO",
+      "req_ids": [],
+      "section": "1.2 Scope",
+      "evidence": [
+        {
+          "quote": "the existing courseware system candidate (version TODO: Version of",
+          "line": 109,
+          "status": "exact"
+        }
+      ],
+      "problem": "В области действия вместо версии Moodle стоит незаполненная пометка TODO, поэтому базовая платформа доработок не определена.",
+      "impact": "Нельзя проверить, какие API и функции Moodle доступны и применимы к требованиям, и нельзя сверить набор с конкретной версией платформы.",
+      "recommendation": "Указать точную версию Moodle, на которую ведётся доработка, и убрать пометку TODO.",
+      "question": "Какая версия Moodle является базовой для доработки?",
+      "addressee": "business",
+      "question_id": null,
+      "status": "confirmed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": "none",
+      "severity_raised_from": null,
+      "places": []
+    },
+    {
+      "id": "S-05",
+      "scope": "set",
+      "kind": "gap",
+      "criterion": "SET_COMPLETE",
+      "severity": "MAJOR",
+      "title": "Состав резервного копирования по компонентам системы не определён",
+      "req_ids": [
+        "REQ-22"
+      ],
+      "section": "4.2 Reliability",
+      "evidence": [
+        {
+          "quote": "Back-up requirements will need to be determined",
+          "line": 227,
+          "status": "exact"
+        }
+      ],
+      "problem": "Требования к резервному копированию отложены: сказано, что они будут определены по отдельным компонентам, но перечня компонентов нет.",
+      "impact": "Нельзя проверить, что требование 4.2.1 покрывает все данные системы, и нельзя спланировать расписание и объём копий.",
+      "recommendation": "Перечислить компоненты системы, которые входят в резервное копирование, и для каждого указать требуемую частоту.",
+      "question": "Какие компоненты системы входят в резервное копирование: все данные системы или только курсы и задания?",
+      "addressee": "architect",
+      "question_id": null,
+      "status": "confirmed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": "none",
+      "severity_raised_from": null,
+      "places": []
+    },
+    {
+      "id": "S-06",
+      "scope": "set",
+      "kind": "gap",
+      "criterion": "SET_COMPLETE",
+      "severity": "MAJOR",
+      "title": "Раздел стандартов пуст, перечень стандартов и протоколов не задан",
+      "req_ids": [],
+      "section": "4.9 Applicable Standards",
+      "evidence": [
+        {
+          "quote": "4.9 Applicable Standards",
+          "line": 101,
+          "status": "exact"
+        }
+      ],
+      "problem": "В разделе 4.9 нет ни одного стандарта, протокола или формата, которым должна соответствовать система.",
+      "impact": "Нельзя проверить соответствие требований обязательным стандартам, например формату записи и каналам уведомлений.",
+      "recommendation": "Перечислить обязательные стандарты и протоколы с версиями или явно указать, что обязательных стандартов нет.",
+      "question": "Какие стандарты и протоколы обязательны для системы, с указанием версий?",
+      "addressee": "architect",
+      "question_id": null,
+      "status": "confirmed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": "none",
+      "severity_raised_from": null,
+      "places": []
+    },
+    {
+      "id": "S-07",
+      "scope": "set",
+      "kind": "gap",
+      "criterion": "SET_COMPLETE",
+      "severity": "MAJOR",
+      "title": "Не описано, что происходит при сбое отправки уведомлений",
+      "req_ids": [
+        "REQ-20"
+      ],
+      "section": "3.7 Notifications",
+      "evidence": [
+        {
+          "quote": "The system must provide both e-mail and SMS notifications for pages.",
+          "line": 216,
+          "status": "exact"
+        }
+      ],
+      "problem": "Для отправки e-mail и SMS не описано поведение при недоступности почтового сервера или SMS-шлюза: повтор, журналирование или отказ.",
+      "impact": "Нельзя проверить поведение системы при отказе внешнего сервиса, и разработчик не знает, терять ли уведомление.",
+      "recommendation": "Добавить сценарий отказа канала уведомлений с числом повторов и поведением после исчерпания попыток.",
+      "question": "Сколько раз повторять отправку уведомления, если SMS-шлюз или почтовый сервер недоступен: задать число попыток, например 3?",
+      "addressee": "analyst",
+      "question_id": null,
+      "status": "confirmed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": "none",
+      "severity_raised_from": null,
+      "places": []
+    },
+    {
+      "id": "S-08",
+      "scope": "set",
+      "kind": "gap",
+      "criterion": "SET_COMPLETE",
+      "severity": "MAJOR",
+      "title": "Не описано одновременное изменение одной оценки двумя администраторами",
+      "req_ids": [
+        "REQ-15",
+        "REQ-17"
+      ],
+      "section": "3.5 Gradebook",
+      "evidence": [
+        {
+          "quote": "A course administrator must be able to grade an assignment.",
+          "line": 200,
+          "status": "exact"
+        }
+      ],
+      "problem": "Для параллельных запросов на изменение одной и той же оценки не задано правило, какое значение сохраняется и что видит второй администратор.",
+      "impact": "Нельзя проверить целостность истории оценок (3.5.3) при одновременных изменениях и нельзя написать тест на конкурентный доступ.",
+      "recommendation": "Описать правило конкурентного изменения оценки и отображение конфликта для второго администратора.",
+      "question": "Что происходит, если два администратора курса сохраняют оценку за одно задание одновременно: сохраняется последнее значение или второе сохранение отклоняется?",
+      "addressee": "business",
+      "question_id": null,
+      "status": "confirmed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": "none",
+      "severity_raised_from": null,
+      "places": []
+    },
+    {
+      "id": "S-09",
+      "scope": "set",
+      "kind": "gap",
+      "criterion": "SET_COMPLETE",
+      "severity": "MAJOR",
+      "title": "Нет нефункциональных требований к безопасности, защите данных и аудиту",
+      "req_ids": [],
+      "section": "4. General System Functional Requirements",
+      "evidence": [
+        {
+          "quote": "4. General System Functional Requirements",
+          "line": 84,
+          "status": "exact"
+        }
+      ],
+      "problem": "В разделах 4.x нет требований к аутентификации, разграничению доступа на уровне системы, журналу действий и защите хранимых данных, кроме отдельной фразы о видимости оценок.",
+      "impact": "Нельзя проверить соответствие системы требованиям безопасности и аудита, и нельзя определить, что фиксируется в журнале при изменении данных.",
+      "recommendation": "Добавить раздел нефункциональных требований по безопасности, правам доступа и журналированию с перечнем фиксируемых действий.",
+      "question": "Должна ли система вести журнал входов в систему и изменений данных с указанием пользователя: да или нет?",
+      "addressee": "security",
+      "question_id": null,
+      "status": "confirmed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": "none",
+      "severity_raised_from": null,
+      "places": []
+    },
+    {
+      "id": "S-10",
+      "scope": "set",
+      "kind": "gap",
+      "criterion": "SET_COMPREHENSIBLE",
+      "severity": "MAJOR",
+      "title": "Не описаны внешние системы и интерфейсы, с которыми связана курсовая система",
+      "req_ids": [],
+      "section": "4.7 Interfaces",
+      "evidence": [
+        {
+          "quote": "4.7.4 Communications Interfaces",
+          "line": 99,
+          "status": "exact"
+        },
+        {
+          "quote": "4.8 Licensing Requirements",
+          "line": 100,
+          "status": "exact"
+        }
+      ],
+      "problem": "Раздел 4.7 содержит только заголовки подразделов (пользовательские, аппаратные, программные и коммуникационные интерфейсы), без текста. Разделы 4.5, 4.8 и 4.9 тоже пусты. Требование 3.7.1 и раздел 3.6 упоминают внешние сервисы, но их границы и способ связи не описаны.",
+      "impact": "Нельзя определить, какие внешние системы должны получать данные от курсовой системы или передавать их ей и в каком виде, поэтому нельзя проверить, что интеграции покрыты требованиями.",
+      "recommendation": "Заполнить раздел 4.7 перечнем внешних и смежных систем с описанием обмена данными или явно отметить, что внешних интеграций нет.",
+      "question": "Должен ли раздел 4.7 Interfaces описывать обмен данными с внешними системами (например, с системой учёта студентов): да или нет?",
+      "addressee": "architect",
+      "question_id": null,
+      "status": "confirmed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": "none",
+      "severity_raised_from": null,
+      "places": []
+    },
+    {
+      "id": "S-11",
+      "scope": "set",
+      "kind": "other",
+      "criterion": "SET_CONSISTENT",
+      "severity": "MAJOR",
+      "title": "Роль, которой назначается квота дискового пространства, названа по-разному",
+      "req_ids": [
+        "REQ-03",
+        "REQ-05",
+        "REQ-08"
+      ],
+      "section": "3.2 Audio Recording",
+      "evidence": [
+        {
+          "quote": "Actors in the capacity of course administrator or professor should be able to enable multiple file uploads on a page of his or her choosing.",
+          "line": 163,
+          "status": "exact"
+        },
+        {
+          "quote": "Equal and finite drive space needs to be allotted to each actor in the role of professor or administrator to allow for the storing of voice clips recorded and submitted by all actors in the roles of students.",
+          "line": 169,
+          "status": "exact"
+        }
+      ],
+      "problem": "В разделе 3.1.1 роли названы как «course administrator or professor». В строке 169 та же группа названа «professor or administrator», а в следующей фразе той же строки «professor or system administrator». Из раздела 1.3.2 следует, что курсовой администратор это профессор или системный администратор, но «administrator» без уточнения может означать любую из двух ролей.",
+      "impact": "Нельзя определить, кто получает квоту дискового пространства для голосовых клипов и кто может выставлять её студентам.",
+      "recommendation": "Использовать один термин роли из раздела 1.3 во всех требованиях раздела 3.2 и указать, кому выделяется квота.",
+      "question": "Кому выделяется квота дискового пространства для голосовых клипов: профессору, курсовому администратору или системному администратору?",
+      "addressee": "business",
+      "question_id": "Q-13",
+      "status": "confirmed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": "naming",
+      "severity_raised_from": null,
+      "places": []
+    },
+    {
+      "id": "S-12",
+      "scope": "set",
+      "kind": "gap",
+      "criterion": "SET_FEASIBLE",
+      "severity": "MAJOR",
+      "title": "Срок и бюджет первого релиза названы без значений",
+      "req_ids": [
+        "REQ-01"
+      ],
+      "section": "4.5 Design Constraints",
+      "evidence": [
+        {
+          "quote": "along with such Priority 3 requirements as can be developed within the project timeframe and budget constraints.",
+          "line": 156,
+          "status": "exact"
+        }
+      ],
+      "problem": "Ограничения по сроку и бюджету упомянуты, но их значения не заданы, поэтому нельзя понять, какие требования приоритета 3 реально войдут в релиз.",
+      "impact": "Нельзя оценить осуществимость набора в заданных ограничениях и отобрать требования для первого релиза.",
+      "recommendation": "Указать срок первого релиза и бюджет в единицах измерения и связать их с перечнем требований приоритета 3.",
+      "question": "Какой срок первого релиза задать, в месяцах?",
+      "addressee": "business",
+      "question_id": null,
+      "status": "confirmed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": "none",
+      "severity_raised_from": null,
+      "places": []
+    },
+    {
+      "id": "S-13",
+      "scope": "set",
+      "kind": "gap",
+      "criterion": "SET_TRACEABLE",
+      "severity": "MAJOR",
+      "title": "Утверждения раздела 3 без идентификаторов нельзя адресовать",
+      "req_ids": [
+        "REQ-02",
+        "REQ-04",
+        "REQ-09",
+        "REQ-11",
+        "REQ-14"
+      ],
+      "section": "3. Specific Requirements",
+      "evidence": [
+        {
+          "quote": "The system must be able to capture and manage files where appropriate.",
+          "line": 158,
+          "status": "exact"
+        }
+      ],
+      "problem": "Пять утверждений, записанных как «The system must» или «Администратор курса публикует», не имеют номера, при этом часть из них оформлена как самостоятельное требование.",
+      "impact": "На эти утверждения нельзя сослаться из проекта, кода и тестов, и их нельзя связать с критериями приёмки.",
+      "recommendation": "Присвоить каждому самостоятельному требованию уникальный идентификатор или явно отнести утверждение к вводному описанию раздела.",
+      "question": "Строка 158 является самостоятельным требованием или вводным описанием раздела 3.1?",
+      "addressee": "analyst",
+      "question_id": null,
+      "status": "confirmed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": "none",
+      "severity_raised_from": null,
+      "places": []
+    },
+    {
+      "id": "S-14",
+      "scope": "set",
+      "kind": "gap",
+      "criterion": "SET_VALIDATABLE",
+      "severity": "MAJOR",
+      "title": "Цель набора не измерима, критерии приёмки не заданы",
+      "req_ids": [],
+      "section": "1.1 Purpose",
+      "evidence": [
+        {
+          "quote": "The purpose of this document is to capture, in natural language and at a functional level",
+          "line": 106,
+          "status": "exact"
+        }
+      ],
+      "problem": "Цель описана как фиксация требований, а не как результат, который можно измерить. Критериев приёмки, по которым проверяется достижение цели, в наборе нет.",
+      "impact": "Нельзя показать, что выполнение набора приведёт к заявленной цели, и нельзя решить, что набор принят.",
+      "recommendation": "Задать измеримую цель набора с показателями и целевыми значениями и связать с ней критерии приёмки требований.",
+      "question": "Какой измеримый показатель и какое целевое значение подтверждают достижение цели набора?",
+      "addressee": "business",
+      "question_id": null,
+      "status": "confirmed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": "none",
+      "severity_raised_from": null,
+      "places": []
+    },
+    {
+      "id": "S-15",
+      "scope": "set",
+      "kind": "other",
+      "criterion": "SET_CONSISTENT",
+      "severity": "MINOR",
+      "title": "Версия документа на титульном листе не совпадает с историей изменений",
+      "req_ids": [],
+      "section": null,
+      "evidence": [
+        {
+          "quote": "Version 1.0",
+          "line": 18,
+          "status": "exact"
+        },
+        {
+          "quote": "| | | 11/2/2007 | | | 1.4 | | | | | | | |",
+          "line": 38,
+          "status": "exact"
+        }
+      ],
+      "problem": "На титульном листе указана версия 1.0, а в истории изменений последняя запись имеет версию 1.4.",
+      "impact": "Нельзя определить, какая версия документа действует при согласовании и приёмке требований.",
+      "recommendation": "Указать на титульном листе версию, соответствующую последней записи истории изменений.",
+      "question": null,
+      "addressee": null,
+      "question_id": null,
+      "status": "unreviewed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": "none",
+      "severity_raised_from": null,
+      "places": []
+    }
+  ],
+  "rewritten": {
+    "REQ-01": "The initial production release of the University of Puget Sound's enhancements to Moodle will deliver the Priority 1 (Core) and Priority 2 set of requirements, along with the Priority 3 requirements <list of Priority 3 requirement IDs> by <release date>.",
+    "REQ-02": "The system must allow <actor role> to upload and manage files on <page types>.",
+    "REQ-04": "The system must be able to capture and organize voice clips that can be used on <page types>.",
+    "REQ-05": "The system must allow actors to organize their voice clips into a portfolio, archiving each clip <archiving mode: after actor preview or automatically after submission>. Each actor in the role of professor or system administrator is allotted <N MB> of drive space for student voice clips.",
+    "REQ-06": "The system must allow actors to download their voice clips in <list of supported audio formats>.",
+    "REQ-07": "The system must store audio clips in <audio codec and container name> with <bitrate, kbit/s>.",
+    "REQ-08": "The system must allow <actor roles> to delete recorded clips from <own portfolio or any portfolio>, and must <behavior for clips attached to a page>.",
+    "REQ-09": "The system must display web feeds in <feed format> for <complete list of components and pages>, and the course administrator must be able to set the audience of each feed to <feed audience roles>.",
+    "REQ-10": "The system must allow <actor role> to turn web feeds on or off on a per-page basis.",
+    "REQ-11": "The system must provide search functionality to reach <set of pages> that <replaces or supplements> hierarchical links.",
+    "REQ-12": "An actor must be able to search pages in a course. The system must display a search box and a Search button at <search box position> of every page after login. The search page must allow filtering results by <list of result types>. Web search via <search engine name> must be <included or excluded>.",
+    "REQ-13": "The system must display a search box on every page after an actor has logged in. Actors must be able to search from any page. If the actor is outside a particular course, as defined by <definition of pages outside a course>, the system must search each of the actor's courses and group results by course. If the actor is inside a particular course, the system must search that course and provide <control for searching all courses>.",
+    "REQ-14": "The system must allow actors in the capacity of course administrator to post grades associated with assignments for a particular actor in the capacity of student. The system must allow actors in the role of <professor or course administrator> to grade assignments online that were submitted electronically by actors in the role of student.",
+    "REQ-15": "A course administrator must be able to grade an assignment. Course administrators must be able to post grades for an assignment based on the ratio of points earned to points possible. The course administrator must be able to attach feedback in the form of text or an attachment of up to <maximum attachment size, MB>. Time stamps must be attached to each change of the grade so that actors may examine when particular grades were set or changed and how an actor in the role of student has improved or lessened his performance in the course.",
+    "REQ-16": "The system should display grade information to the appropriate actor. The system should display grade information such as the grade for each assignment, <average definition>, and overall grade to the actor to whom the grades belong. No other actor should be able to view another’s grades except an actor in the role of course administrator for the course to which the grades belong.",
+    "REQ-17": "The system should maintain a history of grades for a particular assignment if the course administrator changes them, storing <list of recorded fields> for each change. This way, <actor role allowed to review the history> can review the grade information if their score on an assignment has changed and they wish to dispute it. Course administrators can also track how they have changed a score over time using the timestamps associated with each change to the gradebook.",
+    "REQ-18": "The system must provide a wiki where actors can collaboratively create networks of documents. A freely available wiki should provide <markup language name> that actors can use to style their input, as well as link to other pages in the wiki. More importantly, having the wiki inside Moodle reduces confusion and allows for the integration of notifications and logins.",
+    "REQ-19": "The system must provide a blog engine that supports <list of required blog functions> and shares <authentication and notification mechanism> with Moodle.",
+    "REQ-20": "The system must provide e-mail and SMS notifications for <list of page types>. A course administrator can turn notifications on or off when a page is created, and announcements have notifications on by default. When notifications are off, students can subscribe; <subscription rule when notifications are on>. A student selects <one channel or both channels> in preferences and can manage subscriptions.",
+    "REQ-21": "The system should provide an interface with <measurable simplicity criterion, e.g. number of clicks> and <maximum response time, in seconds>, configurable from a single administrative interface.",
+    "REQ-22": "The system must be backed up on a configurable schedule with a frequency of <backup frequency, e.g. hours>, and weekly off-site backup when <condition for off-site backup>. The system must restore back-up data within six hours, and downtime must not exceed <maximum downtime, hours>.",
+    "REQ-23": "The system should be available 24 hours a day, 7 days a week, with availability of <target availability, %> measured over <measurement period>, and <handling of scheduled maintenance windows>.",
+    "REQ-24": "The system should support at least 1000 concurrent users, where a concurrent user is <definition of concurrent user>, with response time not exceeding <maximum response time, in seconds> under that load.",
+    "REQ-25": "The system must be maintainable with no more than <N percent> of its code modified, and maintenance effort must not exceed <N FTE hours per month>.",
+    "REQ-26": "Online user documentation must be available on each page and must describe <list of functions of that page>, reachable in <N clicks> from that page.",
+    "REQ-27": "System administrators must have access to searchable documentation that covers <list of maintenance procedures>, <list of common errors>, and links to advanced troubleshooting for each of them."
+  },
+  "unreviewed": [],
+  "failed_steps": [],
+  "uncovered_lines": [],
+  "skipped_lines": [
+    {
+      "line_start": 3,
+      "line_end": 15,
+      "reason": "heading"
+    },
+    {
+      "line_start": 16,
+      "line_end": 21,
+      "reason": "service"
+    },
+    {
+      "line_start": 22,
+      "line_end": 40,
+      "reason": "history"
+    },
+    {
+      "line_start": 41,
+      "line_end": 102,
+      "reason": "heading"
+    },
+    {
+      "line_start": 103,
+      "line_end": 105,
+      "reason": "heading"
+    },
+    {
+      "line_start": 106,
+      "line_end": 107,
+      "reason": "intro"
+    },
+    {
+      "line_start": 108,
+      "line_end": 108,
+      "reason": "heading"
+    },
+    {
+      "line_start": 109,
+      "line_end": 113,
+      "reason": "intro"
+    },
+    {
+      "line_start": 114,
+      "line_end": 115,
+      "reason": "heading"
+    },
+    {
+      "line_start": 116,
+      "line_end": 116,
+      "reason": "intro"
+    },
+    {
+      "line_start": 117,
+      "line_end": 117,
+      "reason": "heading"
+    },
+    {
+      "line_start": 118,
+      "line_end": 118,
+      "reason": "intro"
+    },
+    {
+      "line_start": 119,
+      "line_end": 119,
+      "reason": "heading"
+    },
+    {
+      "line_start": 120,
+      "line_end": 120,
+      "reason": "intro"
+    },
+    {
+      "line_start": 121,
+      "line_end": 121,
+      "reason": "heading"
+    },
+    {
+      "line_start": 122,
+      "line_end": 122,
+      "reason": "intro"
+    },
+    {
+      "line_start": 123,
+      "line_end": 124,
+      "reason": "heading"
+    },
+    {
+      "line_start": 125,
+      "line_end": 125,
+      "reason": "intro"
+    },
+    {
+      "line_start": 126,
+      "line_end": 126,
+      "reason": "heading"
+    },
+    {
+      "line_start": 127,
+      "line_end": 130,
+      "reason": "intro"
+    },
+    {
+      "line_start": 131,
+      "line_end": 132,
+      "reason": "heading"
+    },
+    {
+      "line_start": 133,
+      "line_end": 136,
+      "reason": "intro"
+    },
+    {
+      "line_start": 137,
+      "line_end": 137,
+      "reason": "heading"
+    },
+    {
+      "line_start": 138,
+      "line_end": 139,
+      "reason": "intro"
+    },
+    {
+      "line_start": 140,
+      "line_end": 141,
+      "reason": "heading"
+    },
+    {
+      "line_start": 142,
+      "line_end": 142,
+      "reason": "intro"
+    },
+    {
+      "line_start": 143,
+      "line_end": 143,
+      "reason": "heading"
+    },
+    {
+      "line_start": 144,
+      "line_end": 144,
+      "reason": "intro"
+    },
+    {
+      "line_start": 145,
+      "line_end": 145,
+      "reason": "heading"
+    },
+    {
+      "line_start": 146,
+      "line_end": 146,
+      "reason": "intro"
+    },
+    {
+      "line_start": 147,
+      "line_end": 147,
+      "reason": "heading"
+    },
+    {
+      "line_start": 148,
+      "line_end": 148,
+      "reason": "intro"
+    },
+    {
+      "line_start": 149,
+      "line_end": 149,
+      "reason": "heading"
+    },
+    {
+      "line_start": 150,
+      "line_end": 155,
+      "reason": "intro"
+    },
+    {
+      "line_start": 157,
+      "line_end": 157,
+      "reason": "heading"
+    },
+    {
+      "line_start": 159,
+      "line_end": 160,
+      "reason": "intro"
+    },
+    {
+      "line_start": 161,
+      "line_end": 161,
+      "reason": "other"
+    },
+    {
+      "line_start": 164,
+      "line_end": 164,
+      "reason": "heading"
+    },
+    {
+      "line_start": 166,
+      "line_end": 166,
+      "reason": "intro"
+    },
+    {
+      "line_start": 167,
+      "line_end": 167,
+      "reason": "other"
+    },
+    {
+      "line_start": 179,
+      "line_end": 179,
+      "reason": "heading"
+    },
+    {
+      "line_start": 181,
+      "line_end": 181,
+      "reason": "intro"
+    },
+    {
+      "line_start": 182,
+      "line_end": 182,
+      "reason": "other"
+    },
+    {
+      "line_start": 185,
+      "line_end": 185,
+      "reason": "heading"
+    },
+    {
+      "line_start": 187,
+      "line_end": 187,
+      "reason": "intro"
+    },
+    {
+      "line_start": 188,
+      "line_end": 188,
+      "reason": "other"
+    },
+    {
+      "line_start": 197,
+      "line_end": 197,
+      "reason": "heading"
+    },
+    {
+      "line_start": 199,
+      "line_end": 199,
+      "reason": "other"
+    },
+    {
+      "line_start": 206,
+      "line_end": 206,
+      "reason": "heading"
+    },
+    {
+      "line_start": 207,
+      "line_end": 207,
+      "reason": "intro"
+    },
+    {
+      "line_start": 208,
+      "line_end": 208,
+      "reason": "other"
+    },
+    {
+      "line_start": 213,
+      "line_end": 213,
+      "reason": "heading"
+    },
+    {
+      "line_start": 214,
+      "line_end": 214,
+      "reason": "intro"
+    },
+    {
+      "line_start": 215,
+      "line_end": 215,
+      "reason": "other"
+    },
+    {
+      "line_start": 219,
+      "line_end": 220,
+      "reason": "heading"
+    },
+    {
+      "line_start": 225,
+      "line_end": 225,
+      "reason": "heading"
+    },
+    {
+      "line_start": 234,
+      "line_end": 234,
+      "reason": "heading"
+    },
+    {
+      "line_start": 238,
+      "line_end": 238,
+      "reason": "heading"
+    },
+    {
+      "line_start": 242,
+      "line_end": 243,
+      "reason": "heading"
+    },
+    {
+      "line_start": 251,
+      "line_end": 258,
+      "reason": "heading"
+    }
+  ],
+  "checks": {
+    "REQ-01": [
+      {
+        "criterion": "NECESSARY",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "APPROPRIATE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "UNAMBIGUOUS",
+        "status": "fail",
+        "note": "Набор Priority 3 не определён: фраза about timeframe и budget не задаёт перечень."
+      },
+      {
+        "criterion": "COMPLETE",
+        "status": "unknown",
+        "note": "Сроки и бюджет в тексте не заданы, полноту набора оценить нельзя."
+      },
+      {
+        "criterion": "SINGULAR",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "FEASIBLE",
+        "status": "unknown",
+        "note": "Сроки и бюджет не указаны, осуществимость Priority 3 оценить нельзя."
+      },
+      {
+        "criterion": "VERIFIABLE",
+        "status": "fail",
+        "note": "Для Priority 3 нет перечня и даты, по которым проверяется состав выпуска."
+      },
+      {
+        "criterion": "CORRECT",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CONSISTENT",
+        "status": "pass",
+        "note": ""
+      }
+    ],
+    "REQ-02": [
+      {
+        "criterion": "NECESSARY",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "APPROPRIATE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "UNAMBIGUOUS",
+        "status": "fail",
+        "note": "Условие where appropriate не определено, граница применения неясна."
+      },
+      {
+        "criterion": "COMPLETE",
+        "status": "unknown",
+        "note": "Не ясно, что значит manage и какие страницы; нужен ответ автора."
+      },
+      {
+        "criterion": "SINGULAR",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "FEASIBLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "VERIFIABLE",
+        "status": "fail",
+        "note": "Нет наблюдаемого результата: where appropriate нельзя проверить тестом."
+      },
+      {
+        "criterion": "CORRECT",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CONSISTENT",
+        "status": "pass",
+        "note": ""
+      }
+    ],
+    "REQ-03": [
+      {
+        "criterion": "NECESSARY",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "APPROPRIATE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "UNAMBIGUOUS",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "COMPLETE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "SINGULAR",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "FEASIBLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "VERIFIABLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CORRECT",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CONSISTENT",
+        "status": "pass",
+        "note": ""
+      }
+    ],
+    "REQ-04": [
+      {
+        "criterion": "NECESSARY",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "APPROPRIATE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "UNAMBIGUOUS",
+        "status": "fail",
+        "note": "Условие where appropriate не определено, пригодность клипа неясна."
+      },
+      {
+        "criterion": "COMPLETE",
+        "status": "unknown",
+        "note": "Не ясно, для каких страниц и сценариев используются клипы; нужен ответ автора."
+      },
+      {
+        "criterion": "SINGULAR",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "FEASIBLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "VERIFIABLE",
+        "status": "fail",
+        "note": "Нет критерия, по которому клип считается захваченным и организованным."
+      },
+      {
+        "criterion": "CORRECT",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CONSISTENT",
+        "status": "pass",
+        "note": ""
+      }
+    ],
+    "REQ-05": [
+      {
+        "criterion": "NECESSARY",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "APPROPRIATE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "UNAMBIGUOUS",
+        "status": "fail",
+        "note": "Текст допускает два способа архивации без указания, какой обязателен."
+      },
+      {
+        "criterion": "COMPLETE",
+        "status": "fail",
+        "note": "Объём дискового пространства для каждого профессора не задан."
+      },
+      {
+        "criterion": "SINGULAR",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "FEASIBLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "VERIFIABLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CORRECT",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CONSISTENT",
+        "status": "fail",
+        "note": "Вторая опция одновременно автоматическая и требует действия актора."
+      }
+    ],
+    "REQ-06": [
+      {
+        "criterion": "NECESSARY",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "APPROPRIATE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "UNAMBIGUOUS",
+        "status": "fail",
+        "note": "Слово flexible не задаёт набор форматов, поэтому допускает разные трактовки."
+      },
+      {
+        "criterion": "COMPLETE",
+        "status": "fail",
+        "note": "Формат mp3 приведён как пример, полного списка форматов нет."
+      },
+      {
+        "criterion": "SINGULAR",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "FEASIBLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "VERIFIABLE",
+        "status": "fail",
+        "note": "Без списка форматов нельзя определить, какой результат скачивания проверять."
+      },
+      {
+        "criterion": "CORRECT",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CONSISTENT",
+        "status": "pass",
+        "note": ""
+      }
+    ],
+    "REQ-07": [
+      {
+        "criterion": "NECESSARY",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "APPROPRIATE",
+        "status": "fail",
+        "note": "Требование о хранении содержит решение про отдельный просмотрщик и язык реализации."
+      },
+      {
+        "criterion": "UNAMBIGUOUS",
+        "status": "fail",
+        "note": "Фраза conducive to speech не задаёт конкретный формат."
+      },
+      {
+        "criterion": "COMPLETE",
+        "status": "fail",
+        "note": "Не заданы кодек, битрейт и другие параметры хранения."
+      },
+      {
+        "criterion": "SINGULAR",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "FEASIBLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "VERIFIABLE",
+        "status": "fail",
+        "note": "Без названного формата нет критерия успеха для проверки."
+      },
+      {
+        "criterion": "CORRECT",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CONSISTENT",
+        "status": "pass",
+        "note": ""
+      }
+    ],
+    "REQ-08": [
+      {
+        "criterion": "NECESSARY",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "APPROPRIATE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "UNAMBIGUOUS",
+        "status": "fail",
+        "note": "Не ясно, из каких портфелей актор может удалять клипы."
+      },
+      {
+        "criterion": "COMPLETE",
+        "status": "fail",
+        "note": "Не описано поведение при удалении клипа, прикреплённого к странице."
+      },
+      {
+        "criterion": "SINGULAR",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "FEASIBLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "VERIFIABLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CORRECT",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CONSISTENT",
+        "status": "pass",
+        "note": ""
+      }
+    ],
+    "REQ-09": [
+      {
+        "criterion": "NECESSARY",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "APPROPRIATE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "UNAMBIGUOUS",
+        "status": "fail",
+        "note": "Открытый список блоков и слово such as не дают полного перечня."
+      },
+      {
+        "criterion": "COMPLETE",
+        "status": "fail",
+        "note": "Не указано, для каких актёров предназначена лента."
+      },
+      {
+        "criterion": "SINGULAR",
+        "status": "fail",
+        "note": "Вывод лент и настройка администратором описаны в одном требовании."
+      },
+      {
+        "criterion": "FEASIBLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "VERIFIABLE",
+        "status": "fail",
+        "note": "Набор страниц и компонентов с лентами не задан, покрытие не проверить."
+      },
+      {
+        "criterion": "CORRECT",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CONSISTENT",
+        "status": "pass",
+        "note": ""
+      }
+    ],
+    "REQ-10": [
+      {
+        "criterion": "NECESSARY",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "APPROPRIATE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "UNAMBIGUOUS",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "COMPLETE",
+        "status": "fail",
+        "note": "Роль актора, переключающего ленты, указана только в пояснении."
+      },
+      {
+        "criterion": "SINGULAR",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "FEASIBLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "VERIFIABLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CORRECT",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CONSISTENT",
+        "status": "pass",
+        "note": ""
+      }
+    ],
+    "REQ-11": [
+      {
+        "criterion": "NECESSARY",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "APPROPRIATE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "UNAMBIGUOUS",
+        "status": "fail",
+        "note": "Не определено, какие страницы и что считается переходом к ним."
+      },
+      {
+        "criterion": "COMPLETE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "SINGULAR",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "FEASIBLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "VERIFIABLE",
+        "status": "fail",
+        "note": "Нет критерия успеха: число переходов и набор страниц не заданы."
+      },
+      {
+        "criterion": "CORRECT",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CONSISTENT",
+        "status": "fail",
+        "note": "Требование говорит о замене ссылок, пояснение о сохранении иерархии."
+      }
+    ],
+    "REQ-12": [
+      {
+        "criterion": "NECESSARY",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "APPROPRIATE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "UNAMBIGUOUS",
+        "status": "fail",
+        "note": "Слово etc делает список типов результатов открытым."
+      },
+      {
+        "criterion": "COMPLETE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "SINGULAR",
+        "status": "fail",
+        "note": "Требование описывает поле на страницах, отдельную страницу и поиск в интернете."
+      },
+      {
+        "criterion": "FEASIBLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "VERIFIABLE",
+        "status": "fail",
+        "note": "Слово might делает поиск в интернете необязательным, проверить нечего."
+      },
+      {
+        "criterion": "CORRECT",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CONSISTENT",
+        "status": "pass",
+        "note": ""
+      }
+    ],
+    "REQ-13": [
+      {
+        "criterion": "NECESSARY",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "APPROPRIATE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "UNAMBIGUOUS",
+        "status": "fail",
+        "note": "Термин «hierarchically outside» не определён, граница области поиска неясна."
+      },
+      {
+        "criterion": "COMPLETE",
+        "status": "fail",
+        "note": "Не описано, как реализован вариант поиска по всем курсам."
+      },
+      {
+        "criterion": "SINGULAR",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "FEASIBLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "VERIFIABLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CORRECT",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CONSISTENT",
+        "status": "pass",
+        "note": ""
+      }
+    ],
+    "REQ-14": [
+      {
+        "criterion": "NECESSARY",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "APPROPRIATE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "UNAMBIGUOUS",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "COMPLETE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "SINGULAR",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "FEASIBLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "VERIFIABLE",
+        "status": "fail",
+        "note": "Вторая фраза описывает желание («may want»), а не проверяемое обязательное поведение."
+      },
+      {
+        "criterion": "CORRECT",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CONSISTENT",
+        "status": "pass",
+        "note": ""
+      }
+    ],
+    "REQ-15": [
+      {
+        "criterion": "NECESSARY",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "APPROPRIATE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "UNAMBIGUOUS",
+        "status": "fail",
+        "note": "Ссылка «as described above» указывает на описание, которого в тексте нет."
+      },
+      {
+        "criterion": "COMPLETE",
+        "status": "fail",
+        "note": "Не заданы ограничения вложения к отзыву: формат и максимальный размер."
+      },
+      {
+        "criterion": "SINGULAR",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "FEASIBLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "VERIFIABLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CORRECT",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CONSISTENT",
+        "status": "fail",
+        "note": "Метка времени последнего изменения не согласуется с целью показать динамику оценок."
+      }
+    ],
+    "REQ-16": [
+      {
+        "criterion": "NECESSARY",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "APPROPRIATE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "UNAMBIGUOUS",
+        "status": "fail",
+        "note": "Термин «averages» не определён: неясно, по каким записям и за какой период."
+      },
+      {
+        "criterion": "COMPLETE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "SINGULAR",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "FEASIBLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "VERIFIABLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CORRECT",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CONSISTENT",
+        "status": "pass",
+        "note": ""
+      }
+    ],
+    "REQ-17": [
+      {
+        "criterion": "NECESSARY",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "APPROPRIATE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "UNAMBIGUOUS",
+        "status": "fail",
+        "note": "Фраза «another actor» не определяет, какие участники могут смотреть историю."
+      },
+      {
+        "criterion": "COMPLETE",
+        "status": "fail",
+        "note": "Не указано, какие данные хранятся по каждому изменению оценки."
+      },
+      {
+        "criterion": "SINGULAR",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "FEASIBLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "VERIFIABLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CORRECT",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CONSISTENT",
+        "status": "pass",
+        "note": ""
+      }
+    ],
+    "REQ-18": [
+      {
+        "criterion": "NECESSARY",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "APPROPRIATE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "UNAMBIGUOUS",
+        "status": "fail",
+        "note": "Слово «simple» без измеримого критерия, язык разметки не назван."
+      },
+      {
+        "criterion": "COMPLETE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "SINGULAR",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "FEASIBLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "VERIFIABLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CORRECT",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CONSISTENT",
+        "status": "pass",
+        "note": ""
+      }
+    ],
+    "REQ-19": [
+      {
+        "criterion": "NECESSARY",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "APPROPRIATE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "UNAMBIGUOUS",
+        "status": "fail",
+        "note": "Набор функций блога задан как «all modern», без перечня, границы неясны"
+      },
+      {
+        "criterion": "COMPLETE",
+        "status": "fail",
+        "note": "Не сказано, что именно разделяется с Moodle и каким способом"
+      },
+      {
+        "criterion": "SINGULAR",
+        "status": "fail",
+        "note": "Блог и общий вход с уведомлениями с Moodle это разные характеристики"
+      },
+      {
+        "criterion": "FEASIBLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "VERIFIABLE",
+        "status": "fail",
+        "note": "Нет перечня функций, по которому можно принять блог"
+      },
+      {
+        "criterion": "CORRECT",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CONSISTENT",
+        "status": "pass",
+        "note": ""
+      }
+    ],
+    "REQ-20": [
+      {
+        "criterion": "NECESSARY",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "APPROPRIATE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "UNAMBIGUOUS",
+        "status": "fail",
+        "note": "Страницы заданы через «distinct» и открытый список с etc"
+      },
+      {
+        "criterion": "COMPLETE",
+        "status": "fail",
+        "note": "Не описано, нужна ли подписка при включённых уведомлениях"
+      },
+      {
+        "criterion": "SINGULAR",
+        "status": "fail",
+        "note": "В одном требовании пять возможностей: переключение, каналы, подписка, управление"
+      },
+      {
+        "criterion": "FEASIBLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "VERIFIABLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CORRECT",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CONSISTENT",
+        "status": "pass",
+        "note": ""
+      }
+    ],
+    "REQ-21": [
+      {
+        "criterion": "NECESSARY",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "APPROPRIATE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "UNAMBIGUOUS",
+        "status": "fail",
+        "note": "Простота и отзывчивость не заданы измеримо, слова оценочные"
+      },
+      {
+        "criterion": "COMPLETE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "SINGULAR",
+        "status": "fail",
+        "note": "Интерфейс, единая настройка и смена тем смешаны в одном требовании"
+      },
+      {
+        "criterion": "FEASIBLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "VERIFIABLE",
+        "status": "fail",
+        "note": "Оговорка as far as possible не даёт критерия выполнения"
+      },
+      {
+        "criterion": "CORRECT",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CONSISTENT",
+        "status": "pass",
+        "note": ""
+      }
+    ],
+    "REQ-22": [
+      {
+        "criterion": "NECESSARY",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "APPROPRIATE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "UNAMBIGUOUS",
+        "status": "fail",
+        "note": "Понятие inordinate period не задано, допустимый простой не измерен"
+      },
+      {
+        "criterion": "COMPLETE",
+        "status": "fail",
+        "note": "Периодичность и состав копирования не заданы, текст откладывает решение"
+      },
+      {
+        "criterion": "SINGULAR",
+        "status": "fail",
+        "note": "Расписание, внешняя копия и время восстановления смешаны в одном требовании"
+      },
+      {
+        "criterion": "FEASIBLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "VERIFIABLE",
+        "status": "fail",
+        "note": "Условие when necessary не задано, проверить его нельзя"
+      },
+      {
+        "criterion": "CORRECT",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CONSISTENT",
+        "status": "pass",
+        "note": ""
+      }
+    ],
+    "REQ-23": [
+      {
+        "criterion": "NECESSARY",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "APPROPRIATE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "UNAMBIGUOUS",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "COMPLETE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "SINGULAR",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "FEASIBLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "VERIFIABLE",
+        "status": "fail",
+        "note": "Не указан период измерения 99% и учёт плановых окон"
+      },
+      {
+        "criterion": "CORRECT",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CONSISTENT",
+        "status": "fail",
+        "note": "Доступность 24x7 не совпадает с допуском 99% доступности"
+      }
+    ],
+    "REQ-24": [
+      {
+        "criterion": "NECESSARY",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "APPROPRIATE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "UNAMBIGUOUS",
+        "status": "fail",
+        "note": "Не определено, что считается одновременным пользователем"
+      },
+      {
+        "criterion": "COMPLETE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "SINGULAR",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "FEASIBLE",
+        "status": "unknown",
+        "note": "Осуществимость зависит от архитектуры и ресурсов, в тексте не описаны"
+      },
+      {
+        "criterion": "VERIFIABLE",
+        "status": "fail",
+        "note": "Нет критерия успешной работы под нагрузкой, например времени ответа"
+      },
+      {
+        "criterion": "CORRECT",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CONSISTENT",
+        "status": "pass",
+        "note": ""
+      }
+    ],
+    "REQ-25": [
+      {
+        "criterion": "NECESSARY",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "APPROPRIATE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "UNAMBIGUOUS",
+        "status": "fail",
+        "note": "Слова substantial и mostly не имеют измеримого порога."
+      },
+      {
+        "criterion": "COMPLETE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "SINGULAR",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "FEASIBLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "VERIFIABLE",
+        "status": "fail",
+        "note": "Нет измеримого критерия сопровождаемости, проверить выполнение нельзя."
+      },
+      {
+        "criterion": "CORRECT",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CONSISTENT",
+        "status": "pass",
+        "note": ""
+      }
+    ],
+    "REQ-26": [
+      {
+        "criterion": "NECESSARY",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "APPROPRIATE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "UNAMBIGUOUS",
+        "status": "fail",
+        "note": "Слова easy, relevant и adequate оценочные, без определения."
+      },
+      {
+        "criterion": "COMPLETE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "SINGULAR",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "FEASIBLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "VERIFIABLE",
+        "status": "fail",
+        "note": "Достаточность документации не задана измеримым критерием."
+      },
+      {
+        "criterion": "CORRECT",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CONSISTENT",
+        "status": "pass",
+        "note": ""
+      }
+    ],
+    "REQ-27": [
+      {
+        "criterion": "NECESSARY",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "APPROPRIATE",
+        "status": "fail",
+        "note": "Требование навязывает способ хранения: база данных вместо потребности."
+      },
+      {
+        "criterion": "UNAMBIGUOUS",
+        "status": "fail",
+        "note": "Слово comprehensive не определено."
+      },
+      {
+        "criterion": "COMPLETE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "SINGULAR",
+        "status": "fail",
+        "note": "Ранжирование результатов поиска добавлено как второе требование."
+      },
+      {
+        "criterion": "FEASIBLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "VERIFIABLE",
+        "status": "fail",
+        "note": "Перечень процедур и типовых ошибок не задан, полноту не проверить."
+      },
+      {
+        "criterion": "CORRECT",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CONSISTENT",
+        "status": "pass",
+        "note": ""
+      }
+    ]
+  },
+  "set_analyses": [
+    {
+      "criterion": "SET_CONSISTENT",
+      "status": "fail",
+      "analysis": "Сверены термины и правила, которые повторяются в разделах 3 и 4. Найдено прямое противоречие в разделе поиска (поиск вместо иерархических ссылок и поиск в дополнение к ним), расхождение в определении термина «страница» между разделами 3.3 и 3.4 и разнобой в названиях ролей при назначении квоты. Версия документа на титульном листе не совпадает с последней записью истории изменений."
+    },
+    {
+      "criterion": "SET_COMPREHENSIBLE",
+      "status": "partial",
+      "analysis": "Функциональные требования описаны достаточно подробно, но разделы 4.5, 4.7 (кроме заголовков подразделов), 4.8 и 4.9 не содержат текста. Из набора не видно, с какими внешними и смежными системами связана курсовая система и какими интерфейсами обмениваться."
+    },
+    {
+      "criterion": "SET_COMPLETE",
+      "status": "fail",
+      "analysis": "Проверил маркеры незаполненности, пустые разделы и негативные сценарии. Найдены пометки TODO (строка 109) и to be determined (строка 227), пустые разделы 4.9 и 5, а также не описаны отказ уведомлений, одновременное изменение оценок и требования к безопасности и аудиту."
+    },
+    {
+      "criterion": "SET_FEASIBLE",
+      "status": "partial",
+      "analysis": "Документ ссылается на RSS 2.0 (строка 180), формат MPEG Audio mp3 (строки 174 и 176) и существующие API Moodle (строка 112). Эти ссылки между собой не расходятся, но раздел 4.9 Applicable Standards пуст, а срок и бюджет релиза названы без значений, поэтому осуществимость в заданных ограничениях проверить нельзя."
+    },
+    {
+      "criterion": "SET_VALIDATABLE",
+      "status": "fail",
+      "analysis": "Цель документа (строки 106 и 135) сформулирована без измеримых показателей и целевых значений. Критериев приёмки в наборе нет, поэтому покрытие требований критериями нельзя подтвердить."
+    },
+    {
+      "criterion": "SET_RANKED",
+      "status": "partial",
+      "analysis": "Приоритеты заданы для групп разделов (строки 161, 167, 182, 199, 215, 224, 229, 233, 237, 241, 246, 250), а не для каждого требования отдельно. Стабильность не указана ни для одного требования, при этом документ сам называет себя рабочим и подлежащим изменению (строка 127)."
+    },
+    {
+      "criterion": "SET_MODIFIABLE",
+      "status": "partial",
+      "analysis": "Перекрёстная ссылка на 3.4.2 в строке 191 есть, но поиск с полем описан в 3.4.1 и 3.4.2 с разным условием показа. Ссылка «as described above» в строке 201 не указывает на конкретный пункт, а часть требований записана общими фразами без отдельного пункта."
+    },
+    {
+      "criterion": "SET_TRACEABLE",
+      "status": "fail",
+      "analysis": "Пять утверждений в строках 158, 165, 180, 186 и 198 не имеют идентификатора, поэтому на них нельзя сослаться. Версия 1.0 на титуле расходится с историей изменений, это уже отмечено, а источник требований указан только общей ссылкой на брейнсторминг (строки 124 и 148)."
+    }
+  ],
+  "questions": [
+    {
+      "id": "Q-01",
+      "text": "Что считается страницей для лент и уведомлений: отдельный блок информации (строка 181) или страница целиком (строка 217)?",
+      "addressee": "business",
+      "options": [
+        {
+          "answer": "Отдельный блок, например задание или сообщение форума",
+          "consequence": "Определения в 3.3, 3.7 и 3.4 приводятся к блоку"
+        },
+        {
+          "answer": "Страница целиком, например страница задания или курса",
+          "consequence": "Определения в 3.3, 3.7 и 3.4 переписываются под страницу целиком"
+        }
+      ],
+      "recommended": null,
+      "why_recommended": null,
+      "blocks": "Нельзя реализовать включение лент и уведомлений по страницам",
+      "doc_says": "Термин определён как блок в 3.3 и как страница в 3.7",
+      "finding_ids": [
+        "S-02",
+        "D-19",
+        "D-44"
+      ],
+      "priority": 12.75,
+      "req_ids": [
+        "REQ-10",
+        "REQ-20",
+        "REQ-09"
+      ],
+      "quotes": [
+        {
+          "quote": "For this requirement, page refers to any distinct block (e.g., assignments, wikis, forum threads, etc.).",
+          "line": 181,
+          "status": "exact"
+        },
+        {
+          "quote": "For this requirement, page refers to any distinct page, such as an assignment, a wiki page, or a forum post.",
+          "line": 187,
+          "status": "exact"
+        },
+        {
+          "quote": "for all pages of the course management system",
+          "line": 180,
+          "status": "exact"
+        }
+      ],
+      "source": "model"
+    },
+    {
+      "id": "Q-02",
+      "text": "Как архивируется голосовой клип: после предпросмотра по решению актора или автоматически сразу после отправки?",
+      "addressee": "business",
+      "options": [
+        {
+          "answer": "После предпросмотра, актор решает об архивации",
+          "consequence": "Вариант автоархивации удаляется из 3.2.1"
+        },
+        {
+          "answer": "Автоматически после отправки, удаление через архив",
+          "consequence": "Вариант предпросмотра удаляется из 3.2.1"
+        }
+      ],
+      "recommended": null,
+      "why_recommended": null,
+      "blocks": "Нельзя реализовать архивацию клипа и тесты её состояний",
+      "doc_says": "3.2.1 описывает оба способа, второй требует действия актора с архивом",
+      "finding_ids": [
+        "D-07",
+        "D-08"
+      ],
+      "priority": 7.25,
+      "req_ids": [
+        "REQ-05"
+      ],
+      "quotes": [
+        {
+          "quote": "would automatically archive a voice clip once submitted but would require that the actor interact",
+          "line": 169,
+          "status": "exact"
+        },
+        {
+          "quote": "This can be done one of two ways",
+          "line": 169,
+          "status": "exact"
+        }
+      ],
+      "source": "model"
+    },
+    {
+      "id": "Q-03",
+      "text": "Каким показателем измеряется сопровождаемость по 4.4.1: часами FTE в месяц или долей изменённого кода в процентах?",
+      "addressee": "business",
+      "options": [
+        {
+          "answer": "Задать FTE-часов в месяц, например 40",
+          "consequence": "4.4.1 получает числовой лимит трудозатрат на сопровождение"
+        },
+        {
+          "answer": "Задать долю изменённого кода, в процентах",
+          "consequence": "4.4.1 получает лимит доли доработки, например 10"
+        }
+      ],
+      "recommended": null,
+      "why_recommended": null,
+      "blocks": "Нельзя оценить и проверить сопровождаемость системы",
+      "doc_says": "Строки 239 и 240 говорят о substantial и mostly self-sustaining без числа",
+      "finding_ids": [
+        "D-59",
+        "D-60"
+      ],
+      "priority": 7.25,
+      "req_ids": [
+        "REQ-25"
+      ],
+      "quotes": [
+        {
+          "quote": "the system be mostly self-sustaining",
+          "line": 240,
+          "status": "exact"
+        },
+        {
+          "quote": "without substantial modification",
+          "line": 239,
+          "status": "exact"
+        }
+      ],
+      "source": "model"
+    },
+    {
+      "id": "Q-04",
+      "text": "Какие процедуры регламентного обслуживания и ошибки обязана покрывать документация администратора: задать явный список?",
+      "addressee": "analyst",
+      "options": [
+        {
+          "answer": "Задать явный список процедур и ошибок",
+          "consequence": "4.6.2 получает перечень для проверки полноты документации"
+        },
+        {
+          "answer": "Полнота задаётся регламентом Office of Information Services",
+          "consequence": "4.6.2 ссылается на внешний регламент, его нужно добавить в References"
+        }
+      ],
+      "recommended": 1,
+      "why_recommended": "Перечень в тексте позволяет проверить полноту документации",
+      "blocks": "Нельзя проверить полноту документации для администраторов",
+      "doc_says": "Строка 249 «all procedures necessary» и «all common errors» без перечня",
+      "finding_ids": [
+        "D-63",
+        "D-64"
+      ],
+      "priority": 7.25,
+      "req_ids": [
+        "REQ-27"
+      ],
+      "quotes": [
+        {
+          "quote": "This documentation must cover all procedures necessary",
+          "line": 249,
+          "status": "exact"
+        },
+        {
+          "quote": "comprehensive, searchable documentation",
+          "line": 247,
+          "status": "exact"
+        }
+      ],
+      "source": "model"
+    },
+    {
+      "id": "Q-05",
+      "text": "Где показывается поле поиска: на каждой странице после входа (строка 195) или на каждой странице, включая страницы до входа (строка 191)?",
+      "addressee": "business",
+      "options": [
+        {
+          "answer": "На каждой странице только после входа",
+          "consequence": "Строка 191 переписывается под условие входа в систему"
+        },
+        {
+          "answer": "На каждой странице, в том числе до входа",
+          "consequence": "Требование 3.4.2 и строка 195 переписываются под все страницы"
+        }
+      ],
+      "recommended": 1,
+      "why_recommended": "Заголовок 3.4.2 и строка 195 задают показ только после входа",
+      "blocks": "Нельзя реализовать вывод поля поиска на страницах до входа",
+      "doc_says": "3.4.1 задаёт поле на каждой странице, 3.4.2 только после входа",
+      "finding_ids": [
+        "S-03",
+        "D-29"
+      ],
+      "priority": 6.0,
+      "req_ids": [
+        "REQ-12",
+        "REQ-13"
+      ],
+      "quotes": [
+        {
+          "quote": "First, it should be present in the form of a search box and a “Search” button on the top or bottom of every page.",
+          "line": 191,
+          "status": "exact"
+        },
+        {
+          "quote": "The system must display a search box on every page after an actor has logged in.",
+          "line": 195,
+          "status": "exact"
+        },
+        {
+          "quote": "The search feature should be present in two ways.",
+          "line": 190,
+          "status": "exact"
+        }
+      ],
+      "source": "model"
+    },
+    {
+      "id": "Q-06",
+      "text": "Какой формат хранения аудиоклипов задать: конкретные кодек и контейнер (строка 175) или выбор архитектором?",
+      "addressee": "architect",
+      "options": [
+        {
+          "answer": "Задать конкретные кодек и контейнер",
+          "consequence": "Строка 175 получает конкретные значения для проверки хранения"
+        },
+        {
+          "answer": "Выбор формата остаётся архитектору",
+          "consequence": "Требование хранения остаётся без проверяемого критерия"
+        }
+      ],
+      "recommended": 1,
+      "why_recommended": "Без конкретного формата соответствие хранения требованию нельзя проверить",
+      "blocks": "Нельзя проверить хранение клипов и выбрать библиотеку воспроизведения",
+      "doc_says": "Строка 176 говорит «optimized for speech» без кодека и контейнера",
+      "finding_ids": [
+        "D-13",
+        "D-16"
+      ],
+      "priority": 5.75,
+      "req_ids": [
+        "REQ-07"
+      ],
+      "quotes": [
+        {
+          "quote": "The system must store audio clips in a format",
+          "line": 175,
+          "status": "exact"
+        },
+        {
+          "quote": "a format conducive to speech",
+          "line": 175,
+          "status": "exact"
+        },
+        {
+          "quote": "a format optimized for speech",
+          "line": 176,
+          "status": "exact"
+        }
+      ],
+      "source": "model"
+    },
+    {
+      "id": "Q-07",
+      "text": "Поиск заменяет иерархические ссылки навигации или только дополняет их: что верно?",
+      "addressee": "business",
+      "options": [],
+      "recommended": null,
+      "why_recommended": null,
+      "blocks": "Нельзя определить, нужно ли сохранять иерархическое меню навигации по страницам курса и каким должен быть основной путь поиска по страницам.",
+      "doc_says": null,
+      "finding_ids": [
+        "S-01"
+      ],
+      "priority": 5.5,
+      "req_ids": [
+        "REQ-11",
+        "REQ-12"
+      ],
+      "quotes": [
+        {
+          "quote": "The system must be able to use search functionality as a way to navigate Moodle pages instead of using hierarchical links.",
+          "line": 186,
+          "status": "exact"
+        },
+        {
+          "quote": "A search utility enables actors to find what they are looking for quickly in addition to having a hierarchical approach to finding functions of the course management system.",
+          "line": 187,
+          "status": "exact"
+        }
+      ],
+      "source": "fallback"
+    },
+    {
+      "id": "Q-08",
+      "text": "Какой формат должен получить актор при скачивании клипа: mp3 (строка 174) или другой формат, название которого нужно задать?",
+      "addressee": "qa",
+      "options": [
+        {
+          "answer": "mp3 (MPEG Audio)",
+          "consequence": "Формат фиксируется в 3.2.2, при скачивании клип конвертируется в mp3"
+        },
+        {
+          "answer": "Другой формат, название задать",
+          "consequence": "Пункт 3.2.2 переписывается, тесты берут новый формат"
+        }
+      ],
+      "recommended": 1,
+      "why_recommended": "Строка 174 называет mp3 как пример формата для скачивания",
+      "blocks": "Нельзя написать проверку скачивания клипа",
+      "doc_says": "Строка 174 называет mp3 как пример, с оговоркой such as",
+      "finding_ids": [
+        "D-10"
+      ],
+      "priority": 5.25,
+      "req_ids": [
+        "REQ-06"
+      ],
+      "quotes": [
+        {
+          "quote": "download their voice clips in a flexible format",
+          "line": 173,
+          "status": "exact"
+        },
+        {
+          "quote": "in a format such as MPEG Audio (mp3) format",
+          "line": 174,
+          "status": "exact"
+        }
+      ],
+      "source": "model"
+    },
+    {
+      "id": "Q-09",
+      "text": "Какой результат подтверждает загрузку файла на страницу: файл сохранён и виден в списке файлов страницы?",
+      "addressee": "qa",
+      "options": [
+        {
+          "answer": "Да: файл сохранён и виден в списке страницы",
+          "consequence": "Тест проверяет появление файла в списке страницы"
+        },
+        {
+          "answer": "Файл сохранён, показ в списке не требуется",
+          "consequence": "Критерий сводится к факту сохранения без вывода"
+        }
+      ],
+      "recommended": 1,
+      "why_recommended": "Управление файлами по строке 159 подразумевает видимость в списке",
+      "blocks": "Нельзя написать приёмочный тест загрузки файла",
+      "doc_says": "Строка 158 «manage files where appropriate» без наблюдаемого результата",
+      "finding_ids": [
+        "D-03"
+      ],
+      "priority": 5.25,
+      "req_ids": [
+        "REQ-02"
+      ],
+      "quotes": [
+        {
+          "quote": "manage files where appropriate",
+          "line": 158,
+          "status": "exact"
+        }
+      ],
+      "source": "model"
+    },
+    {
+      "id": "Q-10",
+      "text": "Что подтверждает захват голосового клипа: клип сохранён и виден в портфолио актора (строка 168)?",
+      "addressee": "qa",
+      "options": [
+        {
+          "answer": "Да: клип сохранён и виден в портфолио",
+          "consequence": "Тест проверяет появление клипа в портфолио после записи"
+        },
+        {
+          "answer": "Клип сохранён, показ в портфолио не проверяется",
+          "consequence": "Портфолио проверяется отдельно или не проверяется вовсе"
+        }
+      ],
+      "recommended": 1,
+      "why_recommended": "Строка 168 относит организацию клипов к портфолио",
+      "blocks": "Нельзя написать тест захвата голосового клипа",
+      "doc_says": "Строка 165 «used where appropriate» без наблюдаемого результата",
+      "finding_ids": [
+        "D-05"
+      ],
+      "priority": 5.25,
+      "req_ids": [
+        "REQ-04"
+      ],
+      "quotes": [
+        {
+          "quote": "capture and organize voice clips that can be used where appropriate",
+          "line": 165,
+          "status": "exact"
+        }
+      ],
+      "source": "model"
+    },
+    {
+      "id": "Q-11",
+      "text": "Какой уровень доступности считать выполнением 4.2.2: 99% аптайма (строка 232) или полная доступность 24x7 без простоя (строка 230)?",
+      "addressee": "business",
+      "options": [
+        {
+          "answer": "99% аптайма, плановые работы не входят в простой",
+          "consequence": "4.2.2 получает процент и правило окон обслуживания"
+        },
+        {
+          "answer": "Полная доступность 24x7 без простоя",
+          "consequence": "4.2.2 переписывается, окна обслуживания не допускаются"
+        }
+      ],
+      "recommended": null,
+      "why_recommended": null,
+      "blocks": "Нельзя оценить и протестировать доступность системы",
+      "doc_says": "24x7 не допускает простоя, а 99% допускает около 87 часов в год",
+      "finding_ids": [
+        "D-55",
+        "D-56"
+      ],
+      "priority": 4.25,
+      "req_ids": [
+        "REQ-23"
+      ],
+      "quotes": [
+        {
+          "quote": "99% up-time should be considered sufficient to meet this requirement.",
+          "line": 232,
+          "status": "exact"
+        }
+      ],
+      "source": "model"
+    },
+    {
+      "id": "Q-12",
+      "text": "Кто переключает веб-ленты страницы: только администратор курса (строка 180) или любой актор?",
+      "addressee": "business",
+      "options": [
+        {
+          "answer": "Только администратор курса",
+          "consequence": "3.3 и 3.3.1 согласуются с пояснением строки 180"
+        },
+        {
+          "answer": "Любой актор, создавший страницу",
+          "consequence": "Меняется право переключения лент в 3.3 и 3.3.1"
+        }
+      ],
+      "recommended": 1,
+      "why_recommended": "Строки 180 и 184 называют администратора курса",
+      "blocks": "Нельзя задать права на переключение лент",
+      "doc_says": "Роль администратора курса упомянута только в пояснении",
+      "finding_ids": [
+        "D-23",
+        "D-22"
+      ],
+      "priority": 3.0,
+      "req_ids": [
+        "REQ-10",
+        "REQ-09"
+      ],
+      "quotes": [
+        {
+          "quote": "The system must allow web feeds to be turned on or off",
+          "line": 183,
+          "status": "exact"
+        },
+        {
+          "quote": "Actors in the role of course administrators should have the ability",
+          "line": 180,
+          "status": "exact"
+        }
+      ],
+      "source": "model"
+    },
+    {
+      "id": "Q-13",
+      "text": "Кому выделяется квота дискового пространства для клипов: профессору, курсовому администратору или системному администратору?",
+      "addressee": "business",
+      "options": [
+        {
+          "answer": "Профессору",
+          "consequence": "Квота назначается роли профессора в 3.2.1"
+        },
+        {
+          "answer": "Курсовому администратору",
+          "consequence": "Квота назначается роли курсового администратора в 3.2.1"
+        },
+        {
+          "answer": "Системному администратору",
+          "consequence": "Квота назначается системной роли, профессор её не настраивает"
+        }
+      ],
+      "recommended": null,
+      "why_recommended": null,
+      "blocks": "Нельзя реализовать распределение квоты между ролями",
+      "doc_says": "Строка 169 называет professor и administrator, строка 163 course administrator",
+      "finding_ids": [
+        "S-11"
+      ],
+      "priority": 2.75,
+      "req_ids": [
+        "REQ-03",
+        "REQ-05",
+        "REQ-08"
+      ],
+      "quotes": [
+        {
+          "quote": "Actors in the capacity of course administrator or professor should be able to enable multiple file uploads on a page of his or her choosing.",
+          "line": 163,
+          "status": "exact"
+        },
+        {
+          "quote": "Equal and finite drive space needs to be allotted to each actor in the role of professor or administrator to allow for the storing of voice clips recorded and submitted by all actors in the roles of students.",
+          "line": 169,
+          "status": "exact"
+        }
+      ],
+      "source": "model"
+    },
+    {
+      "id": "Q-14",
+      "text": "Что происходит с клипом, прикреплённым к странице, при его удалении из портфеля (строка 178)?",
+      "addressee": "business",
+      "options": [
+        {
+          "answer": "Клип удаляется и со страницы, вложение пропадает",
+          "consequence": "Страница теряет вложение, нужно уведомление актора"
+        },
+        {
+          "answer": "Удаление запрещено, пока клип прикреплён",
+          "consequence": "Нужна проверка вложений перед удалением клипа"
+        },
+        {
+          "answer": "Клип остаётся на странице как копия",
+          "consequence": "Нужно хранить копию, квота портфеля растёт"
+        }
+      ],
+      "recommended": null,
+      "why_recommended": null,
+      "blocks": "Нельзя реализовать удаление клипа, если он прикреплён к странице",
+      "doc_says": "3.2.4 разрешает удаление, про прикреплённые клипы не сказано",
+      "finding_ids": [
+        "D-18"
+      ],
+      "priority": 2.25,
+      "req_ids": [
+        "REQ-08"
+      ],
+      "quotes": [
+        {
+          "quote": "delete clips if he or she chooses to",
+          "line": 178,
+          "status": "exact"
+        }
+      ],
+      "source": "model"
+    },
+    {
+      "id": "Q-15",
+      "text": "Хранить метку времени только для последнего изменения оценки (строка 201) или для каждого изменения, чтобы видеть историю?",
+      "addressee": "business",
+      "options": [
+        {
+          "answer": "Для каждого изменения, с историей",
+          "consequence": "3.5.3 получает хранение всех изменений с временем"
+        },
+        {
+          "answer": "Только для последнего изменения",
+          "consequence": "3.5.3 переписывается, история изменений не ведётся"
+        }
+      ],
+      "recommended": 1,
+      "why_recommended": "Строка 205 требует видеть, как менялась оценка студента",
+      "blocks": "Нельзя реализовать историю изменений оценок",
+      "doc_says": "Метка времени привязана только к последнему изменению",
+      "finding_ids": [
+        "D-35"
+      ],
+      "priority": 2.25,
+      "req_ids": [
+        "REQ-15"
+      ],
+      "quotes": [
+        {
+          "quote": "Time stamps should be attached to the last time the grade was modified",
+          "line": 201,
+          "status": "exact"
+        }
+      ],
+      "source": "model"
+    }
+  ],
+  "steps": [
+    {
+      "number": "0",
+      "name": "Чтение документа",
+      "status": "ok",
+      "calls": 0,
+      "cache_hits": 0,
+      "retries": 0,
+      "seconds": 0.0,
+      "summary": "строк 258, формат pdf",
+      "reason": ""
+    },
+    {
+      "number": "1",
+      "name": "Структурные проверки кодом",
+      "status": "skipped",
+      "calls": 0,
+      "cache_hits": 0,
+      "retries": 0,
+      "seconds": 0.0,
+      "summary": "",
+      "reason": "желательная часть; словарь формулировок работает внутри шага 3"
+    },
+    {
+      "number": "2",
+      "name": "Контекст документа",
+      "status": "skipped",
+      "calls": 0,
+      "cache_hits": 0,
+      "retries": 0,
+      "seconds": 0.0,
+      "summary": "",
+      "reason": "желательная часть"
+    },
+    {
+      "number": "3",
+      "name": "Нарезка требований (258 строк)",
+      "status": "ok",
+      "calls": 0,
+      "cache_hits": 1,
+      "retries": 0,
+      "seconds": 0.0,
+      "summary": "требований 27, пропущено фрагментов 60",
+      "reason": ""
+    },
+    {
+      "number": "4",
+      "name": "Проверка каждого требования",
+      "status": "ok",
+      "calls": 1,
+      "cache_hits": 4,
+      "retries": 0,
+      "seconds": 84.9,
+      "summary": "дефектов 66, без проверки 0",
+      "reason": ""
+    },
+    {
+      "number": "5",
+      "name": "Набор требований целиком (два прохода)",
+      "status": "ok",
+      "calls": 0,
+      "cache_hits": 2,
+      "retries": 0,
+      "seconds": 0.0,
+      "summary": "замечаний 15, анализов по критериям 8",
+      "reason": ""
+    },
+    {
+      "number": "5в",
+      "name": "Чек-лист ревью из документа",
+      "status": "skipped",
+      "calls": 0,
+      "cache_hits": 0,
+      "retries": 0,
+      "seconds": 0.0,
+      "summary": "",
+      "reason": "желательная часть"
+    },
+    {
+      "number": "6",
+      "name": "Сверка цитат с документом",
+      "status": "ok",
+      "calls": 0,
+      "cache_hits": 0,
+      "retries": 0,
+      "seconds": 0.0,
+      "summary": "цитат точных 87, нечётких 0, не найдено 0; в карантине 0, противоречий только с вопросом 0, свёрнуто в системные 0, отброшено без опоры 0",
+      "reason": ""
+    },
+    {
+      "number": "7",
+      "name": "Критик",
+      "status": "ok",
+      "calls": 1,
+      "cache_hits": 0,
+      "retries": 0,
+      "seconds": 53.0,
+      "summary": "проверено 72 (групп кандидатов на слияние 19): оставлено 57, понижено 1, снято 2, слито 12, без решения 0, отклонено кодом 0",
+      "reason": ""
+    },
+    {
+      "number": "8",
+      "name": "Итог и сводные вопросы",
+      "status": "ok",
+      "calls": 1,
+      "cache_hits": 0,
+      "retries": 0,
+      "seconds": 62.4,
+      "summary": "решение: Не рекомендуется начинать; вопросов 15",
+      "reason": ""
+    },
+    {
+      "number": "9",
+      "name": "Отчёт",
+      "status": "ok",
+      "calls": 0,
+      "cache_hits": 0,
+      "retries": 0,
+      "seconds": 0.0,
+      "summary": "записаны: pure-puget-sound.report.md, pure-puget-sound.report.questions.md, pure-puget-sound.report.json",
+      "reason": ""
+    }
+  ],
+  "json_mode": "parse",
+  "fatal": null,
+  "empty_pages": [
+    3
+  ],
+  "removed_headers": 52,
+  "verdict": {
+    "decision": "Не рекомендуется начинать",
+    "ready_for_development": "Нет",
+    "ready_for_testing": "Нет",
+    "rule": "«Не рекомендуется начинать», если есть хотя бы одно замечание CRITICAL, которое не снято критиком и не ушло в карантин из-за ненайденной цитаты. «Условно допускается», если CRITICAL нет, но есть MAJOR. «Допускается», если есть только MINOR или замечаний нет. Готовность к тестированию считается отдельно: «Нет», если есть CRITICAL по проверяемости, однозначности, полноте, согласованности или валидируемости; «Да, с оговорками», если есть другие CRITICAL или MAJOR; иначе «Да». Если отчёт неполный, а CRITICAL не найден, решение «Не вынесен», готовность «Не определена».",
+    "rationale": "Решение по документу: не рекомендуется начинать. Одиннадцать CRITICAL-замечаний делятся на три группы. Первая группа, D-03, D-05, D-10, D-13, D-19, D-59 и D-63, это формулировки без наблюдаемого результата, формата или перечня, по которым нельзя написать тест. Вторая группа, S-01, S-02 и S-03, это противоречия в навигации, определении страницы и месте поля поиска, так что одно и то же требование читается двумя способами. Третья группа, D-07 и D-55, касается архивации клипов и доступности, где документ описывает два варианта поведения. Пока эти места не решены, разработка и приёмочные тесты опираются на догадки.",
+    "top_fixes": [
+      {
+        "finding_ids": [
+          "S-01",
+          "S-03",
+          "D-07",
+          "D-55"
+        ],
+        "action": "Выбрать один вариант по каждому противоречию с автором ТЗ и переписать пункты 3.4, 3.2.1 и 4.2.2 без альтернатив."
+      },
+      {
+        "finding_ids": [
+          "S-02",
+          "D-19",
+          "D-44",
+          "D-22"
+        ],
+        "action": "Определить термин «страница» один раз в разделе 1.3 и использовать его во всех требованиях лент и уведомлений."
+      },
+      {
+        "finding_ids": [
+          "D-03",
+          "D-05",
+          "D-10",
+          "D-13",
+          "D-16",
+          "D-62"
+        ],
+        "action": "Переписать требования 3.1 3.2 и 4.6 с наблюдаемым результатом, конкретным форматом и без слов where appropriate, flexible, adequate."
+      },
+      {
+        "finding_ids": [
+          "D-59",
+          "D-60",
+          "D-63",
+          "D-64",
+          "D-66"
+        ],
+        "action": "Заменить оценочные слова в 4.4.1 и 4.6.2 числовыми порогами и явным перечнем процедур и разделов документации."
+      },
+      {
+        "finding_ids": [
+          "S-13",
+          "S-15",
+          "S-04"
+        ],
+        "action": "Присвоить идентификаторы каждому требованию раздела 3, заполнить версию Moodle вместо TODO и сверить версию документа с историей."
+      },
+      {
+        "finding_ids": [
+          "S-06",
+          "S-10",
+          "S-05",
+          "S-09"
+        ],
+        "action": "Заполнить пустые разделы 4.7, 4.9 и состав резервного копирования, добавить требования к безопасности и журналированию."
+      },
+      {
+        "finding_ids": [
+          "S-07",
+          "S-08",
+          "D-18",
+          "D-45"
+        ],
+        "action": "Описать поведение при сбое уведомлений, одновременном сохранении оценки и удалении клипа с вложением."
+      }
+    ],
+    "blockers": [
+      "S-01",
+      "S-02",
+      "S-03",
+      "D-03",
+      "D-05",
+      "D-07",
+      "D-10",
+      "D-13",
+      "D-19",
+      "D-59",
+      "D-63"
+    ],
+    "critic_done": true,
+    "generated_by_model": true,
+    "questions_by_model": true,
+    "partial": false,
+    "partial_reason": null
+  },
+  "grounding": {
+    "exact": 87,
+    "fuzzy": 0,
+    "missing": 0,
+    "dropped_findings": 0,
+    "quarantine": 0,
+    "question_only": 0,
+    "folded": 0
+  },
+  "quality": {
+    "content_lines": 197,
+    "in_requirements": 67,
+    "skipped_by_model": 130,
+    "ids_in_document": 0,
+    "ids_missing": [],
+    "dropped_defects": 0,
+    "dropped_checks": 0,
+    "checks_missing": 0,
+    "checks_pass_overridden": 0,
+    "defects_without_question": 0,
+    "severity_raised": 0,
+    "questions_dropped": 1,
+    "questions_merged": 0,
+    "questions_added": 1,
+    "placeholder_lines": [
+      109,
+      227
+    ],
+    "placeholder_lines_cited": [
+      109,
+      227
+    ]
+  },
+  "critic": {
+    "done": true,
+    "reviewed": 72,
+    "keep": 57,
+    "downgraded": 1,
+    "dropped": 2,
+    "merged": 12,
+    "no_decision": 0,
+    "rejected": 0,
+    "candidate_groups": 19,
+    "retry_calls": 0,
+    "retry_resolved": 0
+  },
+  "llm": {
+    "calls": 3,
+    "cache_hits": 7,
+    "retries": 0,
+    "repairs": 0,
+    "prompt_tokens": 61665,
+    "completion_tokens": 52290,
+    "total_tokens": 113955,
+    "reasoning_tokens": 0,
+    "notes": []
+  }
+}
