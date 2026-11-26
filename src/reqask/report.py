@@ -187,10 +187,10 @@ def _short_section(section: str | None) -> str:
 def _sentence_case(text: str) -> str:
     """Первая буква строчная, если первое слово обычное русское: «В разделе», «Так проще».
 
-    Аббревиатуры, идентификаторы и латинские имена остаются как есть (GET, HTTP, слово с дефисом или цифрой).
+    Аббревиатуры и идентификаторы остаются как есть (GET, HTTP, слово с дефисом или цифрой).
     """
     first = text.split(maxsplit=1)[0].rstrip(",:;") if text.strip() else ""
-    if first and re.fullmatch(r"[А-ЯЁ][а-яё]*", first):
+    if first and re.fullmatch(r"[А-ЯЁA-Z][а-яёa-z]*", first):
         return text[0].lower() + text[1:]
     return text
 
@@ -584,10 +584,24 @@ class _Report:
         moved = [x for x in quiet if self._has_defect(x.id)]
         noted = [x for x in quiet if x not in moved and (self._moved(x) or self._notes(x, set(), with_na=False))]
         plain = [x for x in quiet if x not in moved and x not in noted]
+        # Замечание по набору может ссылаться на требование без своих дефектов: такие требования идут
+        # отдельным списком со ссылками, иначе требование из блокера выглядит как «без замечаний».
+        set_refs: dict[str, list[str]] = {}
+        for f in self.active:
+            if f.scope == "set":
+                for rid in f.req_ids:
+                    set_refs.setdefault(rid, []).append(f.id)
+        touched = [x for x in plain if x.id in set_refs]
+        plain = [x for x in plain if x.id not in set_refs]
         # Требования без своих замечаний короче блока: строка со ссылкой на строки документа.
         if plain:
             items = ", ".join(f"{_target(x.id)}{x.id} ({_lines(x.line_start, x.line_end)})" for x in plain)
             self.add(f"**Без замечаний, все применимые критерии выполнены ({len(plain)}):** {items}.\n")
+        if touched:
+            self.add(f"**Своих замечаний нет, но требование затронуто общими замечаниями ({len(touched)}):**\n")
+            for x in touched:
+                self.add(f"- {_target(x.id)}**{self._req_head(x)}**: {_links(set_refs[x.id])}.")
+            self.add("")
         for title, group in (
             ("Дефект описан в общем замечании, на которое ссылается строка", moved),
             ("Без замечаний, с пометками к оценкам", noted),
