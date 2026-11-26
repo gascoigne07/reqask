@@ -162,3 +162,13 @@ def test_completeness_schema_unchanged():
     """Ответ полноты берётся из кэша: схема прохода и ключ не поменялись."""
     assert set(SetReviewOut.model_fields) == {"analyses", "findings"}
     assert set(EdgeReviewOut.model_fields) == {"findings"}
+
+
+def test_review_prompt_checks_every_sentence():
+    text = prompts.review_prompt([], "L0001 текст", True)
+    assert "проверяй по предложениям" in text and "не только в первом" in text
+    assert "только если это другая проблема с другим исправлением" in text
+    # прежние правила на месте
+    assert "каждый нарушенный критерий записывай отдельным дефектом" in text
+    assert "если все девять критериев проверены и ни один не нарушен" in text
+    assert "—" not in text and "–" not in text
