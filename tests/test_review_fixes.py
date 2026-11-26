@@ -178,3 +178,35 @@ def test_unreadable_document_removes_stale_questions_and_json(tmp_path, monkeypa
     assert cli.main(["-i", "broken.pdf", "-o", "out/report.md", "-q"]) == cli.EXIT_INPUT
     assert "**Вердикт: Не вынесен.**" in (out / "report.md").read_text(encoding="utf-8")
     assert not (out / "report.questions.md").exists() and not (out / "report.json").exists()
+
+
+# ---------- 10. журнал шагов без несуществующих шагов 1, 2, 5в ----------
+
+
+from dataclasses import replace  # noqa: E402
+
+from reqask.report import render  # noqa: E402
+from reqask.schemas import StepStat  # noqa: E402
+
+
+def test_journal_has_no_retired_steps_and_flags_are_named(doc):
+    logs: list[str] = []
+    result = Pipeline(FakeLLM(), replace(SETTINGS, critic=False, edge=False), logs.append).run(doc, "test")
+    assert [s.number for s in result.steps] == ["0", "3", "4", "5", "6", "7", "8"]
+    assert not any("не включён" in m or "желательная" in m for m in logs)
+    assert "Шаг 7. Критик: выключен (--no-critic или REQASK_CRITIC=0)" in logs
+    steps = {s.number: s for s in result.steps}
+    assert "--no-edge" in steps["5"].name
+    report = render(result)
+    journal = report[report.index("Журнал шагов"):]
+    assert "| 7 | Критик | пропущен |" in journal and "выключен (--no-critic" in journal
+    assert "| Критик | выключен (--no-critic или REQASK_CRITIC=0) |" in report
+
+
+def test_old_json_with_retired_steps_renders_without_them(doc):
+    result = Pipeline(FakeLLM(), SETTINGS).run(doc, "test")
+    result.steps[1:1] = [StepStat(number="1", name="Структурные проверки кодом", status="skipped", reason="желательная часть"),
+                         StepStat(number="2", name="Контекст документа", status="skipped", reason="желательная часть")]
+    result.steps.append(StepStat(number="5в", name="Чек-лист ревью из документа", status="skipped", reason="желательная часть"))
+    report = render(result)
+    assert "желательная часть" not in report and "Чек-лист ревью" not in report and "не включён" not in report

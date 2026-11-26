@@ -39,7 +39,9 @@ FINDING_STATUS_RU = {
     "dropped": "снято критиком", "merged": "слито с другим замечанием", "downgraded": "уровень понижен критиком", "quarantine": "цитата не найдена в документе",
     "question_only": "противоречие подтверждено одной цитатой, оставлен вопрос",
 }
-STEP_STATUS_RU = {"ok": "выполнен", "degraded": "частично", "failed": "не выполнен", "skipped": "не включён"}
+STEP_STATUS_RU = {"ok": "выполнен", "degraded": "частично", "failed": "не выполнен", "skipped": "пропущен"}
+# Шаги, которых в агенте нет: в report.json старых прогонов они стоят пропущенными, в отчёт не идут.
+RETIRED_STEPS = {"1", "2", "5в"}
 # Подраздел отчёта для блокеров по виду (раздел 5), как критичные дефекты описывает README оргов.
 BLOCKER_GROUPS = (
     ("Противоречия", lambda f: f.kind == "contradiction" or f.criterion in ("CONSISTENT", "SET_CONSISTENT")),
@@ -429,7 +431,10 @@ class _Report:
             )
         else:
             step = next((x for x in r.steps if x.number == "7"), None)
-            why = "не выполнен" if step and step.status == "failed" else "не включён"
+            if step and step.status == "skipped" and step.reason:
+                why = step.reason
+            else:
+                why = "не выполнен" if step and step.status == "failed" else "не запускался"
             self.add(f"| Критик | {why} |")
         self.add(
             f"| Ответы модели | исправлений JSON {llm.repairs}, отброшено дефектов проверкой {q.dropped_defects}, "
@@ -444,7 +449,7 @@ class _Report:
             f"добавлено кодом для CRITICAL {q.questions_added} |"
         )
         if r.steps:
-            # Невключённые шаги (вне этой версии или выключенные флагом) видны в журнале шагов с причиной.
+            # Пропущенные шаги (выключенные флагом) видны в журнале шагов с причиной.
             st = Counter(s.status for s in r.steps)
             self.add(
                 f"| Шаги | выполнено {st.get('ok', 0)}, частично {st.get('degraded', 0)}, "
@@ -470,6 +475,8 @@ class _Report:
             self.add("| Шаг | Что | Итог | Вызовов | Секунд | Результат |")
             self.add("| :-- | :--- | :--- | :-- | :-- | :--- |")
             for s in r.steps:
+                if s.number in RETIRED_STEPS and s.status == "skipped":
+                    continue
                 result = s.summary or s.reason
                 if s.reason and s.summary:
                     result += f". Сбои: {s.reason}"

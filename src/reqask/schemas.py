@@ -292,7 +292,7 @@ class Finding(BaseModel):
     question_id: str | None = None
     # unreviewed: критик не смотрел. Остальные статусы ставят критик и сверка цитат (4.6).
     status: FindingStatus = "unreviewed"
-    # Решение критика (желательный шаг 7): причина и цель слияния.
+    # Решение критика (шаг 7): причина и цель слияния.
     critic_reason: str | None = None
     merged_into: str | None = None
     # Уровень до решения критика, если он понизил замечание или поднял его при слиянии.
@@ -348,7 +348,7 @@ class Verdict(BaseModel):
     top_fixes: list[TopFix] = Field(default_factory=list)
     # CRITICAL, из-за которых разработку начинать не рекомендуется.
     blockers: list[str] = Field(default_factory=list)
-    # Критик перепроверил критичные замечания (желательный шаг 7, пока не включён).
+    # Критик перепроверил критичные замечания (шаг 7). False: шаг выключен или не выполнен.
     critic_done: bool = False
     generated_by_model: bool = True
     # Сводные вопросы сформированы моделью; False значит запасной путь из полей question.
@@ -438,11 +438,11 @@ class LLMStats(BaseModel):
 
 
 class StepStat(BaseModel):
-    """Итог одного шага конвейера (К-01, 4.6). Номера как в таблице шагов: 0-9 и 5в."""
+    """Итог одного шага конвейера (К-01, 4.6). Номера как в таблице шагов: 0 и 3-9 (1 и 2 не заняты)."""
 
     number: str
     name: str
-    # ok: выполнен; degraded: выполнен частично; failed: не выполнен; skipped: шаг не включён.
+    # ok: выполнен; degraded: выполнен частично; failed: не выполнен; skipped: шаг пропущен (выключен флагом или нечего проверять).
     status: Literal["ok", "degraded", "failed", "skipped"] = "ok"
     calls: int = 0
     cache_hits: int = 0

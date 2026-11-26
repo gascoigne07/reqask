@@ -118,7 +118,7 @@ def test_merge_shown_once_in_requirement_block():
 
 def test_passport_explains_coverage_and_hides_skipped_steps():
     steps = [StepStat(number="0", name="Чтение", status="ok"),
-             StepStat(number="2", name="Контекст", status="skipped", reason="желательная часть")]
+             StepStat(number="7", name="Критик", status="skipped", reason="выключен (--no-critic или REQASK_CRITIC=0)")]
     result = _result([], steps=steps)
     result.quality.content_lines, result.quality.in_requirements, result.quality.skipped_by_model = 10, 4, 6
     report = render(result)
@@ -126,8 +126,8 @@ def test_passport_explains_coverage_and_hides_skipped_steps():
     assert "не включено" not in _row(report, "Шаги")
     assert "отмечены как не требования 6 (заголовки, вводный текст, шаблоны, см. раздел 2)" in _row(report, "Покрытие нарезкой")
     assert "отброшено без опоры на текст 0 (ни найденной цитаты, ни ссылки на требование или раздел" in _row(report, "Цитаты")
-    # В журнале шагов невключённый шаг остаётся с причиной.
-    assert "| 2 | Контекст | не включён | 0 | 0.0 | желательная часть |" in report
+    # В журнале шагов выключенный флагом шаг остаётся с причиной.
+    assert "| 7 | Критик | пропущен | 0 | 0.0 | выключен (--no-critic или REQASK_CRITIC=0) |" in report
 
 
 @pytest.mark.parametrize("calls, hits, mode", [

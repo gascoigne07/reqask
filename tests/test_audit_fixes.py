@@ -188,9 +188,9 @@ def test_steps_numbered_as_in_log_and_decide_has_no_dead_parameter(doc):
     result = Pipeline(FakeLLM(), _settings()).run(doc, "test")
     names = {s.number: s.name for s in result.steps}
     assert names["6"] == STEP_NAMES["6"] and "свёртка" in names["6"]
-    assert [s.number for s in result.steps] == ["0", "1", "2", "3", "4", "5", "5в", "6", "7", "8"]
+    assert [s.number for s in result.steps] == ["0", "3", "4", "5", "6", "7", "8"]
     doc_text = inspect.getmodule(Pipeline).__doc__
-    for number in ("0.", "1-2.", "3.", "4.", "5.", "6.", "7.", "8.", "9."):
+    for number in ("0.", "3.", "4.", "5.", "6.", "7.", "8.", "9."):
         assert f"\n{number} " in doc_text
 
 

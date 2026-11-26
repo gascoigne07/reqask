@@ -384,12 +384,12 @@ def test_questions_file_has_no_service_links(doc):
 def test_steps_are_logged_in_table_order(doc):
     logs = []
     result = Pipeline(FakeLLM(), SETTINGS, logs.append).run(doc, "test")
-    assert [s.number for s in result.steps] == ["0", "1", "2", "3", "4", "5", "5в", "6", "7", "8"]
+    assert [s.number for s in result.steps] == ["0", "3", "4", "5", "6", "7", "8"]
     assert {s.number: s.status for s in result.steps}["7"] == "ok"
     assert result.critic.keep == result.critic.reviewed > 0 and result.verdict.critic_done
     off = Pipeline(FakeLLM(), replace(SETTINGS, critic=False)).run(doc, "test")
     assert {s.number: s.status for s in off.steps}["7"] == "skipped"
-    assert all(s.status in ("ok", "skipped") for s in result.steps)
+    assert all(s.status == "ok" for s in result.steps)
     assert sum(s.calls for s in result.steps) == result.llm.calls
     assert "Шаг 3. Нарезка требований (14 строк)" in logs and any("итог шага: требований 3" in x for x in logs)
 
