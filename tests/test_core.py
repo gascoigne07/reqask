@@ -213,13 +213,30 @@ def test_placeholder_dictionary():
         "FIXME проверить": ["FIXME"], "To be determined later.": ["To be determined"],
         "Тариф уточняется": ["уточняется"], "Порог будет определён позже": ["будет определён"],
         "Требует уточнения у заказчика": ["Требует уточнения"], "Раздел [заполнить]": ["заполнить"],
-        "Текст дописать позже": ["дописать позже"], "см. [...]": ["[...]"],
+        "Текст дописать позже": ["дописать позже"], "Цена: XXX руб.": ["XXX"],
+        "Сценарии будут добавлены позже": ["будут добавлены позже"],
+        "Раздел будет описан в следующей версии": ["будет описан в следующей версии"],
+        "Details to be added in a future version.": ["to be added in a future version"],
     }
     for text, marks in hits.items():
         assert placeholder_marks(text) == marks, text
     for text in ("Пользователь должен заполнить форму заказа.", "Поля заполняются кассиром.",
-                 "a todo list for users", "Значение уточнить нельзя без договора"):
+                 "a todo list for users", "Значение уточнить нельзя без договора",
+                 "Records are to be added to the log."):
         assert placeholder_marks(text) == [], text
+
+
+@pytest.mark.parametrize("text", [
+    "Телефон в формате +7 (XXX) XXX-XX-XX.",  # XXX в маске это формат
+    'Ответ: {"items": [...], "total": 0}',  # многоточие в примере JSON
+    "Вызов send(...) повторяется трижды.",  # многоточие в примере кода
+    "После оплаты будет добавлена запись в журнал.",  # обычное будущее время
+    "Поле будет заполнено автоматически.",  # обычное будущее время
+])
+def test_placeholder_dictionary_skips_ordinary_text(text):
+    from reqask.lint import placeholder_marks
+
+    assert placeholder_marks(text) == []
 
 
 def test_extract_json():

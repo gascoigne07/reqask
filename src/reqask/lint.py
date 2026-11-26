@@ -37,16 +37,24 @@ PLACEHOLDER_LABEL = "незаполненное место"
 # Латинские сокращения ищутся только заглавными: «todo» строчными бывает обычным словом.
 # «заполнить» ловится только как пометка (в скобках, отдельной строкой или с «позже»):
 # «пользователь должен заполнить форму» это нормальное требование.
+# XXX внутри маски («+7 (XXX) XXX-XX-XX», «XXX-XXX») это формат, а не заглушка.
+# Многоточие в скобках («[...]», «(...)») не ищем: в примерах JSON и кода это сокращение примера.
+# «Будет определено, уточнено, согласовано» отложенное решение само по себе. «Будет добавлено,
+# описано, заполнено» часто обычное будущее время («поле будет заполнено автоматически»),
+# поэтому нужен признак отложенности рядом: позже, дополнительно, в следующей версии.
+_LATER = (r"(?:позже|позднее|дополнительно|потом|впоследствии|отдельно|в следующ\w* (?:верси|редакци|релиз)\w*)")
+_LATER_EN = r"(?:later|separately|in (?:a|the) (?:future|next|later) (?:version|release|revision))"
 _PLACEHOLDERS: list[re.Pattern[str]] = [
-    re.compile(r"(?<![\w])(?:TODO|TBD|TBC|TBA|FIXME|XXX)(?![\w])"),
+    re.compile(r"(?<![\w])(?:TODO|TBD|TBC|TBA|FIXME)(?![\w])"),
+    re.compile(r"(?<![\w(+\-])(?<!X\s)XXX(?![\w)\-])(?!\s*X)"),
     re.compile(r"\?{3,}"),
-    re.compile(r"[<\[(](?:\.{3}|…)[>\])]"),
-    re.compile(r"\bto be (?:determined|defined|decided|confirmed|clarified|specified|added|completed)\b",
-               re.IGNORECASE),
+    re.compile(r"\bto be (?:determined|defined|decided|confirmed|clarified|specified)\b", re.IGNORECASE),
+    re.compile(rf"\bto be (?:added|completed|described)\b(?:\s+\S+){{0,3}}?\s+{_LATER_EN}", re.IGNORECASE),
     re.compile(r"\b(?:уточняется|уточняются|определяется позже|в стадии уточнения)\b", re.IGNORECASE),
-    re.compile(r"\bбуд(?:ет|ут) (?:определ|уточн|добавл|описан|заполн|согласован)\w*", re.IGNORECASE),
+    re.compile(r"\bбуд(?:ет|ут) (?:определ|уточн|согласован)\w*", re.IGNORECASE),
+    re.compile(rf"\bбуд(?:ет|ут) (?:добавл|описан|заполн)\w*(?:\s+\S+){{0,3}}?\s+{_LATER}", re.IGNORECASE),
     re.compile(r"\b(?:подлеж|требу)\w* уточнени\w*", re.IGNORECASE),
-    re.compile(r"\b(?:заполн|допис)\w+ (?:позже|позднее|дополнительно|потом)\b", re.IGNORECASE),
+    re.compile(rf"\b(?:заполн|допис)\w+ {_LATER}", re.IGNORECASE),
     re.compile(r"(?:^|[\[(<«\"'])\s*(?:заполнить|дописать|уточнить)\s*(?:$|[\])>»\"'.!:])",
                re.IGNORECASE | re.MULTILINE),
 ]
