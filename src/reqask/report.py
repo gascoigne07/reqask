@@ -555,17 +555,21 @@ class _Report:
         """Замечания требования, которые критик слил или снял, одной строкой со ссылками.
         Слитое в замечание из shown не печатается: у цели уже стоит «Критик слил сюда»."""
         merged: list[str] = []
+        folded: list[str] = []
         other: dict[str, list[str]] = {}
         for f in self.req_findings.get(x.id, []):
             if f.status == "merged" and f.merged_into in shown and f.id in self.absorbed.get(f.merged_into, []):
                 continue
             if f.status == "merged" and f.merged_into:
-                merged.append(f"{_link(f.id)} в {_link(f.merged_into)}")
+                # Слияние критика идёт с причиной (как в self.absorbed); без причины это свёртка кодом на шаге 6.
+                (merged if f.critic_reason else folded).append(f"{_link(f.id)} в {_link(f.merged_into)}")
             elif not _active(f):
                 other.setdefault(FINDING_STATUS_RU.get(f.status, f.status), []).append(_link(f.id))
         parts = []
         if merged:
             parts.append("слито критиком: " + ", ".join(merged))
+        if folded:
+            parts.append("свёрнуто в системное: " + ", ".join(folded))
         for status, ids in other.items():
             parts.append(f"{status}: {', '.join(ids)}, см. [приложение Б](#appendix-b)")
         return "; ".join(parts)
@@ -925,15 +929,28 @@ def render_questions(result: RunResult) -> str:
         "Вопросы собраны агентом проверки требований. Под каждым вопросом: что сейчас написано в документе, "
         "варианты ответа и что изменится при каждом из них. Достаточно ответить номером варианта или своим текстом.\n"
     )
-    if len({q.addressee for q in result.questions}) > 1:
+    by_id = {f.id: f for f in result.findings}
+    main = [q for q in result.questions if not _review_only_question(q, by_id)]
+    review = [q for q in result.questions if _review_only_question(q, by_id)]
+    if len({q.addressee for q in main}) > 1:
         out.append(f"Номера те же, что в отчёте проверки. {QUESTION_NUMBERS_NOTE}\n")
     order = list(ADDRESSEES)
-    addressees = sorted({q.addressee for q in result.questions}, key=lambda a: order.index(a) if a in order else len(order))
+    addressees = sorted({q.addressee for q in main}, key=lambda a: order.index(a) if a in order else len(order))
+
+    def add(q: Question) -> None:
+        # Номер тот же, что в отчёте: автор отвечает «Q-03: вариант 1», и ответ находится в обоих файлах.
+        out.append(f"### {q.id}. {q.text}\n")
+        out.extend(_question_body(q))
+        out.append("")
+
     for addressee in addressees:
         out.append(f"## Вопросы {_addressee(addressee)}\n")
-        for q in sorted((q for q in result.questions if q.addressee == addressee), key=lambda q: -q.priority):
-            # Номер тот же, что в отчёте: автор отвечает «Q-03: вариант 1», и ответ находится в обоих файлах.
-            out.append(f"### {q.id}. {q.text}\n")
-            out.extend(_question_body(q))
-            out.append("")
+        for q in sorted((q for q in main if q.addressee == addressee), key=lambda q: -q.priority):
+            add(q)
+    if review:
+        # Та же пометка, что в отчёте: противоречие видно только по одной цитате (О-09).
+        out.append("## Требует проверки\n")
+        out.append("Противоречие подтверждено только одной цитатой. Стоит проверить, прежде чем задавать вопрос.\n")
+        for q in review:
+            add(q)
     return "\n".join(out)

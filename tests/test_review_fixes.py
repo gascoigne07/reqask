@@ -330,3 +330,34 @@ def test_pdf_page_that_breaks_pdfplumber_is_read_by_pypdf(tmp_path, monkeypatch)
     assert spec.fallback_pages == [2]
     result = Pipeline(FakeLLM(), SETTINGS).run(spec, "test")
     assert "прочитаны запасным способом, без разбора таблиц: 2" in render(result)
+
+
+# ---------- 8, 9. свёртка кодом и вопросы «требует проверки» в файле вопросов ----------
+
+
+from reqask.report import render_questions  # noqa: E402
+from reqask.schemas import Question  # noqa: E402
+
+from test_report_audit import _f, _result  # noqa: E402
+
+
+def test_fold_by_code_is_not_called_critic_merge():
+    findings = [
+        _f("D-01", "requirement", [10], ["REQ-01"], status="merged", merged_into="S-01"),
+        _f("D-02", "requirement", [20], ["REQ-02"], status="merged", merged_into="S-02", critic_reason="то же самое"),
+        _f("S-01", "set", [10, 20, 30], ["REQ-01", "REQ-02", "REQ-03"], status="confirmed"),
+        _f("S-02", "set", [20, 40], ["REQ-02", "REQ-04"], status="confirmed"),
+    ]
+    report = render(_result(findings))
+    assert "свёрнуто в системное: [D-01](#d-01) в [S-01](#s-01)" in report
+    assert "слито критиком: [D-01]" not in report
+
+
+def test_questions_file_keeps_review_only_mark():
+    findings = [_f("S-01", "set", [10, 20], ["REQ-01"], status="question_only", kind="contradiction"),
+                _f("D-01", "requirement", [30], ["REQ-03"], status="confirmed")]
+    questions = [Question(id="Q-01", text="Обычный?", addressee="analyst", finding_ids=["D-01"], priority=3),
+                 Question(id="Q-02", text="Проверить?", addressee="analyst", finding_ids=["S-01"], priority=5)]
+    text = render_questions(_result(findings, questions=questions))
+    assert "## Требует проверки" in text
+    assert text.index("### Q-01.") < text.index("## Требует проверки") < text.index("### Q-02.")
