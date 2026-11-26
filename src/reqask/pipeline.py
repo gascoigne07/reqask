@@ -1169,8 +1169,11 @@ class Pipeline:
 
     @staticmethod
     def _number_questions(questions: list[Question], ranked: list[Finding]) -> list[Question]:
-        questions.sort(key=lambda q: -q.priority)
         by_id = {f.id: f for f in ranked}
+        # При равном весе раньше вопрос по замечанию набора (S): он про расхождение мест документа.
+        # Иначе решал бы порядок модели, а она идёт по списку, где D стоят выше S того же уровня.
+        questions.sort(key=lambda q: (-q.priority, not any(
+            by_id[fid].scope == "set" for fid in q.finding_ids if fid in by_id)))
         for number, q in enumerate(questions, start=1):
             q.id = make_id("Q", number, len(questions))
             for fid in q.finding_ids:

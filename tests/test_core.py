@@ -852,6 +852,20 @@ def test_priority_caps_requirement_bonus():
     assert Pipeline._priority([finding("S-03", ["REQ-07"])])[0] == 5.25
 
 
+def test_equal_priority_puts_set_findings_first():
+    """При равном весе вопрос по замечанию набора идёт раньше вопроса по одному требованию (К-08)."""
+    from reqask.schemas import Finding
+
+    d = Finding(id="D-01", scope="requirement", criterion="COMPLETE", severity="CRITICAL", problem="п",
+                recommendation="р", req_ids=["REQ-01", "REQ-02"])
+    s = Finding(id="S-01", scope="set", criterion="CONSISTENT", severity="CRITICAL", problem="п",
+                recommendation="р", req_ids=["REQ-03", "REQ-04"])
+    qs = [Question(id="", text="Про D?", addressee="architect", blocks="б", finding_ids=["D-01"], priority=5.5),
+          Question(id="", text="Про S?", addressee="business", blocks="б", finding_ids=["S-01"], priority=5.5)]
+    out = Pipeline._number_questions(qs, [d, s])
+    assert [(q.id, q.finding_ids) for q in out] == [("Q-01", ["S-01"]), ("Q-02", ["D-01"])]
+
+
 def test_line_marks_become_words():
     """Служебная разметка строк из промпта не попадает в отчёт (причины критика, тексты модели)."""
     from reqask.pipeline import _plain_lines, tidy
