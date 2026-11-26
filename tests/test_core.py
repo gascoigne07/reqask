@@ -814,6 +814,18 @@ def test_final_prompt_forbids_invented_numbers_in_options(doc):
     assert "«задать значение» с единицей измерения" in rule and "«например»" in rule
 
 
+def test_numbers_rule_is_shared_by_finding_and_summary_questions(doc):
+    """Правило про числа одно на оба промпта, пример формата его не нарушает."""
+    result = Pipeline(FakeLLM(), SETTINGS).run(doc, "test")
+    review = prompts.review_prompt(result.requirements[:1], doc.numbered(), True)
+    final = prompts.final_prompt("spec.md", 3, [], "решение", 5, doc.numbered())
+    for text in (prompts.QUESTION_RULES, review, prompts.completeness_prompt([], doc.numbered()), final):
+        assert f"- {prompts.NUMBERS_RULE}" in text
+    example = prompts.QUESTION_RULES[prompts.QUESTION_RULES.index("- Пример формата"):]
+    for number in re.findall(r"\d+", example):
+        assert re.search(rf"например,? {number}\b", example), number
+
+
 def test_review_prompt_rewrites_in_language_of_requirement(doc):
     """Готовая формулировка заменяет текст требования: язык требования, остальное по-русски."""
     result = Pipeline(FakeLLM(), SETTINGS).run(doc, "test")
