@@ -254,9 +254,17 @@ def read_pdf(path: Path) -> PdfText:
     if total == 0 or len(empty) * 2 > total:
         raise ScanError(f"текста нет на {len(empty)} из {total} страниц")
     removed = _drop_headers(pages)
+    # Страница, на которой после снятия колонтитулов ничего не осталось (или осталась пустая
+    # таблица из одних разделителей), для читателя тоже пустая. Проверка на скан выше идёт
+    # по исходному тексту: у такой страницы текстовый слой есть.
+    empty = sorted(set(empty) | {no for no, page in enumerate(pages, start=1) if not any(_has_text(line) for line in page)})
     lines = _join_wrapped([line for page in pages for line in page])
     _mark_headings(lines)
     return PdfText(lines=lines, pages=total, empty_pages=empty, removed_headers=removed)
+
+
+def _has_text(line: PdfLine) -> bool:
+    return bool(line.text) and not set(line.text) <= set("|- ")
 
 
 _SIMPLE_ITEM_RE = re.compile(r"^\d{1,2}[.)]\s")

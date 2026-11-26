@@ -209,6 +209,28 @@ def test_table_of_contents_lines_are_not_headings():
     assert headings == ["1.1 Purpose", "4.2 Ответ с кодом 400", "3.1 Требования к версии 2"]
 
 
+def test_page_with_only_header_and_footer_is_empty(tmp_path):
+    # Страница 3: только колонтитулы и пустая таблица-рамка, как вставная страница в настоящих PDF.
+    path = tmp_path / "header_only.pdf"
+    c = canvas.Canvas(str(path), pagesize=A4)
+    body = {1: "The gate opens within 3 seconds.", 2: "The gate closes after the car passes.",
+            4: "Operators can open the gate manually."}
+    for page in range(1, 5):
+        header_footer(c, page, 4)
+        if page in body:
+            c.setFont("Helvetica", 11)
+            c.drawString(60, H - 100, body[page])
+        else:
+            grid(c, 60, H - 100, [150, 150], [16])
+        c.showPage()
+    c.save()
+
+    doc = load_document(path)
+    assert doc.empty_pages == [3]
+    assert not any(line.page == 3 and line.text for line in doc.lines)
+    assert "Operators can open the gate manually." in texts(doc)
+
+
 def test_pdf_header_table_removed_and_sentence_joined_across_pages(tmp_path):
     # Колонтитул свёрстан таблицей с датой, предложение разорвано границей страницы.
     path = tmp_path / "header_table.pdf"
