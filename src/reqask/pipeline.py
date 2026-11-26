@@ -838,12 +838,24 @@ class Pipeline:
         st.done = True
 
     def _critic_call(self, user: str) -> CriticOut | None:
-        try:
-            return self.llm.complete_json("критик", prompts.SYSTEM, user, CriticOut, kind="critic")
-        except LLMFatal as exc:
-            self._on_fatal(exc, "критик")
-        except LLMError as exc:
-            self.failed_steps.append(f"критик: {exc}")
+        """Обрезанный ответ: один повтор с reasoning_effort=low, как у прохода по набору (М-07)."""
+        effort = None
+        for attempt in (1, 2):
+            try:
+                return self.llm.complete_json("критик", prompts.SYSTEM, user, CriticOut, kind="critic",
+                                              **({"effort": effort} if effort else {}))
+            except LLMFatal as exc:
+                self._on_fatal(exc, "критик")
+                return None
+            except LLMTruncated as exc:
+                if attempt == 1:
+                    effort = "low"
+                    self.log("  критик: ответ обрезан, повторяю с reasoning_effort=low")
+                    continue
+                self.failed_steps.append(f"критик: {exc}")
+            except LLMError as exc:
+                self.failed_steps.append(f"критик: {exc}")
+                return None
         return None
 
     def _collect_decisions(self, out: CriticOut, by_id: dict, allowed: set[str], decisions: dict) -> None:

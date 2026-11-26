@@ -29,7 +29,8 @@ STEP_PARAMS: dict[str, tuple[str, int]] = {
     "review": ("medium", 24_000),
     "set": ("medium", 24_000),
     "verdict": ("medium", 24_000),
-    "critic": ("medium", 16_000),
+    # 16 000 не хватило 26.11 на PURE: 77 решений, ответ обрезан.
+    "critic": ("medium", 24_000),
     "check": ("low", 4_000),
 }
 DEFAULT_STEP_PARAMS = ("medium", 16_000)

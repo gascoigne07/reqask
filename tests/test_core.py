@@ -671,6 +671,24 @@ def test_truncated_set_pass_retries_once_with_low_effort(doc):
     assert llm.efforts == [None, "low"] and not result.failed_steps
 
 
+def test_truncated_critic_retries_once_with_low_effort(doc):
+    """Обрезанный ответ критика повторяется один раз с reasoning_effort=low, шаг не падает."""
+    class Cut(FakeLLM):
+        efforts: list = []
+
+        def complete_json(self, step, system, user, schema, kind="", **opts):
+            if schema is CriticOut:
+                self.efforts.append(opts.get("effort"))
+                if opts.get("effort") != "low":
+                    raise LLMTruncated("обрезан")
+            return super().complete_json(step, system, user, schema, kind)
+
+    llm = Cut()
+    result = Pipeline(llm, SETTINGS).run(doc, "test")
+    assert llm.efforts == [None, "low"]
+    assert result.critic.done and not result.failed_steps
+
+
 def test_truncated_segmentation_chunk_is_split(tmp_path):
     """М-07: обрезанный ответ нарезки делит кусок пополам."""
     path = tmp_path / "long.md"
