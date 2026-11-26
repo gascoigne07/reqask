@@ -480,6 +480,8 @@ class RunResult(BaseModel):
     # PDF: страницы без текста (Ч-07) и удалённые строки колонтитулов (Ч-04).
     empty_pages: list[int] = Field(default_factory=list)
     removed_headers: int = 0
+    # PDF: страницы, прочитанные запасным способом (pypdf, без разбора таблиц).
+    fallback_pages: list[int] = Field(default_factory=list)
     verdict: Verdict
     grounding: GroundingStats
     quality: QualityStats = Field(default_factory=QualityStats)

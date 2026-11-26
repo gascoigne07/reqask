@@ -1542,6 +1542,7 @@ class Pipeline:
             fatal=self.fatal,
             empty_pages=doc.empty_pages,
             removed_headers=doc.removed_headers,
+            fallback_pages=doc.fallback_pages,
             verdict=verdict,
             grounding=self.grounding,
             quality=self.quality,

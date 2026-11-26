@@ -295,3 +295,38 @@ def test_id_recovery_only_for_known_prefixes(tmp_path):
     assert [r.source_id for r in reqs] == ["ФТ-5", "ФТ-6", "ФТ-7"]
     assert pipe.quality.ids_added == ["ФТ-7"] and pipe.quality.ids_missing == []
     assert not any(r.line_start >= 9 for r in reqs)  # строки UTF-8, ISO-8601, SHA-256 требованиями не стали
+
+
+# ---------- 7. страница PDF, на которой падает pdfplumber ----------
+
+
+def test_pdf_page_that_breaks_pdfplumber_is_read_by_pypdf(tmp_path, monkeypatch):
+    from reportlab.lib.pagesizes import A4
+    from reportlab.pdfgen import canvas
+
+    from reqask import pdfread
+    from reqask.loader import load_document
+
+    path = tmp_path / "spec.pdf"
+    c = canvas.Canvas(str(path), pagesize=A4)
+    # Разный текст на страницах: одинаковые строки у края снялись бы как колонтитул.
+    for no, what in ((1, "store every order"), (2, "send a receipt by mail"), (3, "keep an audit log")):
+        c.setFont("Helvetica", 11)
+        c.drawString(60, 700, f"FR-{no}. The system shall {what}.")
+        c.showPage()
+    c.save()
+
+    real = pdfread._page_lines
+
+    def broken(pypdf_page, plumber_page, page_no):
+        if page_no == 2:
+            raise KeyError("битый объект страницы")
+        return real(pypdf_page, plumber_page, page_no)
+
+    monkeypatch.setattr(pdfread, "_page_lines", broken)
+    spec = load_document(path)
+    texts = [line.text for line in spec.lines]
+    assert any("send a receipt" in t for t in texts) and any("audit log" in t for t in texts)
+    assert spec.fallback_pages == [2]
+    result = Pipeline(FakeLLM(), SETTINGS).run(spec, "test")
+    assert "прочитаны запасным способом, без разбора таблиц: 2" in render(result)

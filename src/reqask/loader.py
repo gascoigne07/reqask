@@ -45,6 +45,8 @@ class Document:
     # PDF: страницы без текста (Ч-07) и число удалённых строк колонтитулов (Ч-04).
     empty_pages: list[int] = field(default_factory=list)
     removed_headers: int = 0
+    # PDF: страницы, прочитанные запасным способом (pypdf без таблиц), потому что pdfplumber на них упал.
+    fallback_pages: list[int] = field(default_factory=list)
 
     @property
     def name(self) -> str:
@@ -231,7 +233,8 @@ def load_document(path: str | Path) -> Document:
         lines = [Line(no=i, text=line.text, page=line.page, kind=line.kind, level=line.level)
                  for i, line in enumerate(pdf.lines, start=1)]
         return Document(path=path, fmt="pdf", lines=lines, sha256=hashlib.sha256(data).hexdigest(),
-                        empty_pages=pdf.empty_pages, removed_headers=pdf.removed_headers)
+                        empty_pages=pdf.empty_pages, removed_headers=pdf.removed_headers,
+                        fallback_pages=pdf.fallback_pages)
     if ext in (".doc", ".rtf"):
         raise LoadError(f"Формат {ext} не поддерживается. Сохраните документ как DOCX или PDF.")
     if ext == ".docx":

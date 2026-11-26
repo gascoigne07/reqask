@@ -54,6 +54,8 @@ class PdfText:
     pages: int
     empty_pages: list[int] = field(default_factory=list)
     removed_headers: int = 0
+    # Страницы, на которых pdfplumber упал: их текст взят через pypdf, таблицы там не разобраны.
+    fallback_pages: list[int] = field(default_factory=list)
 
 
 class ScanError(Exception):
@@ -263,9 +265,17 @@ def read_pdf(path: Path) -> PdfText:
     if reader.is_encrypted and not reader.decrypt(""):
         raise PermissionError("PDF защищён паролем")
     pages: list[list[PdfLine]] = []
+    fallback: list[int] = []
     with pdfplumber.open(str(path), password="") as pdf:
         for page_no, (pypdf_page, plumber_page) in enumerate(zip(reader.pages, pdf.pages), start=1):
-            pages.append(_page_lines(pypdf_page, plumber_page, page_no))
+            try:
+                pages.append(_page_lines(pypdf_page, plumber_page, page_no))
+            except Exception:  # noqa: BLE001  pdfminer бросает свои исключения на битых объектах страницы
+                # Одна битая страница не должна делать нечитаемым весь документ: текст берёт pypdf, без таблиц.
+                # Если не прочтёт и pypdf, ошибка уходит выше, как раньше.
+                text = pypdf_page.extract_text() or ""
+                pages.append([PdfLine(_clean(raw), page_no) for raw in text.splitlines()])
+                fallback.append(page_no)
     empty = [no for no, page in enumerate(pages, start=1) if not any(line.text for line in page)]
     total = len(pages)
     if total == 0 or len(empty) * 2 > total:
@@ -277,7 +287,7 @@ def read_pdf(path: Path) -> PdfText:
     empty = sorted(set(empty) | {no for no, page in enumerate(pages, start=1) if not any(_has_text(line) for line in page)})
     lines = _join_wrapped([line for page in pages for line in page])
     _mark_headings(lines)
-    return PdfText(lines=lines, pages=total, empty_pages=empty, removed_headers=removed)
+    return PdfText(lines=lines, pages=total, empty_pages=empty, removed_headers=removed, fallback_pages=fallback)
 
 
 def _has_text(line: PdfLine) -> bool:
