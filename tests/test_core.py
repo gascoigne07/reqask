@@ -859,3 +859,30 @@ def test_critical_keeps_question_when_model_question_is_dropped(doc):
     assert critical and all(f.question_id for f in critical)
     assert result.quality.questions_dropped == 1 and result.quality.questions_added >= 1
     assert all("?" not in q.text[:-1] for q in result.questions)
+
+
+def test_critic_gets_merge_candidates_by_shared_line(doc):
+    """Замечания с цитатами на одной строке идут критику группой кандидатов на слияние."""
+    from reqask.schemas import Finding
+
+    def f(fid, lines, severity="MAJOR"):
+        return Finding(id=fid, scope="set" if fid.startswith("S") else "requirement", criterion="COMPLETE",
+                       severity=severity, problem=f"п {fid}", recommendation="р", question="в?",
+                       evidence=[Evidence(quote=f"цитата {fid} {n}", line=n) for n in lines]
+                       + [Evidence(quote="не найдена", line=4, status="missing")])
+
+    pool = [f("D-01", [5], "CRITICAL"), f("S-01", [5, 9], "CRITICAL"), f("D-02", [9]), f("D-03", [11])]
+    groups = Pipeline._merge_candidates(pool)
+    assert groups == [(5, ["D-01", "S-01"]), (9, ["S-01", "D-02"])]  # ненайденная цитата строки 4 не в счёт
+
+    class CriticLLM(FakeLLM):
+        def complete_json(self, step, system, user, schema, kind=""):
+            self.users.append(user)
+            return CriticOut.model_validate({"decisions": []})
+
+    llm = CriticLLM()
+    pipe = Pipeline(llm, SETTINGS)
+    pipe.critique(doc, pool)
+    assert "- строка 5: D-01, S-01" in llm.users[0] and "- строка 9: S-01, D-02" in llm.users[0]
+    assert pipe.critic.candidate_groups == 2
+    assert "Кандидаты на слияние" not in prompts.critic_prompt(pool, "", True, [])

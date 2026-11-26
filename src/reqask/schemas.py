@@ -376,6 +376,8 @@ class CriticStats(BaseModel):
     no_decision: int = 0
     # Решение нарушает ограничения К-07 (повышение уровня, слияние с неизвестным, без причины и т. п.).
     rejected: int = 0
+    # Группы замечаний с подтверждёнными цитатами на одной строке: кандидаты на слияние для критика.
+    candidate_groups: int = 0
 
 
 class QualityStats(BaseModel):

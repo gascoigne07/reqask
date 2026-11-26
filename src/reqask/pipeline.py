@@ -758,9 +758,12 @@ class Pipeline:
         if self._blocked("критик"):
             return
         context, is_full = self._critic_context(doc, pool)
+        candidates = self._merge_candidates(pool)
+        st.candidate_groups = len(candidates)
         try:
             out = self.llm.complete_json(
-                "критик", prompts.SYSTEM, prompts.critic_prompt(pool, context, is_full), CriticOut, kind="critic")
+                "критик", prompts.SYSTEM, prompts.critic_prompt(pool, context, is_full, candidates), CriticOut,
+                kind="critic")
         except LLMFatal as exc:
             self._on_fatal(exc, "критик")
             return
@@ -825,6 +828,24 @@ class Pipeline:
             src.status, src.merged_into, src.critic_reason = "merged", target.id, reason
             st.merged += 1
         st.done = True
+
+    @staticmethod
+    def _merge_candidates(pool: list[Finding]) -> list[tuple[int, list[str]]]:
+        """Кандидаты на слияние: замечания, у которых подтверждённые цитаты стоят на одной строке документа.
+
+        Одна группа на строку, одинаковые группы с разных строк не повторяются. Решает критик.
+        """
+        by_line: dict[int, list[str]] = {}
+        for f in pool:
+            for line in sorted({e.line for e in f.evidence if e.status != "missing" and e.line}):
+                by_line.setdefault(line, []).append(f.id)
+        groups, seen = [], set()
+        for line in sorted(by_line):
+            ids = by_line[line]
+            if len(ids) > 1 and tuple(ids) not in seen:
+                seen.add(tuple(ids))
+                groups.append((line, ids))
+        return groups
 
     @staticmethod
     def _merge_into(src: Finding, target: Finding) -> None:
@@ -1160,7 +1181,7 @@ class Pipeline:
             c = self.critic
             self._end(
                 mark,
-                f"проверено {c.reviewed}: оставлено {c.keep}, понижено {c.downgraded}, снято {c.dropped}, "
+                f"проверено {c.reviewed} (групп кандидатов на слияние {c.candidate_groups}): оставлено {c.keep}, понижено {c.downgraded}, снято {c.dropped}, "
                 f"слито {c.merged}, без решения {c.no_decision}, отклонено кодом {c.rejected}",
                 failed=not c.done,
             )
