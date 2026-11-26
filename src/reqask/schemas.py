@@ -408,6 +408,10 @@ class QualityStats(BaseModel):
     questions_dropped: int = 0
     questions_merged: int = 0
     questions_added: int = 0
+    # Строки с маркерами незаполненных мест (TODO, TBD, «уточняется»), найденные кодом по всему
+    # документу, и те из них, на которые ссылается хотя бы одно активное замечание.
+    placeholder_lines: list[int] = Field(default_factory=list)
+    placeholder_lines_cited: list[int] = Field(default_factory=list)
 
 
 class LLMStats(BaseModel):

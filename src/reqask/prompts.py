@@ -267,7 +267,21 @@ def _already_found(findings: list[Finding]) -> str:
     return "\n".join(rows)
 
 
-def completeness_prompt(requirements: list[Requirement], numbered_text: str, found: list[Finding] | None = None) -> str:
+def _placeholder_block(marks: list[tuple[int, list[str]]] | None) -> str:
+    if not marks:
+        return ""
+    rows = "\n".join(f"- строка {no}: {', '.join(words)}" for no, words in marks)
+    return f"""
+
+Подсказки линтера: строки с маркерами незаполненных мест (кандидаты, решение за тобой). Строка может \
+стоять вне требований: во вводной части, в шапке, в пустом разделе. Если маркер действительно оставляет \
+значение или раздел незаданным, это пробел (kind gap) с цитатой из этой строки. Если слово стоит \
+в обычном смысле и ничего не оставляет пустым, замечания нет.
+{rows}"""
+
+
+def completeness_prompt(requirements: list[Requirement], numbered_text: str, found: list[Finding] | None = None,
+                        placeholders: list[tuple[int, list[str]]] | None = None) -> str:
     criteria = [c for c in SET_CRITERIA if c.code not in ("SET_CONSISTENT", "SET_COMPREHENSIBLE")]
     return f"""Задача: проверить набор требований целиком на полноту и остальные критерии качества набора.
 
@@ -310,7 +324,7 @@ analysis: 1-3 предложения, что проверил и что вышл
 {SEVERITY_RULES}
 
 Уже найдено первым проходом, не повторять:
-{_already_found(found or [])}
+{_already_found(found or [])}{_placeholder_block(placeholders)}
 
 Список требований (идентификатор | ID в документе | строки | суть):
 {_req_table(requirements)}

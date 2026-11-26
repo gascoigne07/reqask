@@ -374,8 +374,17 @@ class _Report:
             )
         hints = sum(len(x.lint_hints) for x in r.requirements)
         confirmed = sum(len(x.lint_confirmed) for x in r.requirements)
+        rules = []
         if hints:
-            self.add(f"| Правила | подсказок словаря {hints}, подтверждено моделью {confirmed} ({round(100 * confirmed / hints)}%) |")
+            rules.append(f"подсказок словаря {hints}, подтверждено моделью {confirmed} ({round(100 * confirmed / hints)}%)")
+        if q.placeholder_lines:
+            cited = q.placeholder_lines_cited
+            rules.append(
+                f"строк с незаполненными местами (TODO, TBD и подобные) {len(q.placeholder_lines)}: "
+                f"{', '.join(map(str, q.placeholder_lines))}; есть в замечаниях {len(cited)}"
+            )
+        if rules:
+            self.add(f"| Правила | {'; '.join(rules)} |")
         self.add("")
 
         if r.steps:

@@ -29,7 +29,7 @@ from . import prompts
 from .config import Settings
 from .criteria import REQ_CODES, SET_CODES, SEVERITY_ORDER
 from .grounding import TextIndex, clean_quote, distinct_quotes
-from .lint import lint
+from .lint import lint, placeholders
 from .llm import LLMError, LLMFatal, LLMTruncated
 from .loader import Document
 from .schemas import (
@@ -530,12 +530,15 @@ class Pipeline:
 
     def review_set(self, doc: Document, requirements: list[Requirement], index: TextIndex) -> list[Finding]:
         numbered = doc.numbered()
+        # Заглушки ищем по всему документу: во вводной части и пустых разделах нарезка их не видит.
+        marks = placeholders(doc.lines)
+        self.quality.placeholder_lines = [no for no, _ in marks]
         passes: list[tuple[str, Callable[[list[Finding]], str], tuple[str, ...]]] = [
             ("набор: согласованность", lambda _found: prompts.consistency_prompt(requirements, numbered),
              ("SET_CONSISTENT", "SET_COMPREHENSIBLE")),
             # Второй проход видит, что нашёл первый, и не повторяет это (К-05).
             ("набор: полнота и остальные критерии",
-             lambda found: prompts.completeness_prompt(requirements, numbered, found),
+             lambda found: prompts.completeness_prompt(requirements, numbered, found, marks),
              tuple(c for c in SET_CODES if c not in ("SET_CONSISTENT", "SET_COMPREHENSIBLE"))),
         ]
         known = {r.id: r for r in requirements}
@@ -1259,6 +1262,8 @@ class Pipeline:
 
     def _result(self, doc: Document, agent_version: str, started: datetime, t0: float, requirements: list[Requirement],
                 findings: list[Finding], rewritten: dict[str, str], questions: list[Question], verdict: Verdict) -> RunResult:
+        cited = {e.line for f in findings if f.status not in INACTIVE_STATUSES for e in f.evidence if e.status != "missing"}
+        self.quality.placeholder_lines_cited = [no for no in self.quality.placeholder_lines if no in cited]
         result = RunResult(
             document_name=doc.name,
             document_format=doc.fmt,

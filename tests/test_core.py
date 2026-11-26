@@ -201,6 +201,25 @@ def test_lint():
     hints = lint("Система должна быстро и удобно работать и т.д.")
     assert len(hints) == 3
     assert lint("Порог от 1 000 до 1 000 000 включительно.") == []
+    assert lint("Лимит: TBD") == ["«tbd»: незаполненное место"]
+
+
+def test_placeholder_dictionary():
+    """Словарь заглушек общий: служебные пометки ловятся, обычные слова нет."""
+    from reqask.lint import placeholder_marks
+
+    hits = {
+        "version TODO: of the server": ["TODO"], "Срок: TBD, решение ???": ["TBD", "???"],
+        "FIXME проверить": ["FIXME"], "To be determined later.": ["To be determined"],
+        "Тариф уточняется": ["уточняется"], "Порог будет определён позже": ["будет определён"],
+        "Требует уточнения у заказчика": ["Требует уточнения"], "Раздел [заполнить]": ["заполнить"],
+        "Текст дописать позже": ["дописать позже"], "см. [...]": ["[...]"],
+    }
+    for text, marks in hits.items():
+        assert placeholder_marks(text) == marks, text
+    for text in ("Пользователь должен заполнить форму заказа.", "Поля заполняются кассиром.",
+                 "a todo list for users", "Значение уточнить нельзя без договора"):
+        assert placeholder_marks(text) == [], text
 
 
 def test_extract_json():
@@ -770,6 +789,20 @@ def test_final_prompt_marks_findings_without_question(doc):
     text = prompts.final_prompt("spec.md", 3, [f], "решение", 5, doc.numbered())
     assert f"{f.id} | {f.severity}" in text and "| вопроса нет" in text
     assert "Документ (слева номера строк)" in text and doc.numbered() in text
+
+
+def test_placeholders_outside_requirements_go_to_set_pass(doc):
+    """Заглушка вне требований попадает подсказкой во второй проход по набору и в паспорт."""
+    llm = FakeLLM()
+    result = Pipeline(llm, SETTINGS).run(doc, "test")
+    no = next(line.no for line in doc.lines if line.text == "заполняется позже")
+    assert not any(r.line_start <= no <= r.line_end for r in result.requirements)
+    assert result.quality.placeholder_lines == [no]
+    assert result.quality.placeholder_lines_cited == [no]  # замечание «Пустой раздел» цитирует эту строку
+    users = dict(zip(llm.steps, llm.users))
+    assert f"- строка {no}: заполняется позже" in users["набор: полнота и остальные критерии"]
+    assert "незаполненных мест" not in users["набор: согласованность"]
+    assert f"строк с незаполненными местами (TODO, TBD и подобные) 1: {no}; есть в замечаниях 1" in render(result)
 
 
 def test_final_prompt_forbids_invented_numbers_in_options(doc):
