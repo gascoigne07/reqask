@@ -152,6 +152,41 @@ def test_daily_quota_is_fatal_without_waiting(client_with):
     assert info.value.kind == "quota" and len(sent) == 1 and waits == []
 
 
+def test_daily_quota_switches_to_fallback_model(client_with):
+    """М-10: квота считается по моделям, поэтому при суточной квоте клиент идёт на запасную без ожидания."""
+    body = [error(429, "Generate content requests per day limit exceeded on Free Tier", status="RESOURCE_EXHAUSTED")]
+    client, sent, waits = client_with(
+        lambda b, n: (429, body) if b["model"] == "m" else (200, completion(ONE)), fallback_models=("m", "b"))
+    assert ask(client).answer == "ок" and ask(client).answer == "ок"
+    # Переход один на весь клиент: второй вызов к исчерпанной модели уже не идёт.
+    assert [b["model"] for b in sent] == ["m", "b", "b"] and waits == []
+    assert client.model == "b" and any("перехожу на запасную b" in note for note in client.stats.notes)
+
+
+def test_overloaded_model_switches_after_two_retries(client_with):
+    """М-10: при запасной модели на 503 тратится два повтора, а не все пять."""
+    client, sent, waits = client_with(
+        lambda b, n: (503, error(503, "high demand")) if b["model"] == "m" else (200, completion(ONE)),
+        fallback_models=("b",))
+    assert ask(client).answer == "ок"
+    assert [b["model"] for b in sent] == ["m", "m", "m", "b"] and len(waits) == 2
+
+
+def test_missing_fallback_is_skipped_and_last_model_gets_all_retries(client_with):
+    def handler(b, n):
+        if b["model"] == "m":
+            return 429, [error(429, "requests per day limit exceeded")]
+        if b["model"] == "gone":
+            return 404, error(404, "model not found")
+        return 503, error(503, "high demand")
+
+    client, sent, waits = client_with(handler, fallback_models=("gone", "last"), max_retries=3)
+    with pytest.raises(LLMError):
+        ask(client)
+    # У последней модели запасных нет: она получает все повторы, как клиент без цепочки.
+    assert [b["model"] for b in sent] == ["m", "gone", "last", "last", "last", "last"] and len(waits) == 3
+
+
 @pytest.mark.parametrize("status,message,kind", [
     (401, "invalid x-api-key", "auth"),
     (403, "FREE_TIER_VERIFICATION_REQUIRED", "auth"),

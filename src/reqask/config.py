@@ -18,6 +18,9 @@ DEFAULT_OPENAI_MODEL = "gpt-6.2-sol"
 # Пауза между запросами к Gemini по умолчанию: бесплатный уровень держит малый RPM (М-09).
 GEMINI_MIN_INTERVAL_SEC = 4.0
 DEFAULT_CACHE_DIR = ".reqask_cache"
+# Запасные модели Gemini (М-10): квота бесплатного уровня считается отдельно по каждой модели,
+# а перегруженная модель отвечает 503. 26.11.2026 рабочие схемы приняты на gemini-3.6-flash.
+DEFAULT_GEMINI_FALLBACKS = ("gemini-3.6-flash", "gemini-3.7-flash")
 
 # Уровень рассуждения и лимит вывода по видам шагов. Лимит взят с запасом:
 # у Gemini токены рассуждения входят в лимит вывода. Числа начальные, уточняются по живым прогонам.
@@ -52,6 +55,8 @@ class Settings:
     min_interval_sec: float = 0.0
     concurrency: int = 1
     batch_size: int = 6
+    # Модели, на которые клиент переходит по порядку, если текущая исчерпала квоту или не отвечает (М-10).
+    fallback_models: tuple[str, ...] = ()
     cache_dir: str | None = DEFAULT_CACHE_DIR
     # Шаг 7, критик (К-07). REQASK_CRITIC=0 или --no-critic выключает.
     critic: bool = True
@@ -118,6 +123,16 @@ def _provider() -> tuple[str, str | None, str, str]:
     )
 
 
+def _fallbacks(provider: str) -> tuple[str, ...]:
+    """LLM_FALLBACK_MODELS для любого провайдера, GEMINI_FALLBACK_MODELS для Gemini. Значение none выключает."""
+    raw = (_env("GEMINI_FALLBACK_MODELS") if provider == "gemini" else None) or _env("LLM_FALLBACK_MODELS")
+    if raw is None:
+        return DEFAULT_GEMINI_FALLBACKS if provider == "gemini" else ()
+    if raw.lower() in ("none", "off", "0", "-"):
+        return ()
+    return tuple(name.strip() for name in raw.split(",") if name.strip())
+
+
 def load_settings(env_file: str | None = None) -> Settings:
     load_dotenv(env_file or ".env", override=False)
     provider, base_url, api_key, model = _provider()
@@ -143,6 +158,7 @@ def load_settings(env_file: str | None = None) -> Settings:
         min_interval_sec=_num("LLM_MIN_INTERVAL_SEC", GEMINI_MIN_INTERVAL_SEC if provider == "gemini" else 0.0, float),
         concurrency=max(1, _num("LLM_CONCURRENCY", 1, int)),
         batch_size=max(1, _num("REQASK_BATCH_SIZE", 6, int)),
+        fallback_models=_fallbacks(provider),
         cache_dir=cache_dir,
         critic=(_env("REQASK_CRITIC", "1") or "1").lower() not in ("0", "false", "no", "off"),
     )

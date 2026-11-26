@@ -76,6 +76,9 @@ JSON_ERROR_WORDS = ("response_format", "json_schema", "json_object", "schema", "
 # «quota», поэтому одно слово quota признаком суточной не считаем.
 DAILY_WORDS = ("per day", "perday", "daily", "insufficient_quota", "credit balance", "billing")
 AUTH_WORDS = ("api key", "api_key", "apikey", "invalid x-api-key", "authentication")
+# Пока есть запасная модель, на сбои сервера и таймауты текущей тратим не больше стольких повторов (М-10):
+# перегруженная модель держит 503 часами, а каждый повтор идёт в счёт суточной квоты.
+FALLBACK_AFTER_RETRIES = 2
 
 
 def _retry_after(error: Exception) -> float | None:
@@ -162,6 +165,33 @@ class LLMClient:
         self._reasoning = "param"
         self._send_max_tokens = True
         self._cache_dir = Path(settings.cache_dir) if settings.cache_dir else None
+        # Цепочка моделей: основная и запасные (М-10). Переход вперёд один на весь прогон, назад не возвращаемся.
+        self._models = [settings.model, *[m for m in settings.fallback_models if m != settings.model]]
+        self._model_i = 0
+
+    @property
+    def model(self) -> str:
+        """Модель, которая отвечает сейчас: основная или запасная после перехода."""
+        return self._models[self._model_i]
+
+    def _has_fallback(self) -> bool:
+        return self._model_i + 1 < len(self._models)
+
+    def _switch_model(self, used: str, why: str) -> bool:
+        """Переходит на следующую запасную модель после сбоя модели used. False, если запасных не осталось."""
+        with self._lock:
+            if self._models[self._model_i] != used:
+                return True  # другой поток уже перешёл
+            if self._model_i + 1 >= len(self._models):
+                return False
+            self._model_i += 1
+            new = self._models[self._model_i]
+            # Новая модель может принимать другое: режим JSON и параметры пробуем заново.
+            self._modes = {}
+            self._reasoning = "param"
+            self._send_max_tokens = True
+        self._note(f"модель {used}: {why}, перехожу на запасную {new}")
+        return True
 
     def _modes_for(self, schema: type[BaseModel]) -> list[str]:
         with self._lock:
@@ -292,7 +322,8 @@ class LLMClient:
         if wait > 0:
             self._sleep(wait)
 
-    def _kwargs(self, messages: list[dict], schema: type[BaseModel], kind: str, effort: str | None = None) -> dict:
+    def _kwargs(self, messages: list[dict], schema: type[BaseModel], kind: str, effort: str | None = None,
+                model: str | None = None) -> dict:
         step_effort, max_tokens = self.s.step_params(kind)
         effort = effort or step_effort
         mode = self._modes_for(schema)[0]
@@ -302,7 +333,7 @@ class LLMClient:
                 {**messages[0], "content": messages[0]["content"] + "\n\n" + schema_instruction(schema)},
                 *messages[1:],
             ]
-        kwargs: dict = {"model": self.s.model, "messages": messages}
+        kwargs: dict = {"model": model or self.model, "messages": messages}
         if mode == "parse":
             kwargs["response_format"] = schema
         elif mode == "schema":
@@ -391,9 +422,9 @@ class LLMClient:
             hint = "Ключ не принят, проверьте .env: ключ, провайдер и адрес LLM_BASE_URL."
         return LLMFatal(f"{hint} Провайдер {self.s.provider}, ответ: {text[:600]}", kind="auth")
 
-    def _quota_fatal(self, text: str) -> LLMFatal:
+    def _quota_fatal(self, text: str, model: str | None = None) -> LLMFatal:
         return LLMFatal(
-            f"Суточная квота или баланс модели «{self.s.model}» исчерпаны. Смените модель (--model), ключ или уровень "
+            f"Суточная квота или баланс модели «{model or self.model}» исчерпаны. Смените модель (--model), ключ или уровень "
             f"оплаты и запустите снова: готовые шаги возьмутся из кэша. Ответ провайдера: {text[:600]}",
             kind="quota",
         )
@@ -405,11 +436,15 @@ class LLMClient:
         transient = 0
         rate_hits = 0
         empty_retried = False
+        model = self.model
         while True:
+            if model != self.model:
+                # Модель сменилась (здесь или в соседнем потоке): счётчики повторов начинаются заново.
+                model, delay, transient, rate_hits = self.model, 2.0, 0, 0
             self._throttle()
             wait: float | None = None
             try:
-                response = self._request(self._kwargs(messages, schema, kind, effort))
+                response = self._request(self._kwargs(messages, schema, kind, effort, model))
             except LengthFinishReasonError as exc:
                 self._count(exc.completion)
                 raise LLMTruncated(f"[{step}] ответ обрезан по лимиту длины") from exc
@@ -423,7 +458,9 @@ class LLMClient:
                 if any(word in low for word in AUTH_WORDS):
                     raise self._auth_fatal(exc) from exc
                 if any(word in low for word in DAILY_WORDS):
-                    raise self._quota_fatal(text) from exc
+                    if self._switch_model(model, "суточная квота или баланс исчерпаны"):
+                        continue
+                    raise self._quota_fatal(text, model) from exc
                 if self._downgrade(exc, schema):
                     continue
                 # Остальные 400 режим не трогают: ошибка шага с текстом провайдера (М-04).
@@ -431,15 +468,20 @@ class LLMClient:
             except (AuthenticationError, PermissionDeniedError) as exc:
                 raise self._auth_fatal(exc) from exc
             except NotFoundError as exc:
+                # Запасной модели у этого ключа может не быть: идём дальше по цепочке. Основная обязана существовать.
+                if model != self._models[0] and self._switch_model(model, "не найдена у провайдера"):
+                    continue
                 raise LLMFatal(
-                    f"Модель «{self.s.model}» не найдена у провайдера {self.s.provider} или адрес API неверный. "
+                    f"Модель «{model}» не найдена у провайдера {self.s.provider} или адрес API неверный. "
                     f"Проверьте имя модели в .env или --model. Ответ: {error_text(exc)[:600]}",
                     kind="model",
                 ) from exc
             except RateLimitError as exc:
                 text = error_text(exc)
                 if any(word in text.lower() for word in DAILY_WORDS):
-                    raise self._quota_fatal(text) from exc
+                    if self._switch_model(model, "суточная квота или баланс исчерпаны"):
+                        continue
+                    raise self._quota_fatal(text, model) from exc
                 error: Exception = exc
                 # Минутный лимит: пауза от провайдера, иначе 15, 30, 60, 65, 65 секунд (М-08).
                 wait = _retry_after(exc) or RATE_WAITS_SEC[min(rate_hits, len(RATE_WAITS_SEC) - 1)]
@@ -472,7 +514,13 @@ class LLMClient:
                 continue
 
             transient += 1
-            if transient > self.s.max_retries:
+            rate = isinstance(error, RateLimitError)
+            # Минутный лимит ждём полностью: он общий для ключа. Сбои сервера и таймауты при запасной модели ждём недолго.
+            limit = self.s.max_retries if rate or not self._has_fallback() else min(self.s.max_retries, FALLBACK_AFTER_RETRIES)
+            if transient > limit:
+                why = "держит лимит запросов (429)" if rate else f"не отвечает ({type(error).__name__})"
+                if self._switch_model(model, why):
+                    continue
                 if isinstance(error, RateLimitError):
                     # Лимит не отпустил за все паузы: похоже на исчерпанную дневную квоту.
                     # Готовые ответы лежат в кэше, повторный запуск продолжит с этого места.
@@ -491,5 +539,5 @@ class LLMClient:
                 delay = min(delay * 2, MAX_BACKOFF_SEC)
             with self._lock:
                 self.stats.retries += 1
-            self.log(f"  [{step}] {type(error).__name__}, повтор {transient}/{self.s.max_retries} через {wait:.0f} с")
+            self.log(f"  [{step}] {type(error).__name__}, повтор {transient}/{limit} через {wait:.0f} с")
             self._sleep(wait)

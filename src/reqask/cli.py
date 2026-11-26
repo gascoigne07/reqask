@@ -74,12 +74,17 @@ def _check_output(path: str) -> Path:
 def run_check(settings, log) -> int:
     """--check: ключ, модель, режим JSON и уровень рассуждения одним вызовом (М-14)."""
     # Проверка короткая: ждать ответ дольше минуты нет смысла, зависшая модель должна быть видна сразу.
-    llm = LLMClient(settings.with_overrides(timeout_sec=min(settings.timeout_sec, 60.0)), log)
+    # Запасные модели здесь выключены: проверка должна честно сказать, отвечает ли названная модель.
+    fallbacks = [m for m in settings.fallback_models if m != settings.model]
+    llm = LLMClient(settings.with_overrides(timeout_sec=min(settings.timeout_sec, 60.0), fallback_models=()), log)
     print(f"Провайдер: {settings.provider}. Модель: {settings.model}. Адрес: {settings.base_url or 'по умолчанию'}")
     try:
         info = llm.check()
     except LLMError as exc:
         print(f"Проверка не прошла: {exc}", file=sys.stderr)
+        if fallbacks:
+            print("При прогоне агент сам перейдёт на запасные модели: " + ", ".join(fallbacks)
+                  + ". Проверить любую из них: --check --model <имя>.", file=sys.stderr)
         return EXIT_NO_MODEL
     print("Ключ принят, модель отвечает.")
     print(f"Режим JSON: {info['json_mode']}. Уровень рассуждения: {info['reasoning']}. "
