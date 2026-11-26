@@ -16,9 +16,12 @@ from reqask.lint import lint
 from reqask.llm import LLMClient, LLMError, LLMFatal, LLMTruncated, extract_json
 from reqask.loader import LoadError, load_document
 from reqask.pipeline import Pipeline, make_id
+from reqask import prompts
 from reqask.report import render
 from reqask.schemas import (
     BatchReviewOut,
+    Evidence,
+    Question,
     CriticOut,
     LLMStats,
     SegmentationOut,
@@ -303,7 +306,7 @@ def _check_report(result):
     assert "[S-01](#s-01)" in first and "[Q-01](#q-01)" in first
     assert '<a id="q-01"></a>' in report and '<a id="req-01"></a>' in report and '<a id="d-01"></a>' in report
     # Блок требования (9.2): заголовок, оценки одной строкой, дефект с вопросом и ссылкой на сводный вопрос.
-    assert "### REQ-01 · ID в документе: FR-1 · раздел" in report
+    assert '### <a id="req-01"></a>REQ-01 · FR-1 · строка' in report
     marks = next(line for line in report.splitlines() if line.startswith("Оценки: "))
     assert "❌ Пров." in marks and "➖ Необх." in marks
     # Пояснение печатается у «не применим», а у нарушения с дефектом его даёт сам дефект.
@@ -312,10 +315,10 @@ def _check_report(result):
     assert "**D-01 [CRITICAL] Проверяемость.**" in report
     assert "- Вопрос заказчику (бизнес): Какое время ответа, в секундах? См. [Q-02](#q-02)." in report
     assert "**Готовая формулировка:** Система отвечает за <N секунд>." in report
-    # Требование без замечаний занимает одну строку со значками (О-06).
-    assert "Замечаний нет: ✅ Необх." in report
+    # Требования без замечаний собраны в одну строку со ссылками, а не в отдельные блоки.
+    assert '**Без замечаний, все критерии выполнены (1):** <a id="req-03"></a>REQ-03 (строки 9-11).' in report
     # Вопросы (9.3): группа по адресату, варианты, рекомендация, что закрывает.
-    assert "#### Q-01 · заказчику (бизнес) · блокирует разработку" in report
+    assert '#### <a id="q-01"></a>Q-01 · заказчику (бизнес) · блокирует разработку' in report
     assert "  1. вариант 1. Последствие: правка" in report and "- Рекомендуем: вариант 1, потому что так проще" in report
     assert "- Закрывает замечания: [S-01](#s-01)." in report
     assert "fake-model" in report and "Журнал шагов" in report
@@ -327,7 +330,7 @@ def test_questions_file_has_no_service_links(doc):
 
     text = render_questions(Pipeline(FakeLLM(), SETTINGS).run(doc, "test"))
     assert text.startswith("# Вопросы по документу «spec.md»")
-    assert "## Вопросы заказчику (бизнес)" in text and "### 1. Вопрос про S-01?" in text
+    assert "## Вопросы заказчику (бизнес)" in text and "### Q-01. Вопрос про S-01?" in text
     assert "Варианты:" in text and "Сейчас в документе: `Читатель может взять" in text
     assert "Закрывает замечания" not in text and "](#" not in text and "D-01" not in text
     assert "—" not in text and "–" not in text
@@ -722,3 +725,42 @@ def test_report_shows_critic_merges(doc):
     assert "Причина: слито с другим замечанием [S-01](#s-01): то же исправление." in report
     appendix = report[report.index("## Приложение Б."):]
     assert not re.search(r"[^.]\.\.(?!\.)", appendix)
+
+
+def test_question_text_helpers():
+    """Цитаты без повторов, суть без пересказа цитаты, аббревиатура в начале фразы не портится."""
+    from reqask.grounding import distinct_quotes
+    from reqask.report import _question_body, _sentence_case
+
+    long = Evidence(quote="Ответ, если доступ к ресурсу запрещен.", line=7, status="exact")
+    part = Evidence(quote="доступ к ресурсу запрещен", line=7, status="exact")
+    other = Evidence(quote="доступ к ресурсу запрещен", line=9, status="exact")
+    lost = Evidence(quote="нет такого", line=3, status="missing")
+    assert distinct_quotes([part, long, other, lost]) == [long, other]
+    assert _sentence_case("GET меняет данные") == "GET меняет данные" and _sentence_case("Так проще") == "так проще"
+    q = Question(id="Q-01", text="Какой код?", addressee="architect", blocks="нельзя", finding_ids=["S-01"],
+                 quotes=[long], doc_says="Ответ, если доступ к ресурсу запрещен", recommended=None)
+    assert not any(row.startswith("- Суть:") for row in _question_body(q))
+    q.doc_says = "Для одного случая заданы два разных кода"
+    assert "- Суть: Для одного случая заданы два разных кода" in _question_body(q)
+
+
+def test_line_marks_become_words():
+    """Служебная разметка строк из промпта не попадает в отчёт (причины критика, тексты модели)."""
+    from reqask.pipeline import _plain_lines, tidy
+
+    assert _plain_lines("Чек-лист в L68 и L72 не отмечен") == "Чек-лист в строках 68 и 72 не отмечен"
+    assert _plain_lines("L20 указывает") == "строка 20 указывает"
+    assert _plain_lines("кэш L2-уровня") == "кэш L2-уровня"
+    # В общем тексте модели правится только разметка с нулями: короткое L5 может быть обозначением документа.
+    assert tidy("см. L0012, уровень L5") == "см. строка 12, уровень L5"
+
+
+def test_final_prompt_marks_findings_without_question(doc):
+    """Итог видит, у каких CRITICAL и MAJOR нет вопроса, и получает документ для сверки."""
+    result = Pipeline(FakeLLM(), SETTINGS).run(doc, "test")
+    f = next(x for x in result.findings if x.severity != "MINOR")
+    f.question = None
+    text = prompts.final_prompt("spec.md", 3, [f], "решение", 5, doc.numbered())
+    assert f"{f.id} | {f.severity}" in text and "| вопроса нет" in text
+    assert "Документ (слева номера строк)" in text and doc.numbered() in text

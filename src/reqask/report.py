@@ -21,6 +21,7 @@ from .criteria import (
     SEVERITY_RU,
     SEVERITY_RULES,
 )
+from .grounding import distinct_quotes, normalize
 from .schemas import INACTIVE_STATUSES, Evidence, Finding, Question, Requirement, RunResult
 
 ICONS = {"pass": "✅", "fail": "❌", "na": "➖", "unknown": "❔"}
@@ -48,7 +49,7 @@ BLOCKER_GROUPS = (
 SYSTEM_GROUP = {"CONSISTENT": "consistency", "FEASIBLE": "feasibility", "CORRECT": "feasibility", "APPROPRIATE": "feasibility"}
 FIRST_SCREEN_BLOCKERS = 5
 FIRST_SCREEN_QUESTIONS = 5
-REQ_TABLE_QUOTE = 80
+BLOCKER_TEXT = 160
 
 
 # ---------- мелкие помощники ----------
@@ -133,16 +134,42 @@ def _evidence(item: Evidence) -> str:
 
 
 def _found(evidence: list[Evidence]) -> list[Evidence]:
-    """Подтверждённые цитаты без повторов: одна строка документа с точкой и без точки это одна цитата."""
-    seen, out = set(), []
-    for e in evidence:
-        if e.status == "missing":
-            continue
-        key = (e.line, " ".join(e.quote.split()).rstrip(".").lower())
-        if key not in seen:
-            seen.add(key)
-            out.append(e)
-    return out
+    """Подтверждённые цитаты без повторов: часть строки, уже взятой целиком, второй раз не печатается."""
+    return distinct_quotes(evidence)
+
+
+def _gist(f: Finding, limit: int = BLOCKER_TEXT) -> str:
+    """Суть замечания одной фразой: заголовок, а если его нет, первое предложение описания."""
+    text = " ".join((f.title or f.problem).split())
+    if not f.title:
+        end = text.find(". ")
+        if 0 < end < limit:
+            text = text[: end + 1]
+    return _one_line(text, limit)
+
+
+def _short_section(section: str | None) -> str:
+    """Два последних уровня пути раздела: «Часть A / ... / Функциональные требования» без середины."""
+    if not section:
+        return "не указан"
+    parts = section.split(" / ")
+    return " / ".join(parts[-2:]) if len(parts) > 2 else section
+
+
+def _sentence_case(text: str) -> str:
+    """Первая буква строчная, если слово не аббревиатура (GET, HTTP остаются как есть)."""
+    if len(text) > 1 and text[0].isupper() and text[1].islower():
+        return text[0].lower() + text[1:]
+    return text
+
+
+def _repeats_quotes(text: str, quotes: list[Evidence]) -> bool:
+    """Фраза модели почти дословно повторяет цитаты: большая часть её слов уже есть в них."""
+    words = [w for w in normalize(text).replace(",", " ").replace(".", " ").split() if len(w) > 2]
+    if not words:
+        return True
+    pool = normalize(" ".join(e.quote for e in quotes))
+    return sum(1 for w in words if w in pool) / len(words) >= 0.6
 
 
 def _active(f: Finding) -> bool:
@@ -237,7 +264,7 @@ class _Report:
             self.add("**Блокеры:**\n")
             for fid in v.blockers[:FIRST_SCREEN_BLOCKERS]:
                 f = self.by_id[fid]
-                self.add(f"- {_link(fid)} · {_where_finding(f, self.reqs)} · {_one_line(f.title or f.problem, 140)}")
+                self.add(f"- {_link(fid)} · {_where_finding(f, self.reqs)} · {_gist(f)}")
             rest = len(v.blockers) - FIRST_SCREEN_BLOCKERS
             if rest > 0:
                 self.add(f"- и ещё {rest}, полный список в [разделе 5](#summary)")
@@ -359,19 +386,22 @@ class _Report:
         with_id = sum(1 for x in r.requirements if x.source_id)
         self.add(
             f"Выделено требований: **{len(r.requirements)}**, у {with_id} есть идентификатор в документе. "
-            "Границы заданы номерами строк, текст требований вырезан из документа кодом.\n"
+            "Границы заданы номерами строк, текст требований вырезан из документа кодом. "
+            "Дословный текст каждого требования стоит в разделе 3.\n"
         )
-        self.add("| ID | ID в документе | Раздел | Строки | Суть | Начало текста |")
-        self.add("| :--- | :--- | :--- | :--- | :--- | :--- |")
+        # Таблица нужна для сверки границ, читать её подряд не нужно: она свёрнута.
+        self.add(f"<details><summary>Таблица нарезки: {len(r.requirements)} требований</summary>\n")
+        self.add("| ID | ID в документе | Раздел | Строки | Суть |")
+        self.add("| :--- | :--- | :--- | :--- | :--- |")
         for x in r.requirements:
             lines = f"{x.line_start}-{x.line_end}" if x.line_end != x.line_start else str(x.line_start)
             if x.page:
                 lines += f", стр. {x.page}"
             self.add(
-                f"| {_link(x.id)} | {_cell(x.source_id or 'без номера')} | {_cell(x.section or 'не указан')} | {lines} "
-                f"| {_cell(x.summary)} | {_code(_one_line(x.quote, REQ_TABLE_QUOTE)).replace('|', chr(92) + '|')} |"
+                f"| {_link(x.id)} | {_cell(x.source_id or 'без номера')} | {_cell(_short_section(x.section))} | {lines} "
+                f"| {_cell(x.summary)} |"
             )
-        self.add("")
+        self.add("\n</details>\n")
         if r.skipped_lines:
             by_reason: dict[str, list[tuple[int, int]]] = {}
             for span in r.skipped_lines:
@@ -391,6 +421,57 @@ class _Report:
 
     # ---------- 3. каждое требование ----------
 
+    def _quiet(self, x: Requirement) -> bool:
+        """Требование проверено, действующих замечаний по нему нет (слитые и снятые не в счёт)."""
+        return x.id not in self.r.unreviewed and not any(_active(f) for f in self.req_findings.get(x.id, []))
+
+    def _statuses(self, x: Requirement) -> tuple[list, dict]:
+        checks = {c.criterion: c for c in self.r.checks.get(x.id, [])}
+        visible = [c for c in REQ_CRITERIA if c.group == "core" or checks.get(c.code) and checks[c.code].status == "fail"]
+        statuses = {c.code: (checks[c.code].status if checks.get(c.code) else "pass") for c in REQ_CRITERIA}
+        return visible, {"checks": checks, "statuses": statuses}
+
+    def _notes(self, x: Requirement, explained: set[str]) -> list[str]:
+        """Пояснения к оценкам там, где их не даёт дефект: «не применим», «нельзя оценить», нарушение со слитым дефектом."""
+        visible, st = self._statuses(x)
+        notes = []
+        for c in visible:
+            status = st["statuses"][c.code]
+            if status == "pass" or (status == "fail" and c.code in explained):
+                continue
+            check = st["checks"].get(c.code)
+            notes.append(f"{ICONS[status]} {c.name}: {_no_dot(_one_line(check.note if check and check.note else STATUS_RU[status]))}")
+        return notes
+
+    def _moved(self, x: Requirement) -> str:
+        """Замечания требования, которые критик слил или снял, одной строкой со ссылками."""
+        merged: list[str] = []
+        other: dict[str, list[str]] = {}
+        for f in self.req_findings.get(x.id, []):
+            if f.status == "merged" and f.merged_into:
+                merged.append(f"{_link(f.id)} в {_link(f.merged_into)}")
+            elif not _active(f):
+                other.setdefault(FINDING_STATUS_RU.get(f.status, f.status), []).append(_link(f.id))
+        parts = []
+        if merged:
+            parts.append("слито критиком: " + ", ".join(merged))
+        for status, ids in other.items():
+            parts.append(f"{status}: {', '.join(ids)}, см. [приложение Б](#appendix-b)")
+        return "; ".join(parts)
+
+    @staticmethod
+    def _req_head(x: Requirement) -> str:
+        parts = [x.id]
+        if x.source_id:
+            parts.append(x.source_id)
+        parts.append(_lines(x.line_start, x.line_end))
+        if x.page:
+            parts.append(f"страница {x.page}")
+        if x.section:
+            # Полный путь раздела есть в таблице нарезки, здесь хватает последнего уровня.
+            parts.append(x.section.split(" / ")[-1])
+        return " · ".join(parts)
+
     def requirements(self) -> None:
         self.add("## 3. Проверка каждого требования\n")
         self.add(
@@ -398,16 +479,32 @@ class _Report:
             f"{ICONS['unknown']} нельзя оценить по тексту. Шесть основных критериев показаны всегда, "
             "уместность уровня, атомарность и корректность только при нарушении.\n"
         )
+        quiet = [x for x in self.r.requirements if self._quiet(x)]
+        moved = [x for x in quiet if self._moved(x)]
+        noted = [x for x in quiet if x not in moved and self._notes(x, set())]
+        plain = [x for x in quiet if x not in moved and x not in noted]
+        # Требования без своих замечаний короче блока: строка со ссылкой на строки документа.
+        if plain:
+            items = ", ".join(f"{_target(x.id)}{x.id} ({_lines(x.line_start, x.line_end)})" for x in plain)
+            self.add(f"**Без замечаний, все критерии выполнены ({len(plain)}):** {items}.\n")
+        for title, group in (
+            ("Дефект описан в общем замечании, на которое ссылается строка", moved),
+            ("Без замечаний, с пометками к оценкам", noted),
+        ):
+            if not group:
+                continue
+            self.add(f"**{title} ({len(group)}):**\n")
+            for x in group:
+                tail = "; ".join(([self._moved(x)] if self._moved(x) else []) + self._notes(x, set()))
+                self.add(f"- {_target(x.id)}**{self._req_head(x)}**: {tail}.")
+            self.add("")
         for x in self.r.requirements:
-            self.requirement_block(x)
+            if x not in quiet:
+                self.requirement_block(x)
 
     def requirement_block(self, x: Requirement) -> None:
         r = self.r
-        head = f"{x.id} · ID в документе: {x.source_id or 'без номера'} · раздел {x.section or 'не указан'} · {_lines(x.line_start, x.line_end)}"
-        if x.page:
-            head += f" · страница {x.page}"
-        self.add(_target(x.id))
-        self.add(f"### {head}\n")
+        self.add(f"### {_target(x.id)}{self._req_head(x)}")
         if "\n" in x.quote.strip():
             self.add(_fenced(x.quote) + "\n")
         else:
@@ -415,54 +512,35 @@ class _Report:
         if x.id in r.unreviewed:
             self.add("Требование не проверено: модель не вернула по нему результат.\n")
             return
-        findings = self.req_findings.get(x.id, [])
-        shown = [f for f in findings if _active(f)]
-        checks = {c.criterion: c for c in r.checks.get(x.id, [])}
-        visible = [c for c in REQ_CRITERIA if c.group == "core" or checks.get(c.code) and checks[c.code].status == "fail"]
-        if not shown and all(checks.get(c.code) is None or checks[c.code].status == "pass" for c in REQ_CRITERIA):
-            marks = " ".join(f"{ICONS['pass']} {c.short}" for c in visible)
-            self.add(f"Замечаний нет: {marks}\n")
-            return
-        # Оценки одной строкой. Пояснение печатается только там, где его не даёт дефект ниже:
-        # у «не применим», «нельзя оценить» и у нарушения, дефект по которому слит или снят.
-        statuses = {c.code: (checks[c.code].status if checks.get(c.code) else "pass") for c in visible}
-        self.add("Оценки: " + " ".join(f"{ICONS[statuses[c.code]]} {c.short}" for c in visible))
-        explained = {f.criterion for f in shown}
-        for c in visible:
-            status = statuses[c.code]
-            if status == "pass" or (status == "fail" and c.code in explained):
-                continue
-            check = checks.get(c.code)
-            note = check.note if check and check.note else STATUS_RU[status]
-            self.add(f"- {ICONS[status]} {c.name}: {_one_line(note)}")
+        shown = [f for f in self.req_findings.get(x.id, []) if _active(f)]
+        visible, st = self._statuses(x)
+        self.add("Оценки: " + " ".join(f"{ICONS[st['statuses'][c.code]]} {c.short}" for c in visible))
+        for note in self._notes(x, {f.criterion for f in shown}):
+            self.add(f"- {note}")
         self.add("")
         for f in shown:
             self.defect(f)
-        moved = []
-        for f in findings:
-            if f.status == "merged" and f.merged_into and f.critic_reason:
-                moved.append(f"- {_link(f.id)} [{f.severity}] {_criterion(f.criterion)}: тот же дефект, что {_link(f.merged_into)}, слито критиком.")
-            elif f.status == "merged" and f.merged_into:
-                moved.append(f"- {_link(f.id)} [{f.severity}] {_criterion(f.criterion)}: повторяется в нескольких требованиях, см. {_link(f.merged_into)}.")
-            elif not _active(f):
-                moved.append(f"- {_link(f.id)} снято: {FINDING_STATUS_RU.get(f.status, f.status)}, см. [приложение Б](#appendix-b).")
+        moved = self._moved(x)
         if moved:
-            self.out.extend(moved)
-            self.add("")
+            self.add(f"{moved[0].upper()}{moved[1:]}.\n")
         if x.id in r.rewritten:
             self.add(f"**Готовая формулировка:** {_one_line(r.rewritten[x.id])}\n")
 
     def defect(self, f: Finding) -> None:
         quotes = "; ".join(_evidence(e) for e in _found(f.evidence))
         quote = f" Цитата: {quotes}." if quotes else ""
-        impact = f" Последствие: {f.impact}" if f.impact else ""
+        # У MINOR последствие почти всегда общее («трудно проверить»), оно только удлиняет отчёт.
+        impact = f" Последствие: {f.impact}" if f.impact and f.severity != "MINOR" else ""
         self.add(f"{_target(f.id)}**{f.id} [{f.severity}] {_criterion(f.criterion)}.** {f.problem}{quote}{impact}")
         others = [i for i in f.req_ids[1:] if i in self.reqs]
         if others:
             self.add(f"- Тот же дефект: {_links(others)}.")
         self.critic_line(f)
         self.question_line(f)
-        self.add(f"- Как исправить: {f.recommendation}\n")
+        # Готовая формулировка ниже уже показывает исправление: отдельный совет не повторяем.
+        if not (f.req_ids and f.req_ids[0] in self.r.rewritten):
+            self.add(f"- Как исправить: {f.recommendation}")
+        self.add("")
 
     def critic_line(self, f: Finding) -> None:
         absorbed = self.absorbed.get(f.id)
@@ -477,6 +555,10 @@ class _Report:
         if f.question:
             see = f" См. {_link(f.question_id)}." if f.question_id else ""
             self.add(f"- Вопрос {_addressee(f.addressee)}: {f.question}{see}")
+        elif f.question_id:
+            q = self.questions.get(f.question_id)
+            text = f" {q.text}" if q else ""
+            self.add(f"- Вопрос {_addressee(q.addressee if q else None)}:{text} См. {_link(f.question_id)}.")
 
     # ---------- 4. набор ----------
 
@@ -510,26 +592,25 @@ class _Report:
                 self.set_finding(f)
 
     def set_finding(self, f: Finding) -> None:
-        self.add(_target(f.id))
-        self.add(f"#### {f.id} [{f.severity}] {f.title or _criterion(f.criterion)}\n")
-        meta = f"- Вид: {KIND_RU.get(f.kind, f.kind)}. Критерий: {_criterion(f.criterion)}."
+        self.add(f"#### {_target(f.id)}{f.id} [{f.severity}] {f.title or _criterion(f.criterion)}")
+        meta = [KIND_RU.get(f.kind, f.kind).capitalize(), _criterion(f.criterion)]
         req_ids = [i for i in f.req_ids if i in self.reqs]
         if req_ids:
-            meta += f" Требования: {_links(req_ids)}."
+            meta.append(_links(req_ids))
         if f.section:
-            meta += f" Раздел: {_no_dot(f.section)}."
-        self.add(meta)
+            meta.append(f"раздел «{_no_dot(f.section)}»")
+        self.add(f"- {' · '.join(meta)}.")
         if f.places:
             self.add(f"- Места: {'; '.join(f.places)}.")
         found = _found(f.evidence)
-        for e in found:
-            self.add(f"- Цитата: {_evidence(e)}")
-        if not found:
+        if found:
+            label = "Цитата" if len(found) == 1 else "Цитаты"
+            self.add(f"- {label}: " + "; ".join(_evidence(e) for e in found) + ".")
+        else:
             self.add("- Цитаты нет: в документе этих сведений нет.")
-        self.add(f"- Что не так: {f.problem}")
+        impact = f" Последствие: {f.impact}" if f.impact and f.severity != "MINOR" else ""
+        self.add(f"- Что не так: {f.problem}{impact}")
         self.critic_line(f)
-        if f.impact:
-            self.add(f"- Последствие: {f.impact}")
         self.question_line(f)
         self.add(f"- Как исправить: {f.recommendation}\n")
 
@@ -571,7 +652,7 @@ class _Report:
             for f in group:
                 used.add(f.id)
                 number += 1
-                self.add(f"{number}. {_link(f.id)} · {_where_finding(f, self.reqs)} · {_one_line(f.title or f.problem, 200)}")
+                self.add(f"{number}. {_link(f.id)} · {_where_finding(f, self.reqs)} · {_gist(f, 200)}")
             self.add("")
 
     # ---------- 6. вердикт ----------
@@ -618,9 +699,8 @@ class _Report:
                 self.question(q)
 
     def question(self, q: Question) -> None:
-        self.add(_target(q.id))
-        self.add(f"#### {q.id} · {_addressee(q.addressee)} · {_blocks_label(q, self.by_id)}\n")
-        self.add(q.text + "\n")
+        self.add(f"#### {_target(q.id)}{q.id} · {_addressee(q.addressee)} · {_blocks_label(q, self.by_id)}")
+        self.add(f"**{q.text}**")
         for line in _question_body(q):
             self.add(line)
         self.add(f"- Закрывает замечания: {_links(q.finding_ids)}.\n")
@@ -650,10 +730,9 @@ class _Report:
                 reason += f" {_link(f.merged_into)}"
             if f.critic_reason:
                 reason += f": {_no_dot(f.critic_reason)}"
-            self.add(_target(f.id))
             self.add(
-                f"- **{f.id} [{f.severity}] {_criterion(f.criterion)}** · {_where_finding(f, self.reqs)} · "
-                f"{_no_dot(_one_line(f.title or f.problem, 200))}. Причина: {reason}."
+                f"- {_target(f.id)}**{f.id} [{f.severity}] {_criterion(f.criterion)}** · {_where_finding(f, self.reqs)} · "
+                f"{_no_dot(_gist(f, 200))}. Причина: {reason}."
             )
             # У слитого цитаты уже стоят у цели слияния. Здесь они нужны там, где замечание снято или не подтверждено.
             if f.status != "merged":
@@ -678,10 +757,12 @@ class _Report:
 def _question_body(q: Question) -> list[str]:
     """Общая часть вопроса для отчёта и для report.questions.md."""
     rows: list[str] = []
-    if q.quotes:
-        rows.append("- Сейчас в документе: " + "; ".join(_evidence(e) for e in q.quotes) + ".")
-        if q.doc_says:
-            rows.append(f"- Коротко: {q.doc_says}")
+    quotes = distinct_quotes(q.quotes)
+    if quotes:
+        rows.append("- Сейчас в документе: " + "; ".join(_evidence(e) for e in quotes) + ".")
+        # Суть от модели печатается, только если она добавляет что-то к цитатам, а не пересказывает их.
+        if q.doc_says and not _repeats_quotes(q.doc_says, quotes):
+            rows.append(f"- Суть: {q.doc_says}")
     elif q.doc_says:
         rows.append(f"- Сейчас в документе: {q.doc_says}")
     else:
@@ -691,7 +772,7 @@ def _question_body(q: Question) -> list[str]:
         for number, option in enumerate(q.options, start=1):
             rows.append(f"  {number}. {option.answer.rstrip('.')}. Последствие: {option.consequence}")
     if q.recommended:
-        why = f", потому что {q.why_recommended[0].lower()}{q.why_recommended[1:]}" if q.why_recommended else ""
+        why = f", потому что {_no_dot(_sentence_case(q.why_recommended))}." if q.why_recommended else "."
         rows.append(f"- Рекомендуем: вариант {q.recommended}{why}")
     if q.blocks:
         rows.append(f"- Без ответа нельзя: {q.blocks}")
@@ -714,12 +795,11 @@ def render_questions(result: RunResult) -> str:
     )
     order = list(ADDRESSEES)
     addressees = sorted({q.addressee for q in result.questions}, key=lambda a: order.index(a) if a in order else len(order))
-    number = 0
     for addressee in addressees:
         out.append(f"## Вопросы {_addressee(addressee)}\n")
         for q in sorted((q for q in result.questions if q.addressee == addressee), key=lambda q: -q.priority):
-            number += 1
-            out.append(f"### {number}. {q.text}\n")
+            # Номер тот же, что в отчёте: автор отвечает «Q-03: вариант 1», и ответ находится в обоих файлах.
+            out.append(f"### {q.id}. {q.text}\n")
             out.extend(_question_body(q))
             out.append("")
     return "\n".join(out)

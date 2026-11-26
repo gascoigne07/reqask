@@ -131,3 +131,37 @@ class TextIndex:
         if match.size >= max(MIN_FUZZY_LEN, int(FUZZY_SHARE * len(norm))):
             return self._line_at(span[0] + match.b)
         return None
+
+
+def distinct_quotes(evidence: list, limit: int | None = None) -> list:
+    """Подтверждённые цитаты без повторов, в исходном порядке.
+
+    Повтором считается цитата той же строки, которая после нормализации совпадает
+    с другой или целиком входит в неё («доступ запрещен» внутри «Ответ ... доступ запрещен.»).
+    Остаётся более длинная. Элементы: объекты с полями quote, line, status.
+    """
+    kept: list = []
+    keys: list[tuple[int, str]] = []
+    for e in evidence:
+        if getattr(e, "status", "exact") == "missing":
+            continue
+        key = (e.line or 0, normalize(clean_quote(e.quote)).rstrip(". "))
+        if not key[1]:
+            continue
+        if any(k[0] == key[0] and key[1] in k[1] for k in keys):
+            continue
+        # Новая цитата длиннее и содержит уже взятую: заменяет её на том же месте.
+        for i, k in enumerate(keys):
+            if k[0] == key[0] and k[1] in key[1]:
+                kept[i], keys[i] = e, key
+                break
+        else:
+            kept.append(e)
+            keys.append(key)
+    # После замены одна длинная цитата могла встать на два места.
+    out, seen = [], set()
+    for e, k in zip(kept, keys):
+        if k not in seen:
+            seen.add(k)
+            out.append(e)
+    return out[:limit] if limit else out

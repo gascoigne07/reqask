@@ -28,7 +28,7 @@ from pydantic import BaseModel
 from . import prompts
 from .config import Settings
 from .criteria import REQ_CODES, SET_CODES, SEVERITY_ORDER
-from .grounding import TextIndex, clean_quote
+from .grounding import TextIndex, clean_quote, distinct_quotes
 from .lint import lint
 from .llm import LLMError, LLMFatal, LLMTruncated
 from .loader import Document
@@ -115,6 +115,9 @@ def tidy(text: str | None) -> str | None:
     text = re.sub(r"(\d)\s+[\u2013\u2014]\s+(?=\w+-\d)", r"\1 - ", text)
     text = re.sub(r"\s+[\u2013\u2014]\s+", ", ", text)
     text = _RANGE_DASH_RE.sub(r"\1-\2", text)
+    # Разметка строк из промпта (L0068) в тексте модели: в отчёт идёт «строка 68». Короткие L68 не трогаем:
+    # в чужом документе это может быть обозначение, а не номер строки. Критик правится отдельно.
+    text = _plain_lines(text, padded_only=True)
     return text.replace("\u2014", "-").replace("\u2013", "-")
 
 
@@ -138,6 +141,28 @@ def _tidy_result(result: "RunResult") -> None:
         q.text, q.blocks, q.doc_says, q.why_recommended = tidy(q.text), tidy(q.blocks), tidy(q.doc_says), tidy(q.why_recommended)
         for o in q.options:
             o.answer, o.consequence = tidy(o.answer), tidy(o.consequence)
+
+
+_LINE_MARK = r"L0*\d+(?![\w-])"
+_LINE_MARK_RE = re.compile(
+    rf"(?<![\w-])(?P<pre>(?:в|на)\s+)?(?P<word>строк[а-я]*\s+)?(?P<marks>{_LINE_MARK}(?:\s*(?:,|и)\s*{_LINE_MARK})*)")
+
+
+def _plain_lines(text: str, padded_only: bool = False) -> str:
+    """Служебные номера строк из разметки промпта (L0068) в обычные слова: «в строке 68», «строки 68 и 72»."""
+
+    def repl(m: re.Match) -> str:
+        if padded_only and not re.fullmatch(r"(?:L0\d{3}(?:\s*(?:,|и)\s*)?)+", m.group("marks")):
+            return m.group(0)
+        numbers = [str(int(n)) for n in re.findall(r"L0*(\d+)", m.group("marks"))]
+        listed = numbers[0] if len(numbers) == 1 else ", ".join(numbers[:-1]) + " и " + numbers[-1]
+        if m.group("word"):
+            return f"{m.group('pre') or ''}{m.group('word')}{listed}"
+        if m.group("pre"):
+            return f"{m.group('pre')}{'строке' if len(numbers) == 1 else 'строках'} {listed}"
+        return f"{'строка' if len(numbers) == 1 else 'строки'} {listed}"
+
+    return _LINE_MARK_RE.sub(repl, text)
 
 
 def make_id(prefix: str, number: int, total: int) -> str:
@@ -544,7 +569,7 @@ class Pipeline:
                     # Ни подтверждённой цитаты, ни ссылки на требование или раздел: замечание без опоры на текст.
                     self.grounding.dropped_findings += 1
                     continue
-                if question is None and (kind == "gap" or item.severity != "MINOR"):
+                if question is None and item.severity != "MINOR":
                     self.quality.defects_without_question += 1
                 findings.append(
                     Finding(
@@ -748,7 +773,7 @@ class Pipeline:
         merges: dict[str, tuple[str, str]] = {}
         for fid, d in decisions.items():
             f = by_id[fid]
-            reason = " ".join(d.reason.split())
+            reason = _plain_lines(" ".join(d.reason.split()))
             if d.action == "keep":
                 f.status = "confirmed"
                 st.keep += 1
@@ -856,10 +881,13 @@ class Pipeline:
         out: FinalOut | None = None
         with_question = sum(1 for f in ranked if f.question and f.severity != "MINOR")
         limit = max(1, min(MAX_QUESTIONS, with_question))
+        # Документ целиком нужен, чтобы модель не спрашивала то, на что он уже отвечает. Длинный не передаём.
+        numbered = doc.numbered()
+        numbered = numbered if len(numbered) <= FULL_CONTEXT_CHARS else None
         for attempt in (1, 2):
             if self._blocked("итог"):
                 break
-            user = prompts.final_prompt(doc.name, len(requirements), ranked, decision, limit)
+            user = prompts.final_prompt(doc.name, len(requirements), ranked, decision, limit, numbered)
             try:
                 out = self.llm.complete_json("итог", prompts.SYSTEM, user, FinalOut, kind="verdict")
                 break
@@ -898,6 +926,9 @@ class Pipeline:
         # Противоречие с одной цитатой остаётся вопросом в группе «требует проверки» (К-06, О-09).
         questions += [self._fallback_question(f) for f in findings if f.status == "question_only" and f.question]
         questions = self._number_questions(questions, findings)
+        # Итоговый счётчик: CRITICAL и MAJOR, у которых нет ни своего вопроса, ни сводного.
+        self.quality.defects_without_question = sum(
+            1 for f in active if f.severity != "MINOR" and not f.question and not f.question_id)
 
         if fixes:
             verdict = self._verdict(
@@ -928,17 +959,8 @@ class Pipeline:
 
     @staticmethod
     def _quotes(linked: list[Finding], limit: int = 3) -> list[Evidence]:
-        quotes: list[Evidence] = []
-        seen: set[tuple[int, str]] = set()
-        for f in linked:
-            for e in f.evidence:
-                if e.status == "missing":
-                    continue
-                key = (e.line or 0, e.quote)
-                if key not in seen:
-                    seen.add(key)
-                    quotes.append(e)
-        return quotes[:limit]
+        """Цитаты связанных замечаний без повторов: часть строки, уже взятой целиком, не повторяется."""
+        return distinct_quotes([e for f in linked for e in f.evidence], limit)
 
     @staticmethod
     def _main_addressee(linked: list[Finding]) -> str:
