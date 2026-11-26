@@ -8,6 +8,7 @@
 
 from __future__ import annotations
 
+import re
 from collections import Counter
 
 from .criteria import (
@@ -53,6 +54,8 @@ FIRST_SCREEN_BLOCKERS = 5
 FIRST_SCREEN_BLOCKERS_ALL = 8
 FIRST_SCREEN_QUESTIONS = 5
 BLOCKER_TEXT = 160
+# Вопросы сгруппированы по адресату, а номер у вопроса один на оба файла: внутри группы номера идут не подряд.
+QUESTION_NUMBERS_NOTE = "Вопросы собраны по адресату, а номера идут по важности, поэтому внутри раздела номера не подряд."
 
 
 # ---------- мелкие помощники ----------
@@ -91,10 +94,34 @@ def _code(text: str) -> str:
 
 
 def _fenced(text: str) -> str:
-    fence = "```"
+    # Цитата с ``` внутри (кусок примера JSON) читается проще в блоке из тильд, чем в четырёх обратных кавычках.
+    fence = "```" if "```" not in text else "~~~"
     while fence in text:
-        fence += "`"
+        fence += fence[0]
     return f"{fence}text\n{text}\n{fence}"
+
+
+# Сокращения, после которых точка не конец предложения: «п. 5.2», «см. ниже», «стр. 3», «напр.».
+_ABBREVIATIONS = {
+    "п", "пп", "см", "стр", "напр", "рис", "табл", "разд", "гл", "ст", "им", "др", "пр", "мин", "сек",
+    "руб", "тыс", "млн", "млрд", "ок", "прим", "e.g", "i.e", "etc", "vs", "no", "fig", "sec",
+}
+
+
+def _first_sentence(text: str, limit: int) -> str:
+    """Первое предложение, если оно короче limit. Точка после сокращения или инициала предложение не кончает."""
+    start = 0
+    while True:
+        end = text.find(". ", start)
+        if not 0 < end < limit:
+            return text
+        word = text[:end].rsplit(None, 1)[-1].lower().lstrip("(«\"'") if text[:end].strip() else ""
+        following = text[end + 2: end + 3]
+        # Однобуквенное слово перед точкой: инициал, «т. е.», «т. д.», «г.». Строчная буква или цифра дальше: фраза продолжается.
+        if (len(word) == 1 and word.isalpha()) or word in _ABBREVIATIONS or following.islower() or following.isdigit():
+            start = end + 2
+            continue
+        return text[: end + 1]
 
 
 def _lines(start: int, end: int) -> str:
@@ -145,9 +172,7 @@ def _gist(f: Finding, limit: int = BLOCKER_TEXT) -> str:
     """Суть замечания одной фразой: заголовок, а если его нет, первое предложение описания."""
     text = " ".join((f.title or f.problem).split())
     if not f.title:
-        end = text.find(". ")
-        if 0 < end < limit:
-            text = text[: end + 1]
+        text = _first_sentence(text, limit)
     return _one_line(text, limit)
 
 
@@ -211,10 +236,20 @@ def _review_only_question(q: Question, by_id: dict[str, Finding]) -> bool:
 
 def _partial_verdict(v, with_reason: bool = True) -> str:
     """Пояснение к решению по неполным данным (К-10): почему решения нет или почему оно всё же принято."""
-    head = ("Решение не вынесено: отчёт неполный, а положительное решение по неполным данным не принимается."
-            if v.decision == "Не вынесен"
-            else "Решение принято по неполным данным: CRITICAL найден в проверенной части, остальное не проверено.")
-    return f"{head} {v.partial_reason}" if with_reason and v.partial_reason else head
+    # Слова «отчёт неполный» стоят в блоке над вердиктом и в начале причины: здесь их не повторяем.
+    # Своя причина (например, в документе нет требований) объясняет сама: общая фраза про неполные данные не нужна.
+    own = bool(v.partial_reason) and not v.partial_reason.startswith("Отчёт неполный")
+    if v.decision == "Не вынесен":
+        head = "Решение не вынесено." if own else "Решение не вынесено: положительное решение по неполным данным не принимается."
+    else:
+        head = "Решение принято по неполным данным: CRITICAL найден в проверенной части, остальное не проверено."
+    if not (with_reason and v.partial_reason):
+        return head
+    # Список шагов и отсылка к причине уже есть в блоке «Отчёт неполный» прямо над вердиктом.
+    reason = re.sub(r"\s*Шаги: .*?\)\.(?=\s|$)", "", v.partial_reason)
+    reason = re.sub(r"^Отчёт неполный\.\s*|\s*Причина в начале отчёта\.", "", reason).strip()
+    reason = re.sub(r"^Отчёт неполный: (\w)", lambda m: m.group(1).upper(), reason)
+    return f"{head} {reason}" if reason else head
 
 
 class _Report:
@@ -235,6 +270,35 @@ class _Report:
                 self.req_findings.setdefault(f.req_ids[0], []).append(f)
         self.questions = {q.id: q for q in result.questions}
         self.out: list[str] = []
+
+    def _has_defect(self, rid: str) -> bool:
+        """Есть действующее замечание или замечание, слитое критиком в другое (дефект описан там, но он есть)."""
+        return any(_active(f) or f.status == "merged" for f in self.req_findings.get(rid, []))
+
+    def _blocker_rows(self) -> list[tuple[Finding, list[str]]]:
+        """Блокеры для показа: D, который закрывает тот же вопрос, что блокер S, и цитирует только его строки,
+        идёт при S одной строкой («вместе с D-13»). Счётчик CRITICAL от этого не меняется."""
+        blockers = [self.by_id[i] for i in self.r.verdict.blockers if i in self.by_id]
+
+        def lines(f: Finding) -> set[int]:
+            return {e.line for e in f.evidence if e.line and e.status != "missing"}
+
+        joined: dict[str, list[str]] = {}
+        for d in blockers:
+            if d.scope != "requirement" or not d.question_id or not lines(d):
+                continue
+            host = next((s for s in blockers if s.scope == "set" and s.question_id == d.question_id
+                         and lines(d) <= lines(s)), None)
+            if host:
+                joined.setdefault(host.id, []).append(d.id)
+        inside = {i for ids in joined.values() for i in ids}
+        return [(f, joined.get(f.id, [])) for f in blockers if f.id not in inside]
+
+    def _blocker_line(self, f: Finding, joined: list[str], limit: int = BLOCKER_TEXT) -> str:
+        gist = _gist(f, limit)
+        if joined:
+            gist = f"{_no_dot(gist)} (вместе с {_links(joined)})"
+        return f"{_link(f.id)} · {_where_finding(f, self.reqs)} · {gist}"
 
     def add(self, line: str = "") -> None:
         self.out.append(line)
@@ -258,7 +322,7 @@ class _Report:
         self.add(f"- Готовность к разработке: **{v.ready_for_development}**")
         self.add(f"- Готовность к тестированию: **{v.ready_for_testing}**")
         sev = Counter(f.severity for f in self.active)
-        with_defects = sum(1 for rid in self.reqs if any(_active(f) for f in self.req_findings.get(rid, [])))
+        with_defects = sum(1 for rid in self.reqs if self._has_defect(rid))
         self.add(
             f"- Требований: {len(self.reqs)}, с дефектами: {with_defects}. "
             f"Замечаний: CRITICAL {sev.get('CRITICAL', 0)}, MAJOR {sev.get('MAJOR', 0)}, MINOR {sev.get('MINOR', 0)}. "
@@ -270,11 +334,11 @@ class _Report:
         self.add("")
         if v.blockers:
             self.add("**Блокеры:**\n")
-            shown = len(v.blockers) if len(v.blockers) <= FIRST_SCREEN_BLOCKERS_ALL else FIRST_SCREEN_BLOCKERS
-            for fid in v.blockers[:shown]:
-                f = self.by_id[fid]
-                self.add(f"- {_link(fid)} · {_where_finding(f, self.reqs)} · {_gist(f)}")
-            rest = len(v.blockers) - shown
+            rows = self._blocker_rows()
+            shown = len(rows) if len(rows) <= FIRST_SCREEN_BLOCKERS_ALL else FIRST_SCREEN_BLOCKERS
+            for f, joined in rows[:shown]:
+                self.add(f"- {self._blocker_line(f, joined)}")
+            rest = len(rows) - shown
             if rest > 0:
                 self.add(f"- и ещё {rest}, полный список в [разделе 5](#summary)")
             self.add("")
@@ -316,8 +380,13 @@ class _Report:
         self.add(f"| Длительность | {r.duration_sec} с |")
         self.add(f"| Модель | {_cell(r.model)} (провайдер: {r.provider}) |")
         self.add(f"| Версия агента | {_cell(r.agent_version)} |")
-        mode = "только из кэша" if llm.calls and llm.cache_hits == llm.calls else (
-            "живой прогон" if not llm.cache_hits else "живой прогон, часть ответов из кэша")
+        # llm.calls считает только живые вызовы, ответы из кэша идут отдельно в cache_hits.
+        if llm.cache_hits and not llm.calls:
+            mode = "только из кэша"
+        elif llm.cache_hits:
+            mode = "живой прогон, часть ответов из кэша"
+        else:
+            mode = "живой прогон"
         self.add(f"| Режим | {mode}; формат ответа JSON: {r.json_mode or 'не известен'} |")
         self.add("| Стандарты | ISO/IEC/IEEE 29148:2018 п. 5.2.5 и 5.2.6; IEEE Std 830-1998 п. 4.3 |")
         self.add(f"| Обращений к модели | {llm.calls}, из кэша {llm.cache_hits}, повторов при сбоях {llm.retries} |")
@@ -332,7 +401,8 @@ class _Report:
             share = round(100 * q.in_requirements / q.content_lines)
             self.add(
                 f"| Покрытие нарезкой | строк с текстом {q.content_lines}, в требованиях {q.in_requirements} ({share}%), "
-                f"отмечены как не требования {q.skipped_by_model}, не разобраны {sum(b - a + 1 for a, b in r.uncovered_lines)} |"
+                f"отмечены как не требования {q.skipped_by_model} (заголовки, вводный текст, шаблоны, см. раздел 2), "
+                f"не разобраны {sum(b - a + 1 for a, b in r.uncovered_lines)} |"
             )
         if q.ids_in_document:
             lost = f", потеряны: {', '.join(q.ids_missing)}" if q.ids_missing else ", потерянных нет"
@@ -341,7 +411,8 @@ class _Report:
         self.add(
             f"| Цитаты | точных {g.exact}, нечётких {g.fuzzy}, не найдено {g.missing}; "
             f"замечаний в карантине {quarantine}, противоречий только с вопросом {g.question_only}, "
-            f"свёрнуто в системные {g.folded}, отброшено без опоры на текст {g.dropped_findings} |"
+            f"свёрнуто в системные {g.folded}, отброшено без опоры на текст {g.dropped_findings} "
+            f"(ни найденной цитаты, ни ссылки на требование или раздел; в отчёт не вошли) |"
         )
         c = r.critic
         if c.done:
@@ -367,10 +438,11 @@ class _Report:
             f"добавлено кодом для CRITICAL {q.questions_added} |"
         )
         if r.steps:
+            # Невключённые шаги (вне этой версии или выключенные флагом) видны в журнале шагов с причиной.
             st = Counter(s.status for s in r.steps)
             self.add(
                 f"| Шаги | выполнено {st.get('ok', 0)}, частично {st.get('degraded', 0)}, "
-                f"не выполнено {st.get('failed', 0)}, не включено {st.get('skipped', 0)} |"
+                f"не выполнено {st.get('failed', 0)} |"
             )
         hints = sum(len(x.lint_hints) for x in r.requirements)
         confirmed = sum(len(x.lint_confirmed) for x in r.requirements)
@@ -451,23 +523,27 @@ class _Report:
         statuses = {c.code: (checks[c.code].status if checks.get(c.code) else "pass") for c in REQ_CRITERIA}
         return visible, {"checks": checks, "statuses": statuses}
 
-    def _notes(self, x: Requirement, explained: set[str]) -> list[str]:
+    def _notes(self, x: Requirement, explained: set[str], with_na: bool = True) -> list[str]:
         """Пояснения к оценкам там, где их не даёт дефект: «не применим», «нельзя оценить», нарушение со слитым дефектом."""
         visible, st = self._statuses(x)
         notes = []
         for c in visible:
             status = st["statuses"][c.code]
-            if status == "pass" or (status == "fail" and c.code in explained):
+            # В короткой строке требования без замечаний «не применим» к примеру или схеме только шумит.
+            if status == "pass" or (status == "na" and not with_na) or (status == "fail" and c.code in explained):
                 continue
             check = st["checks"].get(c.code)
             notes.append(f"{ICONS[status]} {c.name}: {_no_dot(_one_line(check.note if check and check.note else STATUS_RU[status]))}")
         return notes
 
-    def _moved(self, x: Requirement) -> str:
-        """Замечания требования, которые критик слил или снял, одной строкой со ссылками."""
+    def _moved(self, x: Requirement, shown: frozenset[str] = frozenset()) -> str:
+        """Замечания требования, которые критик слил или снял, одной строкой со ссылками.
+        Слитое в замечание из shown не печатается: у цели уже стоит «Критик слил сюда»."""
         merged: list[str] = []
         other: dict[str, list[str]] = {}
         for f in self.req_findings.get(x.id, []):
+            if f.status == "merged" and f.merged_into in shown and f.id in self.absorbed.get(f.merged_into, []):
+                continue
             if f.status == "merged" and f.merged_into:
                 merged.append(f"{_link(f.id)} в {_link(f.merged_into)}")
             elif not _active(f):
@@ -500,13 +576,14 @@ class _Report:
             "уместность уровня, атомарность и корректность только при нарушении.\n"
         )
         quiet = [x for x in self.r.requirements if self._quiet(x)]
-        moved = [x for x in quiet if self._moved(x)]
-        noted = [x for x in quiet if x not in moved and self._notes(x, set())]
+        # Слитый дефект остаётся дефектом требования (так его считает и сводка); снятый критиком только пометка.
+        moved = [x for x in quiet if self._has_defect(x.id)]
+        noted = [x for x in quiet if x not in moved and (self._moved(x) or self._notes(x, set(), with_na=False))]
         plain = [x for x in quiet if x not in moved and x not in noted]
         # Требования без своих замечаний короче блока: строка со ссылкой на строки документа.
         if plain:
             items = ", ".join(f"{_target(x.id)}{x.id} ({_lines(x.line_start, x.line_end)})" for x in plain)
-            self.add(f"**Без замечаний, все критерии выполнены ({len(plain)}):** {items}.\n")
+            self.add(f"**Без замечаний, все применимые критерии выполнены ({len(plain)}):** {items}.\n")
         for title, group in (
             ("Дефект описан в общем замечании, на которое ссылается строка", moved),
             ("Без замечаний, с пометками к оценкам", noted),
@@ -515,7 +592,7 @@ class _Report:
                 continue
             self.add(f"**{title} ({len(group)}):**\n")
             for x in group:
-                tail = "; ".join(([self._moved(x)] if self._moved(x) else []) + self._notes(x, set()))
+                tail = "; ".join(([self._moved(x)] if self._moved(x) else []) + self._notes(x, set(), with_na=False))
                 self.add(f"- {_target(x.id)}**{self._req_head(x)}**: {tail}.")
             self.add("")
         for x in self.r.requirements:
@@ -540,7 +617,7 @@ class _Report:
         self.add("")
         for f in shown:
             self.defect(f)
-        moved = self._moved(x)
+        moved = self._moved(x, frozenset(f.id for f in shown))
         if moved:
             self.add(f"{moved[0].upper()}{moved[1:]}.\n")
         if x.id in r.rewritten:
@@ -644,7 +721,7 @@ class _Report:
         self.add('<a id="summary"></a>')
         self.add("## 5. Сводка\n")
         reviewed = [x for x in r.requirements if x.id not in r.unreviewed]
-        with_defects = [x for x in reviewed if any(_active(f) for f in self.req_findings.get(x.id, []))]
+        with_defects = [x for x in reviewed if self._has_defect(x.id)]
         sev = Counter(f.severity for f in self.active)
         self.add("| Показатель | Значение |")
         self.add("| :--- | :---: |")
@@ -661,21 +738,21 @@ class _Report:
         self.add(f"| Вопросов автору | {len(r.questions)} |")
         self.add("")
 
-        blockers = [self.by_id[i] for i in r.verdict.blockers if i in self.by_id]
+        rows = self._blocker_rows()
         self.add("### Блокеры\n")
-        if not blockers:
+        if not rows:
             self.add("Критичных замечаний нет.\n")
             return
         number, used = 0, set()
         for title, match in BLOCKER_GROUPS:
-            group = [f for f in blockers if f.id not in used and match(f)]
+            group = [(f, joined) for f, joined in rows if f.id not in used and match(f)]
             if not group:
                 continue
             self.add(f"**{title}**\n")
-            for f in group:
+            for f, joined in group:
                 used.add(f.id)
                 number += 1
-                self.add(f"{number}. {_link(f.id)} · {_where_finding(f, self.reqs)} · {_gist(f, 200)}")
+                self.add(f"{number}. {self._blocker_line(f, joined, 200)}")
             self.add("")
 
     # ---------- 6. вердикт ----------
@@ -709,6 +786,8 @@ class _Report:
             self.add("Сводные вопросы не сформированы, ниже вопросы из замечаний по убыванию критичности.\n")
         main = [q for q in r.questions if not _review_only_question(q, self.by_id)]
         review = [q for q in r.questions if _review_only_question(q, self.by_id)]
+        if len({q.addressee for q in main}) > 1:
+            self.add(f"{QUESTION_NUMBERS_NOTE}\n")
         order = list(ADDRESSEES)
         for addressee in sorted({q.addressee for q in main}, key=lambda a: order.index(a) if a in order else len(order)):
             group = sorted((q for q in main if q.addressee == addressee), key=lambda q: -q.priority)
@@ -817,6 +896,8 @@ def render_questions(result: RunResult) -> str:
         "Вопросы собраны агентом проверки требований. Под каждым вопросом: что сейчас написано в документе, "
         "варианты ответа и что изменится при каждом из них. Достаточно ответить номером варианта или своим текстом.\n"
     )
+    if len({q.addressee for q in result.questions}) > 1:
+        out.append(f"Номера те же, что в отчёте проверки. {QUESTION_NUMBERS_NOTE}\n")
     order = list(ADDRESSEES)
     addressees = sorted({q.addressee for q in result.questions}, key=lambda a: order.index(a) if a in order else len(order))
     for addressee in addressees:
