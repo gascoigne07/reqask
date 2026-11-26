@@ -829,6 +829,9 @@ def test_question_text_helpers():
     lost = Evidence(quote="нет такого", line=3, status="missing")
     assert distinct_quotes([part, long, other, lost]) == [long, other]
     assert _sentence_case("GET меняет данные") == "GET меняет данные" and _sentence_case("Так проще") == "так проще"
+    assert _sentence_case("В разделе статусов только 200") == "в разделе статусов только 200"
+    assert _sentence_case("Content-Type убирается") == "Content-Type убирается"
+    assert _sentence_case("Ф-3 задаёт максимум") == "Ф-3 задаёт максимум" and _sentence_case("") == ""
     q = Question(id="Q-01", text="Какой код?", addressee="architect", blocks="нельзя", finding_ids=["S-01"],
                  quotes=[long], doc_says="Ответ, если доступ к ресурсу запрещен", recommended=None)
     assert not any(row.startswith("- Суть:") for row in _question_body(q))

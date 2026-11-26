@@ -185,8 +185,12 @@ def _short_section(section: str | None) -> str:
 
 
 def _sentence_case(text: str) -> str:
-    """Первая буква строчная, если слово не аббревиатура (GET, HTTP остаются как есть)."""
-    if len(text) > 1 and text[0].isupper() and text[1].islower():
+    """Первая буква строчная, если первое слово обычное русское: «В разделе», «Так проще».
+
+    Аббревиатуры, идентификаторы и латинские имена остаются как есть (GET, HTTP, слово с дефисом или цифрой).
+    """
+    first = text.split(maxsplit=1)[0].rstrip(",:;") if text.strip() else ""
+    if first and re.fullmatch(r"[А-ЯЁ][а-яё]*", first):
         return text[0].lower() + text[1:]
     return text
 
