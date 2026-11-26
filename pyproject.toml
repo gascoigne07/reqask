@@ -7,8 +7,10 @@ license = "MIT"
 license-files = ["LICENSE"]
 requires-python = ">=3.10"
 dependencies = [
+    # Явно ради pdfminer (pdfplumber): без fonttools он пишет поток предупреждений о шрифтах при чтении PDF.
     "fonttools>=4.65.0",
-    "openai>=1.40",
+    # Верхняя граница по мажорной версии из uv.lock (3.59): путь через venv без lock не возьмёт 4.x.
+    "openai>=1.40,<4",
     "pdfplumber>=0.11.10",
     "pydantic>=2.6",
     "pypdf>=4.2",

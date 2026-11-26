@@ -1670,7 +1670,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "fonttools", specifier = ">=4.65.0" },
-    { name = "openai", specifier = ">=1.40" },
+    { name = "openai", specifier = ">=1.40,<4" },
     { name = "pdfplumber", specifier = ">=0.11.10" },
     { name = "pydantic", specifier = ">=2.6" },
     { name = "pypdf", specifier = ">=4.2" },
