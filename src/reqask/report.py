@@ -299,9 +299,11 @@ class _Report:
         return [(f, joined.get(f.id, [])) for f in blockers if f.id not in inside]
 
     def _blocker_line(self, f: Finding, joined: list[str], limit: int = BLOCKER_TEXT) -> str:
-        gist = _gist(f, limit)
+        # Заголовок замечания по набору идёт без точки, первое предложение замечания к требованию с точкой:
+        # в списке блокеров точка снимается у всех, чтобы строки выглядели одинаково.
+        gist = _no_dot(_gist(f, limit))
         if joined:
-            gist = f"{_no_dot(gist)} (вместе с {_links(joined)})"
+            gist = f"{gist} (вместе с {_links(joined)})"
         return f"{_link(f.id)} · {_where_finding(f, self.reqs)} · {gist}"
 
     def add(self, line: str = "") -> None:
