@@ -11,6 +11,8 @@
   и следующая со строчной буквы. Перенос слова через дефис склеивается без дефиса.
   Строки таблиц, пункты списков и заголовки не склеиваются.
 - Заголовки по шаблону «1.2 Название», «Раздел 3», «Приложение А».
+  «6. Название» с нумерованным списком «1. ...» под ним остаётся заголовком, если продолжает номер раздела.
+- Неизвестный глиф «(cid:N)» в начале строки становится маркером списка, в середине строки убирается.
 - Страницы без текста перечисляются; если их больше половины, это скан и чтение останавливается.
 """
 
@@ -73,8 +75,23 @@ def _ligatures(text: str) -> str:
     return LIGATURE_NAME_RE.sub(lambda m: m.group(1).replace("_", ""), text).translate(LIGATURE_CHARS)
 
 
+# Глиф без таблицы Unicode pdfminer отдаёт как «(cid:127)». В начале строки это почти всегда
+# маркер списка (шрифт Symbol в PDF из Word), в середине строки знак ничего не значит для текста.
+CID_RE = re.compile(r"\(cid:\d+\)")
+CID_START_RE = re.compile(r"^\s*(?:\(cid:\d+\)\s*)+")
+
+
+def _cid(text: str) -> str:
+    if "(cid:" not in text:
+        return text
+    text = CID_START_RE.sub("• ", text)
+    # Между двумя буквами или цифрами неизвестный глиф мог быть пробелом: слова не склеиваем.
+    text = re.sub(r"(?<=\w)(?:\(cid:\d+\))+(?=\w)", " ", text)
+    return CID_RE.sub("", text)
+
+
 def _clean(text: str) -> str:
-    text = LEADER_RE.sub(" ", _ligatures(text))
+    text = LEADER_RE.sub(" ", _ligatures(_cid(text)))
     # Выравнивание по ширине даёт двойные пробелы между словами.
     return re.sub(r"[ \t ]{2,}", " ", text.replace(" ", " ")).strip()
 
@@ -83,7 +100,7 @@ def _cell(value: str | None) -> str:
     """Перенос внутри ячейки склеивается пробелом, пустая ячейка остаётся пустой (Ч-03)."""
     if not value:
         return ""
-    return " ".join(_ligatures(value).split()).replace("|", "\\|")
+    return " ".join(_ligatures(_cid(value)).split()).replace("|", "\\|")
 
 
 def _table_lines(rows: list[list[str | None]], page: int) -> list[PdfLine]:
@@ -270,11 +287,29 @@ def _has_text(line: PdfLine) -> bool:
 _SIMPLE_ITEM_RE = re.compile(r"^\d{1,2}[.)]\s")
 
 
+def _item_no(text: str) -> int | None:
+    match = _SIMPLE_ITEM_RE.match(text)
+    return int(re.match(r"\d+", text).group()) if match else None
+
+
+def _section_before_list(no: int, prev: PdfLine | None, next_: PdfLine | None, last_top: int) -> bool:
+    """«6. Критерии приёмки», а под ним список «1. ...», «2. ...»: это заголовок раздела.
+    Номер продолжает предыдущий заголовок верхнего уровня, следующая строка не продолжает
+    нумерацию (не «7.»), предыдущая не стоит перед ним в той же нумерации (не «5.»)."""
+    if no != last_top + 1:
+        return False
+    if next_ is not None and _item_no(next_.text) == no + 1:
+        return False
+    return prev is None or _item_no(prev.text) != no - 1
+
+
 def _mark_headings(lines: list[PdfLine]) -> None:
     """Заголовки по шаблону после склейки строк. «1. Текст» рядом с «2. Текст» это список, а не заголовки.
+    Исключение: заголовок раздела, за которым сразу идёт нумерованный список (_section_before_list).
     Строка с числом в конце рядом с такой же строкой это оглавление с номерами страниц, а не заголовок.
     Сосед может быть длинным пунктом оглавления, который сам на заголовок не похож."""
     text_lines = [line for line in lines if line.kind == "text" and line.text]
+    last_top = 0  # номер последнего заголовка верхнего уровня вида «5» или «5.»
     for index, line in enumerate(text_lines):
         level = heading_level(line.text)
         if not level:
@@ -284,7 +319,12 @@ def _mark_headings(lines: list[PdfLine]) -> None:
             if any(_page_tail(n.text) for n in around):
                 continue
         if _SIMPLE_ITEM_RE.match(line.text):
-            neighbours = text_lines[max(0, index - 1):index] + text_lines[index + 1:index + 2]
-            if any(_SIMPLE_ITEM_RE.match(n.text) for n in neighbours):
+            prev = text_lines[index - 1] if index > 0 else None
+            next_ = text_lines[index + 1] if index + 1 < len(text_lines) else None
+            if (any(n is not None and _SIMPLE_ITEM_RE.match(n.text) for n in (prev, next_))
+                    and not _section_before_list(_item_no(line.text), prev, next_, last_top)):
                 continue
         line.kind, line.level = "heading", level
+        top = re.match(r"(\d{1,2})\.?\s", line.text)
+        if level == 1 and top:
+            last_top = int(top.group(1))
