@@ -75,17 +75,21 @@ _REQ_REF_RE = re.compile(r"REQ-?(\d+)", re.IGNORECASE)
 # Идентификатор требования в начале строки: «FR-1.», «**ФТ-2**», «| NFR-3.1 |». Буквы, дефис, номер.
 _DOC_ID_RE = re.compile(r"^[\s>|#*_`-]*\**([A-ZА-ЯЁ][A-Za-zА-Яа-яЁё]{0,7}-\d+(?:\.\d+)*)\**[.:)]?(?=[\s*|`]|$)")
 _ADDRESSEE_DEFAULT = "analyst"
+STEP_STATUS_WORD = {"failed": "не выполнен", "degraded": "частично"}
 
 # Критерии, без которых нельзя писать тесты: дефект CRITICAL по ним блокирует тестирование.
 TESTING_BLOCKERS = {"VERIFIABLE", "UNAMBIGUOUS", "COMPLETE", "SET_CONSISTENT", "SET_COMPLETE", "SET_VALIDATABLE"}
 DECISIONS = ("Не рекомендуется начинать", "Условно допускается", "Допускается")
+# Отчёт неполный и CRITICAL не найден: положительного решения быть не может (К-10).
+NO_DECISION, NOT_DEFINED = "Не вынесен", "Не определена"
 # Правило вердикта К-09. Печатается в отчёте как есть.
 DECISION_RULE = (
     "«Не рекомендуется начинать», если есть хотя бы одно замечание CRITICAL, которое не снято критиком "
     "и не ушло в карантин из-за ненайденной цитаты. «Условно допускается», если CRITICAL нет, но есть MAJOR. "
     "«Допускается», если есть только MINOR или замечаний нет. "
     "Готовность к тестированию считается отдельно: «Нет», если есть CRITICAL по проверяемости, однозначности, "
-    "полноте, согласованности или валидируемости; «Да, с оговорками», если есть другие CRITICAL или MAJOR; иначе «Да»."
+    "полноте, согласованности или валидируемости; «Да, с оговорками», если есть другие CRITICAL или MAJOR; иначе «Да». "
+    "Если отчёт неполный, а CRITICAL не найден, решение «Не вынесен», готовность «Не определена»."
 )
 # Потолок сводных вопросов в одном ответе модели: больше не влезает в лимит длины (живой прогон 26.11).
 MAX_QUESTIONS = 15
@@ -190,6 +194,7 @@ class Pipeline:
         self.log = log or (lambda _msg: None)
         self.failed_steps: list[str] = []
         self.unreviewed: list[str] = []
+        self.n_requirements = 0
         self.grounding = GroundingStats()
         self.quality = QualityStats()
         self.skipped: list[SkippedSpan] = []
@@ -908,10 +913,34 @@ class Pipeline:
 
     def _verdict(self, findings: list[Finding], **fields) -> Verdict:
         decision, dev, test, blockers = self.decide(findings)
+        partial = self._incomplete()
+        if partial:
+            # По неполным данным положительного решения нет; найденный CRITICAL решение «Не рекомендуется» оставляет.
+            if decision != DECISIONS[0]:
+                decision, dev, test = NO_DECISION, NOT_DEFINED, NOT_DEFINED
+            reason = self._incomplete_reason()
+            fields["rationale"] = f"{reason} {fields.get('rationale', '')}".strip()
+            fields["partial_reason"] = reason
         return Verdict(
             decision=decision, ready_for_development=dev, ready_for_testing=test, rule=DECISION_RULE,
-            blockers=blockers, critic_done=self.critic.done, partial=self._incomplete(), **fields,
+            blockers=blockers, critic_done=self.critic.done, partial=partial, **fields,
         )
+
+    def _incomplete_reason(self) -> str:
+        """Сколько требований проверено из скольких и какие шаги не выполнены, для обоснования вердикта."""
+        parts = []
+        if self.n_requirements:
+            checked = self.n_requirements - len(set(self.unreviewed))
+            parts.append(f"Отчёт неполный: проверено требований {checked} из {self.n_requirements}.")
+        else:
+            parts.append("Отчёт неполный.")
+        bad = [f"{st.number} «{st.name}» ({STEP_STATUS_WORD[st.status]})"
+               for st in self.steps if st.status in STEP_STATUS_WORD]
+        if bad:
+            parts.append("Шаги: " + "; ".join(bad) + ".")
+        if self.fatal:
+            parts.append("Причина в начале отчёта.")
+        return " ".join(parts)
 
     def _incomplete(self) -> bool:
         """Часть работы модели не выполнена: решение принято по неполным данным (К-10)."""
@@ -920,9 +949,9 @@ class Pipeline:
 
     def conclude(self, doc: Document, requirements: list[Requirement], findings: list[Finding]) -> tuple[Verdict, list[Question]]:
         """Шаг 8: один вызов даёт обоснование, первоочередные действия и сводные вопросы (К-08)."""
+        self.n_requirements = len(requirements)
         if not findings:
-            rationale = ("Агент не нашёл нарушений в той части, которую успел проверить. Отчёт неполный, "
-                         "решение может измениться после полной проверки." if self._incomplete()
+            rationale = ("Агент не нашёл нарушений в той части, которую успел проверить." if self._incomplete()
                          else "Агент не нашёл нарушений критериев качества.")
             verdict = self._verdict(findings, rationale=rationale, generated_by_model=False)
             return verdict, []
@@ -1224,7 +1253,7 @@ class Pipeline:
             [], rationale="Решение не принято: требования не выделены, проверка не проводилась.",
             generated_by_model=False, questions_by_model=False,
         )
-        verdict.decision, verdict.ready_for_development, verdict.ready_for_testing = "Не вынесен", "Не оценена", "Не оценена"
+        verdict.decision, verdict.ready_for_development, verdict.ready_for_testing = NO_DECISION, NOT_DEFINED, NOT_DEFINED
         verdict.partial = True
         return self._result(doc, agent_version, started, t0, [], [], {}, [], verdict)
 

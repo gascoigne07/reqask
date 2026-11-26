@@ -72,26 +72,32 @@ def _check_output(path: str) -> Path:
 
 
 def run_check(settings, log) -> int:
-    """--check: ключ, модель, режим JSON и уровень рассуждения одним вызовом (М-14)."""
+    """--check: ключ, модель, режим JSON и уровень рассуждения одним вызовом (М-14).
+
+    Идёт по той же цепочке моделей, что и прогон (М-10): основная не ответила, пробуется запасная.
+    """
     # Проверка короткая: ждать ответ дольше минуты нет смысла, зависшая модель должна быть видна сразу.
-    # Запасные модели здесь выключены: проверка должна честно сказать, отвечает ли названная модель.
-    fallbacks = [m for m in settings.fallback_models if m != settings.model]
-    llm = LLMClient(settings.with_overrides(timeout_sec=min(settings.timeout_sec, 60.0), fallback_models=()), log)
+    chain = [settings.model, *[m for m in settings.fallback_models if m != settings.model]]
+    llm = LLMClient(settings.with_overrides(timeout_sec=min(settings.timeout_sec, 60.0)), log)
     print(f"Провайдер: {settings.provider}. Модель: {settings.model}. Адрес: {settings.base_url or 'по умолчанию'}")
+    if len(chain) > 1:
+        print("Запасные модели: " + ", ".join(chain[1:]) + ".")
     try:
         info = llm.check()
     except LLMError as exc:
         print(f"Проверка не прошла: {exc}", file=sys.stderr)
-        if fallbacks:
-            print("При прогоне агент сам перейдёт на запасные модели: " + ", ".join(fallbacks)
-                  + ". Проверить любую из них: --check --model <имя>.", file=sys.stderr)
+        if len(chain) > 1:
+            print("Не ответила ни одна модель цепочки: " + ", ".join(chain) + ".", file=sys.stderr)
         return EXIT_NO_MODEL
-    print("Ключ принят, модель отвечает.")
+    answered = llm.model
+    print(f"Ключ принят, отвечает модель {answered}.")
+    if answered != settings.model:
+        print(f"Основная модель не отвечает, прогон пойдёт на {answered}.")
     print(f"Режим JSON: {info['json_mode']}. Уровень рассуждения: {info['reasoning']}. "
           f"Лимит вывода max_tokens: {'принят' if info['max_tokens'] else 'не принят'}.")
     print(f"Время вызова: {info['seconds']} с, токенов: {info['tokens']}.")
     for note in info["notes"]:
-        print(f"Отказ провайдера: {note}")
+        print(f"{'Переход' if 'перехожу на запасную' in note else 'Отказ провайдера'}: {note}")
     return EXIT_OK
 
 

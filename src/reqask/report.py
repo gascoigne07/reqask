@@ -209,8 +209,13 @@ def _review_only_question(q: Question, by_id: dict[str, Finding]) -> bool:
 # ---------- отчёт ----------
 
 
-PARTIAL_VERDICT = ("Решение принято по неполным данным: часть шагов с моделью не выполнена, "
-                   "после полной проверки оно может стать строже.")
+def _partial_verdict(v, with_reason: bool = True) -> str:
+    """Пояснение к решению по неполным данным (К-10): почему решения нет или почему оно всё же принято."""
+    head = ("Решение не вынесено: отчёт неполный, а положительное решение по неполным данным не принимается."
+            if v.decision == "Не вынесен"
+            else "Решение принято по неполным данным: CRITICAL найден в проверенной части, остальное не проверено.")
+    return f"{head} {v.partial_reason}" if with_reason and v.partial_reason else head
+
 
 class _Report:
     def __init__(self, result: RunResult):
@@ -246,7 +251,7 @@ class _Report:
         self.incomplete_block()
         self.add(f"**Вердикт: {v.decision}.**")
         if v.partial:
-            self.add(PARTIAL_VERDICT)
+            self.add(_partial_verdict(v))
         if v.blockers and not v.critic_done:
             self.add("Критичные замечания не перепроверены отдельным шагом.")
         self.add("")
@@ -671,7 +676,7 @@ class _Report:
         self.add("## 6. Вердикт\n")
         self.add(f"**{v.decision}.**\n")
         if v.partial:
-            self.add(PARTIAL_VERDICT + "\n")
+            self.add(_partial_verdict(v, with_reason=False) + "\n")
         if v.blockers and not v.critic_done:
             self.add("Критичные замечания не перепроверены отдельным шагом.\n")
         self.add(f"Правило. {v.rule}\n")

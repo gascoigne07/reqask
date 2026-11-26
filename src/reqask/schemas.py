@@ -326,7 +326,7 @@ class Question(BaseModel):
     source: Literal["model", "fallback"] = "model"
 
 
-# «Не вынесен» только для отчёта без единого проверенного требования (К-10).
+# «Не вынесен»: отчёт неполный и CRITICAL не найден (К-10).
 Decision = Literal["Не рекомендуется начинать", "Условно допускается", "Допускается", "Не вынесен"]
 
 
@@ -347,6 +347,8 @@ class Verdict(BaseModel):
     questions_by_model: bool = True
     # Решение принято по неполным данным: часть шагов с моделью не выполнена (К-10).
     partial: bool = False
+    # Сколько требований проверено из скольких и какие шаги не выполнены; есть только при partial.
+    partial_reason: str | None = None
 
 
 class GroundingStats(BaseModel):

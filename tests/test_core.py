@@ -957,3 +957,64 @@ def test_blockers_set_first_and_all_on_first_screen_up_to_eight(doc):
     assert eight.index("[S-01]") < eight.index("[D-01]")
     nine = first_screen(7)
     assert nine.count("\n- ") + 1 == 6 and "- и ещё 4, полный список" in nine
+
+
+def test_check_walks_fallback_chain(client_with, capsys):
+    """--check идёт по цепочке моделей: ответила запасная, значит код 0 и строка о том, на чём пойдёт прогон."""
+    from reqask import cli
+
+    quota = [{"error": {"code": 429, "status": "RESOURCE_EXHAUSTED",
+                        "message": "Generate content requests per day limit exceeded on Free Tier"}}]
+    ok = _completion(json.dumps({"ok": True, "reply": "готово"}))
+    client, sent, _ = client_with(lambda b, n: (429, quota) if b["model"] == "m" else (200, ok), fallback_models=("b",))
+    assert cli.run_check(client.s, lambda m: None) == cli.EXIT_OK
+    out = capsys.readouterr().out
+    assert [b["model"] for b in sent] == ["m", "b"]
+    assert "Запасные модели: b." in out and "отвечает модель b" in out
+    assert "Основная модель не отвечает, прогон пойдёт на b." in out and "Переход: модель m" in out
+
+    client, sent, _ = client_with(lambda b, n: (429, quota), fallback_models=("b",))
+    assert cli.run_check(client.s, lambda m: None) == cli.EXIT_NO_MODEL
+    assert "Не ответила ни одна модель цепочки: m, b." in capsys.readouterr().err
+
+    client, sent, _ = client_with(lambda b, n: (200, ok))
+    assert cli.run_check(client.s, lambda m: None) == cli.EXIT_OK
+    out = capsys.readouterr().out
+    assert "отвечает модель m" in out and "Основная модель не отвечает" not in out
+
+
+def test_incomplete_report_has_no_positive_verdict(doc):
+    """К-10: неполный отчёт без CRITICAL даёт «Не вынесен» с причиной; найденный CRITICAL решение оставляет."""
+
+    class FatalReview(FakeLLM):
+        def __init__(self, set_answer=True):
+            super().__init__()
+            self.set_answer = set_answer
+
+        def complete_json(self, step, system, user, schema, kind=""):
+            if schema is BatchReviewOut:
+                raise LLMFatal("квота исчерпана", kind="quota")
+            return super().complete_json(step, system, user, schema, kind)
+
+    result = Pipeline(FatalReview(), SETTINGS).run(doc, "test")
+    v = result.verdict
+    assert v.partial and not any(f.severity == "CRITICAL" for f in result.findings)
+    assert (v.decision, v.ready_for_development, v.ready_for_testing) == ("Не вынесен", "Не определена", "Не определена")
+    assert v.partial_reason.startswith("Отчёт неполный: проверено требований 0 из 3.")
+    assert "«Проверка каждого требования» (не выполнен)" in v.partial_reason
+    report = render(result)
+    head = report.split("## 1.")[0]
+    assert "**Вердикт: Не вынесен.**" in head and "проверено требований 0 из 3" in head and "Допускается" not in head
+    assert v.rationale.startswith(v.partial_reason)
+
+    # Неполный отчёт, но CRITICAL найден: решение «Не рекомендуется начинать» остаётся.
+    class FatalCritic(FakeLLM):
+        def complete_json(self, step, system, user, schema, kind=""):
+            if schema is CriticOut:
+                raise LLMFatal("квота исчерпана", kind="quota")
+            return super().complete_json(step, system, user, schema, kind)
+
+    result = Pipeline(FatalCritic(), SETTINGS).run(doc, "test")
+    v = result.verdict
+    assert v.partial and v.decision == "Не рекомендуется начинать" and v.ready_for_development == "Нет"
+    assert "CRITICAL найден в проверенной части" in render(result).split("## 1.")[0]
