@@ -689,6 +689,32 @@ def test_truncated_critic_retries_once_with_low_effort(doc):
     assert result.critic.done and not result.failed_steps
 
 
+def test_failed_batch_logs_reason_kind_and_text(doc):
+    """Сбой порции пишет в журнал вид ошибки и короткий текст, а не только «сбой»."""
+    from reqask.pipeline import error_reason
+
+    class Broken(FakeLLM):
+        calls = 0
+
+        def complete_json(self, step, system, user, schema, kind="", **opts):
+            if schema is BatchReviewOut:
+                Broken.calls += 1
+                if Broken.calls == 1:
+                    raise LLMError(f"[{step}] модель не вернула валидный JSON: reviews.0.checks: field required")
+                if Broken.calls == 2:
+                    raise LLMTruncated(f"[{step}] ответ обрезан по лимиту длины")
+            return super().complete_json(step, system, user, schema, kind)
+
+    logs: list[str] = []
+    Pipeline(Broken(), SETTINGS, log=logs.append).run(doc, "test")
+    split = [m for m in logs if "делю порцию пополам" in m]
+    assert split and "(схема: модель не вернула валидный JSON: reviews.0.checks: field required)" in split[0]
+    assert "[" not in split[0].split("(", 1)[1]  # служебная метка шага срезана
+    assert any("не проверено (обрезка: ответ обрезан по лимиту длины)" in m for m in logs)
+    assert error_reason(LLMError("[итог] ошибка провайдера 500: " + "x" * 400)).startswith("другое: ошибка провайдера 500")
+    assert len(error_reason(LLMError("y" * 400))) <= len("другое: ") + 200
+
+
 def test_truncated_segmentation_chunk_is_split(tmp_path):
     """М-07: обрезанный ответ нарезки делит кусок пополам."""
     path = tmp_path / "long.md"

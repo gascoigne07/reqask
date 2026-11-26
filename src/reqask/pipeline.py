@@ -173,6 +173,23 @@ def _plain_lines(text: str, padded_only: bool = False) -> str:
     return _LINE_MARK_RE.sub(repl, text)
 
 
+_STEP_PREFIX_RE = re.compile(r"^\[[^\]]*\]\s*")
+
+
+def error_reason(exc: Exception, limit: int = 200) -> str:
+    """Причина сбоя для журнала: вид (обрезка, схема, другое) и короткий текст ошибки."""
+    text = _STEP_PREFIX_RE.sub("", " ".join(str(exc).split()))
+    if isinstance(exc, LLMTruncated):
+        kind = "обрезка"
+    elif "валидный JSON" in text:
+        kind = "схема"
+    else:
+        kind = "другое"
+    if len(text) > limit:
+        text = text[: limit - 3].rstrip() + "..."
+    return f"{kind}: {text}" if text else kind
+
+
 def make_id(prefix: str, number: int, total: int) -> str:
     """REQ-01, D-01: две цифры, три при числе больше 99 (К-03, О-03)."""
     return f"{prefix}-{number:0{3 if total > 99 else 2}d}"
@@ -265,10 +282,11 @@ class Pipeline:
                 return (self._segment_part(doc, start, mid, step + "a", whole, depth + 1)
                         + self._segment_part(doc, mid + 1, end, step + "b", whole, depth + 1))
             self.failed_steps.append(f"{step}: {exc}")
+            self.log(f"  {step}: сбой, строки {start}-{end} не нарезаны ({error_reason(exc)})")
             return []
         except LLMError as exc:
             self.failed_steps.append(f"{step}: {exc}")
-            self.log(f"  {step}: сбой, строки {start}-{end} не нарезаны")
+            self.log(f"  {step}: сбой, строки {start}-{end} не нарезаны ({error_reason(exc)})")
             return []
         for span in out.skipped:
             a, b = sorted((span.line_start, span.line_end))
@@ -391,12 +409,13 @@ class Pipeline:
         except LLMError as exc:
             if len(batch) > 1:
                 # Порция не прошла (обрезан ответ, битый JSON): делим пополам и пробуем снова.
-                self.log(f"  проверка {label}: сбой, делю порцию пополам")
+                self.log(f"  проверка {label}: сбой, делю порцию пополам ({error_reason(exc)})")
                 mid = len(batch) // 2
                 result = self._review_batch(doc, batch[:mid], label + "a", depth + 1)
                 result.update(self._review_batch(doc, batch[mid:], label + "b", depth + 1))
                 return result
             self.failed_steps.append(f"проверка {batch[0].id}: {exc}")
+            self.log(f"  проверка {label}: сбой, {batch[0].id} не проверено ({error_reason(exc)})")
             return {}
 
         wanted = {r.id: r for r in batch}
@@ -632,8 +651,10 @@ class Pipeline:
                     self.log(f"  {step}: ответ обрезан, повторяю с reasoning_effort=low")
                     continue
                 self.failed_steps.append(f"{step}: {exc}")
+                self.log(f"  {step}: сбой ({error_reason(exc)})")
             except LLMError as exc:
                 self.failed_steps.append(f"{step}: {exc}")
+                self.log(f"  {step}: сбой ({error_reason(exc)})")
                 return None
         return None
 
