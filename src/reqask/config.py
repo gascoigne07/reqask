@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass, replace
+from pathlib import Path
 
 from dotenv import load_dotenv
 
@@ -135,6 +136,8 @@ def _fallbacks(provider: str) -> tuple[str, ...]:
 
 
 def load_settings(env_file: str | None = None) -> Settings:
+    if env_file and not Path(env_file).is_file():
+        raise ConfigError(f"Файл настроек не найден: {env_file}. Укажите путь к файлу с ключом или уберите --env-file.")
     load_dotenv(env_file or ".env", override=False)
     provider, base_url, api_key, model = _provider()
 

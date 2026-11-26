@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import argparse
+import os
 import sys
 import time
+import traceback
 from collections import Counter
 from pathlib import Path
 
@@ -55,20 +57,24 @@ def _error(text: str) -> None:
 
 
 def _check_output(path: str) -> Path:
-    """Отчёт пишется только в Markdown (Ч-11). Папку создаём заранее, чтобы не потерять прогон на записи."""
+    """Отчёт пишется только в Markdown (Ч-11). Проверка идёт до чтения входа и до вызовов модели."""
     output = Path(path)
+    if output.is_dir():
+        raise ConfigError(f"«{output}» это папка, укажите файл, например {output / 'report.md'}")
     if output.suffix.lower() not in REPORT_SUFFIXES:
         raise ConfigError(
             f"отчёт пишется в Markdown, а указан файл «{output.name}». Укажите путь с расширением .md, "
             "например reports/report.md. Нужен PDF: откройте .md в редакторе или на GitHub и сохраните в PDF."
         )
-    if output.is_dir():
-        raise ConfigError(f"«{output}» это папка, укажите файл, например {output / 'report.md'}")
+    return output
+
+
+def _make_output_dir(output: Path) -> None:
+    """Папку отчёта создаём после чтения входа, но до вызовов модели, чтобы не потерять прогон на записи."""
     try:
         output.parent.mkdir(parents=True, exist_ok=True)
     except OSError as exc:
         raise ConfigError(f"не удалось создать папку для отчёта «{output.parent}»: {exc}") from exc
-    return output
 
 
 def run_check(settings, log) -> int:
@@ -102,6 +108,23 @@ def run_check(settings, log) -> int:
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Любая непредвиденная ошибка даёт сообщение и код 1, трассировка только при REQASK_DEBUG=1."""
+    try:
+        return _main(argv)
+    except KeyboardInterrupt:
+        print("Прогон прерван.", file=sys.stderr)
+        return EXIT_INTERRUPTED
+    except Exception as exc:  # noqa: BLE001  последний рубеж: человек видит причину, а не трассировку
+        debug = os.getenv("REQASK_DEBUG", "").strip() not in ("", "0")
+        if debug:
+            traceback.print_exc()
+        print(f"Внутренняя ошибка агента: {type(exc).__name__}: {exc}", file=sys.stderr)
+        if not debug:
+            print("Трассировка: запустите снова с REQASK_DEBUG=1.", file=sys.stderr)
+        return EXIT_NO_MODEL
+
+
+def _main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
     t0 = time.monotonic()
@@ -119,9 +142,13 @@ def main(argv: list[str] | None = None) -> int:
             parser.print_usage(sys.stderr)
             _error("нужны --input и --output (или --check для проверки ключа)")
             return EXIT_INPUT
+        if args.batch_size is not None and args.batch_size < 1:
+            _error(f"--batch-size должен быть 1 или больше, указано {args.batch_size}")
+            return EXIT_INPUT
         output = _check_output(args.output)
         doc = load_document(args.input)
         settings = load_settings(args.env_file).with_overrides(model=args.model, batch_size=args.batch_size)
+        _make_output_dir(output)
         if args.no_cache:
             settings = settings.with_overrides(cache_dir="")
         if args.no_critic:

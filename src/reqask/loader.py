@@ -121,7 +121,20 @@ class Document:
         return True
 
 
+# Метка порядка байтов: UTF-32 проверяется раньше UTF-16, у них общее начало FF FE.
+_BOMS = ((b"\xff\xfe\x00\x00", "utf-32"), (b"\x00\x00\xfe\xff", "utf-32"),
+         (b"\xff\xfe", "utf-16"), (b"\xfe\xff", "utf-16"))
+# Доля управляющих символов (кроме табуляции и переводов строк), выше которой текст считается двоичным.
+MAX_CONTROL_SHARE = 0.02
+
+
 def _decode(data: bytes) -> str:
+    for bom, encoding in _BOMS:
+        if data.startswith(bom):
+            try:
+                return data.decode(encoding)
+            except UnicodeDecodeError:
+                break
     for encoding in ("utf-8-sig", "cp1251"):
         try:
             return data.decode(encoding)
@@ -130,8 +143,22 @@ def _decode(data: bytes) -> str:
     return data.decode("utf-8", errors="replace")
 
 
-def _load_text(data: bytes) -> list[tuple[str, int | None]]:
-    return [(raw.rstrip(), None) for raw in _decode(data).splitlines()]
+def _looks_binary(text: str) -> bool:
+    """NUL или заметная доля управляющих символов: это не текст (архив, картинка, текст в UTF-16 без метки)."""
+    if "\x00" in text:
+        return True
+    control = sum(1 for ch in text if ord(ch) < 32 and ch not in "\t\n\r\f\v" or ch == "\ufffd")
+    return control > MAX_CONTROL_SHARE * max(1, len(text))
+
+
+def _load_text(data: bytes, path: Path) -> list[tuple[str, int | None]]:
+    text = _decode(data)
+    if _looks_binary(text):
+        raise LoadError(
+            f"Файл похож на двоичный, а не на текст: {path.name}. Передайте PDF, Markdown, DOCX или TXT "
+            "в кодировке UTF-8."
+        )
+    return [(raw.rstrip(), None) for raw in text.splitlines()]
 
 
 def _load_pdf(path: Path):
@@ -159,7 +186,13 @@ def _load_docx(path: Path) -> list[tuple[str, int | None]]:
     from docx.table import Table
     from docx.text.paragraph import Paragraph
 
-    document = docx.Document(str(path))
+    try:
+        document = docx.Document(str(path))
+    except Exception as exc:  # noqa: BLE001  python-docx бросает свои исключения на битых файлах
+        raise LoadError(
+            f"Не удалось разобрать DOCX, файл повреждён или это не DOCX: {path.name} ({type(exc).__name__}). "
+            "Откройте его в Word и сохраните заново как DOCX или PDF."
+        ) from exc
     rows: list[tuple[str, int | None]] = []
     for child in document.element.body.iterchildren():
         if child.tag.endswith("}p"):
@@ -181,9 +214,14 @@ def _load_docx(path: Path) -> list[tuple[str, int | None]]:
 
 def load_document(path: str | Path) -> Document:
     path = Path(path)
+    if path.is_dir():
+        raise LoadError(f"Это папка, укажите файл документа: {path}")
     if not path.is_file():
         raise LoadError(f"Файл не найден: {path}")
-    data = path.read_bytes()
+    try:
+        data = path.read_bytes()
+    except OSError as exc:
+        raise LoadError(f"Не удалось прочитать файл {path}: {exc.strerror or exc}") from exc
     if not data.strip():
         raise LoadError(f"Файл пуст: {path}")
 
@@ -194,17 +232,17 @@ def load_document(path: str | Path) -> Document:
                  for i, line in enumerate(pdf.lines, start=1)]
         return Document(path=path, fmt="pdf", lines=lines, sha256=hashlib.sha256(data).hexdigest(),
                         empty_pages=pdf.empty_pages, removed_headers=pdf.removed_headers)
-    if ext == ".doc":
-        raise LoadError("Старый формат .doc не поддерживается. Сохраните документ как DOCX или PDF.")
+    if ext in (".doc", ".rtf"):
+        raise LoadError(f"Формат {ext} не поддерживается. Сохраните документ как DOCX или PDF.")
     if ext == ".docx":
         fmt, rows = "docx", _load_docx(path)
     elif ext in TEXT_EXTENSIONS or not ext:
-        fmt, rows = (ext.lstrip(".") or "txt"), _load_text(data)
+        fmt, rows = (ext.lstrip(".") or "txt"), _load_text(data, path)
     else:
         # Незнакомое расширение читаем как текст, бинарные файлы отсекаем.
         if b"\x00" in data[:4096]:
             raise LoadError(f"Формат {ext} не поддерживается. Передайте PDF, Markdown, DOCX или TXT.")
-        fmt, rows = ext.lstrip("."), _load_text(data)
+        fmt, rows = ext.lstrip("."), _load_text(data, path)
 
     lines = [Line(no=i, text=text, page=page) for i, (text, page) in enumerate(rows, start=1)]
     if not any(line.text.strip() for line in lines):
