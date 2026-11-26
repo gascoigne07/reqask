@@ -532,6 +532,7 @@ class Pipeline:
         numbered = doc.numbered()
         # Заглушки ищем по всему документу: во вводной части и пустых разделах нарезка их не видит.
         marks = placeholders(doc.lines)
+        self._placeholder_marks = dict(marks)
         self.quality.placeholder_lines = [no for no, _ in marks]
         passes: list[tuple[str, Callable[[list[Finding]], str], tuple[str, ...]]] = [
             ("набор: согласованность", lambda _found: prompts.consistency_prompt(requirements, numbered),
@@ -1274,7 +1275,13 @@ class Pipeline:
 
     def _result(self, doc: Document, agent_version: str, started: datetime, t0: float, requirements: list[Requirement],
                 findings: list[Finding], rewritten: dict[str, str], questions: list[Question], verdict: Verdict) -> RunResult:
-        cited = {e.line for f in findings if f.status not in INACTIVE_STATUSES for e in f.evidence if e.status != "missing"}
+        # Строка с заглушкой засчитывается, только если цитата замечания содержит сам маркер:
+        # замечание про другое место той же строки заглушку не закрывает.
+        marks = getattr(self, "_placeholder_marks", {})
+        cited = {
+            e.line for f in findings if f.status not in INACTIVE_STATUSES for e in f.evidence
+            if e.status != "missing" and any(m.casefold() in e.quote.casefold() for m in marks.get(e.line, ()))
+        }
         self.quality.placeholder_lines_cited = [no for no in self.quality.placeholder_lines if no in cited]
         result = RunResult(
             document_name=doc.name,

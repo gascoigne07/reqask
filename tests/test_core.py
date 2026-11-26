@@ -837,7 +837,29 @@ def test_placeholders_outside_requirements_go_to_set_pass(doc):
     users = dict(zip(llm.steps, llm.users))
     assert f"- строка {no}: заполняется позже" in users["набор: полнота и остальные критерии"]
     assert "незаполненных мест" not in users["набор: согласованность"]
+    assert "его цитата содержит саму пометку" in " ".join(users["набор: полнота и остальные критерии"].split())
     assert f"строк с незаполненными местами (TODO, TBD и подобные) 1: {no}; есть в замечаниях 1" in render(result)
+
+
+def test_placeholder_counts_as_cited_only_when_quote_has_marker(tmp_path):
+    """Замечание про другое место той же строки заглушку не закрывает."""
+    path = tmp_path / "spec.md"
+    path.write_text(DOC.replace("заполняется позже", "Раздел готовит отдел качества, срок TBD"), encoding="utf-8")
+    doc = load_document(path)
+
+    class OtherQuote(FakeLLM):
+        def complete_json(self, step, system, user, schema, kind="", **opts):
+            if schema is SetReviewOut and "полнота" in step:
+                return SetReviewOut.model_validate({"analyses": [], "findings": [_set_finding(
+                    "gap", "SET_COMPLETE", "MAJOR", "Кто готовит раздел", ["Раздел готовит отдел качества"],
+                    question="Кто утверждает сценарии?")]})
+            return super().complete_json(step, system, user, schema, kind)
+
+    result = Pipeline(OtherQuote(), SETTINGS).run(doc, "test")
+    no = next(line.no for line in doc.lines if "срок TBD" in line.text)
+    assert result.quality.placeholder_lines == [no]
+    assert any(e.line == no for f in result.findings for e in f.evidence)
+    assert result.quality.placeholder_lines_cited == []
 
 
 def test_final_prompt_forbids_invented_numbers_in_options(doc):
