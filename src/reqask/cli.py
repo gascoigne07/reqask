@@ -11,7 +11,7 @@ from collections import Counter
 from pathlib import Path
 
 from .config import ConfigError, load_settings
-from .llm import LLMClient, LLMError, LLMFatal
+from .llm import LLMClient, LLMError, LLMFatal, redact
 from .loader import LoadError, load_document
 from .pipeline import DECISIONS, Pipeline
 from .schemas import INACTIVE_STATUSES, StepStat
@@ -137,7 +137,8 @@ def run_check(settings, log) -> int:
     # Проверка короткая: ждать ответ дольше минуты нет смысла, зависшая модель должна быть видна сразу.
     chain = [settings.model, *[m for m in settings.fallback_models if m != settings.model]]
     llm = LLMClient(settings.with_overrides(timeout_sec=min(settings.timeout_sec, 60.0)), log)
-    print(f"Провайдер: {settings.provider}. Модель: {settings.model}. Адрес: {settings.base_url or 'по умолчанию'}")
+    address = redact(settings.base_url, settings.api_key) if settings.base_url else "по умолчанию"
+    print(f"Провайдер: {settings.provider}. Модель: {settings.model}. Адрес: {address}")
     if len(chain) > 1:
         print("Запасные модели: " + ", ".join(chain[1:]) + ".")
     try:

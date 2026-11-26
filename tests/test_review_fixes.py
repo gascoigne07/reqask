@@ -210,3 +210,44 @@ def test_old_json_with_retired_steps_renders_without_them(doc):
     result.steps.append(StepStat(number="5в", name="Чек-лист ревью из документа", status="skipped", reason="желательная часть"))
     report = render(result)
     assert "желательная часть" not in report and "Чек-лист ревью" not in report and "не включён" not in report
+
+
+# ---------- 13. ключ не попадает в тексты ошибок и лог ----------
+
+
+from reqask.config import Settings  # noqa: E402
+
+KEY = "AIzaSy-secret-key-123456"
+
+
+def _client_with_key(client_with, handler, base_suffix=""):
+    probe, sent, _ = client_with(handler)
+    settings = Settings(provider="gemini", base_url=probe.s.base_url + base_suffix, api_key=KEY, model="m",
+                        cache_dir=None, max_retries=0)
+    logs: list[str] = []
+    client = LLMClient(settings, logs.append)
+    client._sleep = lambda _wait: None
+    return client, logs
+
+
+def test_key_in_provider_error_text_is_hidden(client_with):
+    client, logs = _client_with_key(client_with, lambda b, n: (401, error(401, f"invalid x-api-key {KEY}")))
+    with pytest.raises(LLMFatal) as info:
+        client.complete_json("шаг", "s", "u", OneOut, kind="review")
+    assert KEY not in str(info.value) and "***" in str(info.value) and info.value.kind == "auth"
+    client.log(f"строка лога с {KEY}")
+    assert logs and all(KEY not in m for m in logs)
+
+
+def test_key_in_base_url_is_hidden(client_with, capsys):
+    # Ответ без choices: текст ошибки называет адрес, а в адресе ключ.
+    client, _ = _client_with_key(client_with, lambda b, n: (200, {"page": "<html>"}), base_suffix=f"?key={KEY}")
+    with pytest.raises(LLMFatal) as info:
+        client.complete_json("шаг", "s", "u", OneOut, kind="review")
+    assert "LLM_BASE_URL" in str(info.value) and KEY not in str(info.value)
+
+    # --check на том же адресе: строка «Адрес:» и текст ошибки без ключа.
+    assert cli.run_check(client.s, lambda _m: None) == cli.EXIT_NO_MODEL
+    printed = capsys.readouterr()
+    assert "Адрес: " in printed.out and "key=***" in printed.out
+    assert KEY not in printed.out + printed.err and "Проверка не прошла" in printed.err

@@ -112,6 +112,17 @@ def _retry_after(error: Exception) -> float | None:
     return float(match.group(1)) if match else None
 
 
+# Короче ключ не прячем: тестовый «x» иначе съел бы все буквы x в тексте.
+MIN_SECRET_CHARS = 8
+
+
+def redact(text: str, secret: str | None) -> str:
+    """Ключ в тексте ошибки или в логе заменяется на ***: провайдер может вернуть адрес запроса с ключом."""
+    if secret and len(secret) >= MIN_SECRET_CHARS and secret in text:
+        return text.replace(secret, "***")
+    return text
+
+
 def extract_json(raw: str) -> str:
     """Достаёт JSON-объект из ответа: снимает ограждение ``` и текст вокруг."""
     text = raw.strip()
@@ -155,7 +166,8 @@ class _Ping(BaseModel):
 class LLMClient:
     def __init__(self, settings: Settings, log: Callable[[str], None] | None = None):
         self.s = settings
-        self.log = log or (lambda _msg: None)
+        raw_log = log or (lambda _msg: None)
+        self.log = lambda message: raw_log(redact(message, settings.api_key))
         self.stats = LLMStats()
         self._client = OpenAI(
             api_key=settings.api_key,
@@ -277,7 +289,16 @@ class LLMClient:
 
         step: подпись для лога. kind: вид шага, по нему берутся уровень рассуждения и лимит вывода.
         effort: уровень рассуждения вместо уровня шага (повтор после обрезки, М-07).
+        Все ошибки модели выходят наружу только отсюда: здесь из их текста убирается ключ.
         """
+        try:
+            return self._complete_json(step, system, user, schema, kind, effort, use_cache)
+        except LLMError as exc:
+            exc.args = tuple(redact(a, self.s.api_key) if isinstance(a, str) else a for a in exc.args)
+            raise
+
+    def _complete_json(self, step: str, system: str, user: str, schema: type[T], kind: str,
+                       effort: str | None, use_cache: bool) -> T:
         key = self._cache_key(system, user, schema, kind, effort)
         cached = self._cache_get(key, schema) if use_cache else None
         if cached is not None:
