@@ -20,7 +20,7 @@ GEMINI_MIN_INTERVAL_SEC = 4.0
 DEFAULT_CACHE_DIR = ".reqask_cache"
 # Запасные модели Gemini (М-10): квота бесплатного уровня считается отдельно по каждой модели,
 # а перегруженная модель отвечает 503. 26.11.2026 рабочие схемы приняты на gemini-3.6-flash.
-DEFAULT_GEMINI_FALLBACKS = ("gemini-3.6-flash", "gemini-3.7-flash")
+DEFAULT_GEMINI_FALLBACKS = ("gemini-3.6-flash", "gemini-3.7-flash", "gemini-3.5-flash")
 
 # Уровень рассуждения и лимит вывода по видам шагов. Лимит взят с запасом:
 # у Gemini токены рассуждения входят в лимит вывода. Числа начальные, уточняются по живым прогонам.

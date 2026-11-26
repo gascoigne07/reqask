@@ -529,7 +529,9 @@ class LLMClient:
                         "Подождите или смените модель/ключ и запустите снова: готовые шаги возьмутся из кэша.",
                         kind="rate",
                     )
-                raise LLMError(f"[{step}] не удалось получить ответ за {self.s.max_retries} повторов: {error}")
+                # У ошибки сервера причина лежит в теле ответа («high demand» у перегруженной модели Gemini).
+                reason = error_text(error)[:400] if isinstance(error, APIStatusError) else str(error)
+                raise LLMError(f"[{step}] модель {model} не ответила за {limit} повторов: {reason}")
             if wait is None:
                 # Сбой сервера, таймаут, обрыв связи: 2-60 секунд с удвоением.
                 wait = min(delay + random.uniform(0, 1), MAX_BACKOFF_SEC)
