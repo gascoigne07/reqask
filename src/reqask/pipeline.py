@@ -1,12 +1,19 @@
-"""Конвейер проверки.
+"""Конвейер проверки. Номера шагов те же, что в журнале прогона и в отчёте.
 
 Шаги:
-1. segment: модель размечает границы требований по номерам строк, цитаты вырезает код.
-2. review: проверка каждого требования порциями, с линтер-подсказками и контекстом.
-3. set review: два независимых прохода по набору (согласованность, полнота и остальное).
-4. grounding: сверка всех цитат с документом, непривязанные замечания отбрасываются.
-5. итог: решение считает правило (К-09), модель пишет обоснование, порядок исправлений
+0. Чтение документа: строки с номерами, разметка таблиц и заголовков (loader, pdfread).
+1-2. Структурные проверки и контекст документа: в этой версии не включены, словарь формулировок
+   (lint) работает внутри шагов 3 и 4.
+3. Нарезка: модель размечает границы требований по номерам строк, цитаты вырезает код.
+   Требование со своим идентификатором, которое модель пропустила, код добавляет сам.
+4. Проверка каждого требования порциями, с подсказками словаря и контекстом документа.
+5. Набор целиком: два независимых прохода (согласованность, затем полнота и остальное).
+6. Нумерация и свёртка замечаний. Цитаты модели сверяются с документом раньше, сразу при
+   разборе ответов шагов 4 и 5 (_ground); здесь в журнал идут итоговые счётчики сверки.
+7. Критик: второй ревьюер по CRITICAL и MAJOR (оставить, понизить, снять, слить).
+8. Итог: решение считает правило (К-09), модель пишет обоснование, порядок исправлений
    и сводные вопросы автору; ссылки, варианты, приоритет и цитаты вопросов проверяет код (К-08).
+9. Запись отчёта: делает командная строка (cli).
 
 Сбой одного шага не роняет прогон: порция делится пополам, непроверенное
 перечисляется в отчёте. Фатальная ошибка модели (квота, лимит) ловится на шаге:
@@ -28,7 +35,7 @@ from pydantic import BaseModel
 from . import prompts
 from .config import Settings
 from .criteria import REQ_CODES, SET_CODES, SEVERITY_ORDER
-from .grounding import TextIndex, clean_quote, distinct_quotes
+from .grounding import TextIndex, clean_quote, distinct_quotes, normalize
 from .lint import lint, placeholders
 from .llm import LLMError, LLMFatal, LLMTruncated
 from .loader import Document
@@ -76,6 +83,15 @@ _REQ_REF_RE = re.compile(r"REQ-?(\d+)", re.IGNORECASE)
 _DOC_ID_RE = re.compile(r"^[\s>|#*_`-]*\**([A-ZА-ЯЁ][A-Za-zА-Яа-яЁё]{0,7}-\d+(?:\.\d+)*)\**[.:)]?(?=[\s*|`]|$)")
 _ADDRESSEE_DEFAULT = "analyst"
 STEP_STATUS_WORD = {"failed": "не выполнен", "degraded": "частично"}
+# Названия шагов в журнале и отчёте. Шаг 6 не сверяет цитаты сам: сверка идёт при разборе ответов шагов 4 и 5.
+STEP_NAMES = {
+    "4": "Проверка каждого требования",
+    "5": "Набор требований целиком (два прохода)",
+    "6": "Нумерация и свёртка замечаний, итог сверки цитат",
+    "7": "Критик",
+    "8": "Итог и сводные вопросы",
+}
+NO_REQUIREMENTS = "В документе не найдено требований: все строки с текстом отмечены как не требования."
 
 # Критерии, без которых нельзя писать тесты: дефект CRITICAL по ним блокирует тестирование.
 TESTING_BLOCKERS = {"VERIFIABLE", "UNAMBIGUOUS", "COMPLETE", "SET_CONSISTENT", "SET_COMPLETE", "SET_VALIDATABLE"}
@@ -110,14 +126,40 @@ class JsonLLM(Protocol):
 
 
 _RANGE_DASH_RE = re.compile(r"(\w)\s*[\u2013\u2014]\s*(\w)")
+# Куски текста модели, где тире принадлежит документу: «цитата в ёлочках» и `код`.
+_KEEP_DASH_RE = re.compile(r"«[^«»\n]*»|`[^`\n]+`")
+_FENCE_LINE_RE = re.compile(r"^\s*(```|~~~)")
 
 
 def tidy(text: str | None) -> str | None:
     """Текст, который написала модель: без длинных и коротких тире (правило стиля отчёта).
 
-    Диапазон «1–64» становится «1-64», вставка « — » становится запятой. Цитаты документа
-    этой функцией не обрабатываются.
+    Диапазон «1–64» становится «1-64», вставка « — » становится запятой. Текст документа не
+    меняется: тире внутри «ёлочек», `кода`, блоков кода и строк таблицы остаются, строка из одного
+    тире (пустое значение) тоже. Цитаты замечаний этой функцией не обрабатываются.
     """
+    if not text:
+        return text
+    # Разметка строк из промпта (L0068) в тексте модели: в отчёт идёт «строка 68». Короткие L68 не трогаем:
+    # в чужом документе это может быть обозначение, а не номер строки. Критик правится отдельно.
+    text = _plain_lines(text, padded_only=True)
+    lines, fenced = [], False
+    for line in text.split("\n"):
+        if _FENCE_LINE_RE.match(line):
+            fenced = not fenced
+            lines.append(line)
+        elif fenced or line.lstrip().startswith("|") or re.fullmatch(r"\s*[\u2013\u2014-]\s*", line):
+            lines.append(line)
+        else:
+            parts, pos = [], 0
+            for m in _KEEP_DASH_RE.finditer(line):
+                parts += [_tidy_dashes(line[pos:m.start()]), m.group(0)]
+                pos = m.end()
+            lines.append("".join(parts) + _tidy_dashes(line[pos:]))
+    return "\n".join(lines)
+
+
+def _tidy_dashes(text: str) -> str:
     if not text:
         return text
     text = re.sub(r"(\d)\s*[\u2013\u2014]\s*(\d)", r"\1-\2", text)
@@ -125,9 +167,6 @@ def tidy(text: str | None) -> str | None:
     text = re.sub(r"(\d)\s+[\u2013\u2014]\s+(?=\w+-\d)", r"\1 - ", text)
     text = re.sub(r"\s+[\u2013\u2014]\s+", ", ", text)
     text = _RANGE_DASH_RE.sub(r"\1-\2", text)
-    # Разметка строк из промпта (L0068) в тексте модели: в отчёт идёт «строка 68». Короткие L68 не трогаем:
-    # в чужом документе это может быть обозначение, а не номер строки. Критик правится отдельно.
-    text = _plain_lines(text, padded_only=True)
     return text.replace("\u2014", "-").replace("\u2013", "-")
 
 
@@ -201,6 +240,16 @@ def _norm_doc_id(raw: str) -> str:
     return re.sub(r"\s+", "", (raw or "").strip().strip("*`.:)")).upper()
 
 
+def _with_trailing_dash(quote: str, line: str) -> str:
+    """Цитата обрывается перед тире, которым строка документа кончается («Адрес: —» как «Адрес:»):
+    тире возвращается, иначе пустое значение в документе выглядит обрезанной цитатой."""
+    q, full = normalize(quote), normalize(line)
+    raw = line.rstrip(" |*\t")
+    if q and raw and raw[-1] in "\u2014\u2013-" and full.endswith(q + " -") and not quote.rstrip().endswith(raw[-1]):
+        return f"{quote.rstrip()} {raw[-1]}"
+    return quote
+
+
 def _clip(text: str, limit: int = MAX_EVIDENCE_CHARS) -> str:
     text = " ".join(text.split())
     return text if len(text) <= limit else text[: limit - 3].rstrip() + "..."
@@ -217,6 +266,8 @@ class Pipeline:
         self.grounding = GroundingStats()
         self.quality = QualityStats()
         self.skipped: list[SkippedSpan] = []
+        # Куски документа, по которым нарезка получила ответ модели: только в них код добирает пропущенные идентификаторы.
+        self._seg_answered: list[tuple[int, int]] = []
         self.checks: dict[str, list[CriterionCheck]] = {}
         self.set_analyses: list[SetAnalysis] = []
         self._req_by_number: dict[int, str] = {}
@@ -248,7 +299,7 @@ class Pipeline:
         self.failed_steps.append(f"{step}: пропущено после фатальной ошибки модели")
         return True
 
-    # ---------- шаг 1: нарезка ----------
+    # ---------- шаг 3: нарезка ----------
 
     def _chunks(self, doc: Document) -> list[tuple[int, int]]:
         if doc.n <= SEG_CHUNK_LINES:
@@ -290,6 +341,7 @@ class Pipeline:
             self.failed_steps.append(f"{step}: {exc}")
             self.log(f"  {step}: сбой, строки {start}-{end} не нарезаны ({error_reason(exc)})")
             return []
+        self._seg_answered.append((start, end))
         for span in out.skipped:
             a, b = sorted((span.line_start, span.line_end))
             a, b = max(start, a), min(end, b)
@@ -304,7 +356,64 @@ class Pipeline:
             items.extend(self._segment_part(doc, start, end, f"нарезка {index}/{len(chunks)}", len(chunks) == 1))
         requirements = self._build_requirements(doc, items)
         self._check_ids(doc, requirements)
+        added = self._recover_ids(doc, requirements)
+        if added:
+            requirements = self._build_requirements(doc, items + added)
+            self._check_ids(doc, requirements)
         return requirements
+
+    def _recover_ids(self, doc: Document, requirements: list[Requirement]) -> list[SegItem]:
+        """Требование со своим идентификатором, которое нарезка пропустила, добавляет код (К-03).
+
+        Берётся первая строка с этим идентификатором, если она не заголовок, не входит в другое
+        требование и лежит в куске, по которому модель ответила (сбой нарезки так не маскируется). Конец: строка перед следующей строкой с идентификатором, заголовком, пустой
+        строкой, разметкой или уже выделенным требованием.
+        """
+        missing = set(self.quality.ids_missing)
+        if not missing:
+            return []
+        taken: set[int] = set()
+        for r in requirements:
+            taken.update(range(r.line_start, r.line_end + 1))
+        id_lines: set[int] = set()
+        starts: dict[str, tuple[int, str]] = {}
+        for line in doc.lines:
+            match = _DOC_ID_RE.match(line.text)
+            if not match:
+                continue
+            id_lines.add(line.no)
+            ident = _norm_doc_id(match.group(1))
+            answered = any(a <= line.no <= b for a, b in self._seg_answered)
+            if ident in missing and ident not in starts and answered and line.no not in taken \
+                    and not doc.is_heading(line.no):
+                starts[ident] = (line.no, match.group(1).strip("*`.:) "))
+        items: list[SegItem] = []
+        for ident, (start, raw) in starts.items():
+            end = start
+            while end < doc.n and doc.is_content(end + 1) and end + 1 not in taken and end + 1 not in id_lines:
+                end += 1
+            summary = re.sub(r"[*`_|#>]+", " ", doc.text(start, end))
+            items.append(SegItem(line_start=start, line_end=end, source_id=raw, section=doc.section_path(start),
+                                 kind="other", summary=_clip(summary, 150)))
+            self.quality.ids_added.append(raw)
+            self._unskip(start, end)
+        if items:
+            self.log(f"  нарезка: модель пропустила требования с идентификаторами, добавлены кодом: "
+                     f"{', '.join(self.quality.ids_added)}")
+        return items
+
+    def _unskip(self, start: int, end: int) -> None:
+        """Строки, ставшие требованием, убираются из списка пропущенных моделью."""
+        kept: list[SkippedSpan] = []
+        for span in self.skipped:
+            if span.line_end < start or span.line_start > end:
+                kept.append(span)
+                continue
+            if span.line_start < start:
+                kept.append(SkippedSpan(line_start=span.line_start, line_end=start - 1, reason=span.reason))
+            if span.line_end > end:
+                kept.append(SkippedSpan(line_start=end + 1, line_end=span.line_end, reason=span.reason))
+        self.skipped = kept
 
     def _check_ids(self, doc: Document, requirements: list[Requirement]) -> None:
         """Сверка нарезки с идентификаторами, найденными в документе кодом (К-03)."""
@@ -388,7 +497,7 @@ class Pipeline:
                 ranges.append((no, no))
         return ranges
 
-    # ---------- шаг 2: проверка каждого требования ----------
+    # ---------- шаг 4: проверка каждого требования ----------
 
     def _context(self, doc: Document, batch: list[Requirement]) -> tuple[str, bool]:
         full = doc.numbered()
@@ -547,7 +656,7 @@ class Pipeline:
                 confirmed.append(hint)
         return confirmed
 
-    # ---------- шаг 3: проверка набора ----------
+    # ---------- шаг 5: проверка набора ----------
 
     def review_set(self, doc: Document, requirements: list[Requirement], index: TextIndex) -> list[Finding]:
         numbered = doc.numbered()
@@ -660,7 +769,7 @@ class Pipeline:
                 return None
         return None
 
-    # ---------- шаг 4: сверка цитат ----------
+    # ---------- сверка цитат (вызывается из шагов 4 и 5) ----------
 
     def _norm_req_id(self, raw: str) -> str:
         """REQ-1, REQ-001, req01 приводятся к идентификатору из нарезки."""
@@ -687,7 +796,8 @@ class Pipeline:
                 found = index.find(quote, start, end)
                 if found is not None:
                     self.grounding.exact += 1
-                    return Evidence(quote=_clip(quote), line=found, status="exact")
+                    return Evidence(quote=_clip(_with_trailing_dash(quote, doc.line(found).text)), line=found,
+                                    status="exact")
             for start, end in [(r.line_start, r.line_end) for r in reqs] + [(None, None)]:
                 found = index.fuzzy(quote, start, end)
                 if found is not None:
@@ -709,7 +819,7 @@ class Pipeline:
                 evidence.append(item)
         return evidence
 
-    # ---------- свёртка одинаковых замечаний ----------
+    # ---------- шаг 6: свёртка одинаковых замечаний ----------
 
     @staticmethod
     def _fold_key(f: Finding) -> tuple[str, str]:
@@ -923,10 +1033,10 @@ class Pipeline:
         if not target.question and src.question:
             target.question, target.addressee = src.question, src.addressee
 
-    # ---------- шаг 5: итог ----------
+    # ---------- шаг 8: итог ----------
 
     @staticmethod
-    def decide(findings: list[Finding], critic_done: bool = False) -> tuple[str, str, str, list[str]]:
+    def decide(findings: list[Finding]) -> tuple[str, str, str, list[str]]:
         """Решение по правилу К-09, готовность к разработке и тестированию, блокеры.
 
         Снятые критиком, слитые, ушедшие в карантин и пониженные до вопроса замечания не считаются.
@@ -989,12 +1099,19 @@ class Pipeline:
     def conclude(self, doc: Document, requirements: list[Requirement], findings: list[Finding]) -> tuple[Verdict, list[Question]]:
         """Шаг 8: один вызов даёт обоснование, первоочередные действия и сводные вопросы (К-08)."""
         self.n_requirements = len(requirements)
-        if not findings:
-            rationale = ("Агент не нашёл нарушений в той части, которую успел проверить." if self._incomplete()
-                         else "Агент не нашёл нарушений критериев качества.")
-            verdict = self._verdict(findings, rationale=rationale, generated_by_model=False)
-            return verdict, []
         active = [f for f in findings if f.status not in INACTIVE_STATUSES]
+        if not active:
+            # Все замечания сняты критиком, слиты или без опоры на текст: модели не на что ссылаться (Н-3).
+            if findings:
+                rationale = "Подтверждённых нарушений нет: найденные замечания сняты критиком или не подтверждены цитатой."
+            elif self._incomplete():
+                rationale = "Агент не нашёл нарушений в той части, которую успел проверить."
+            else:
+                rationale = "Агент не нашёл нарушений критериев качества."
+            verdict = self._verdict(findings, rationale=rationale, generated_by_model=False)
+            # Противоречие с одной цитатой остаётся вопросом и здесь (К-06, О-09).
+            questions = [self._fallback_question(f) for f in findings if f.status == "question_only" and f.question]
+            return verdict, self._number_questions(questions, findings)
         ranked = sorted(active, key=lambda f: (SEVERITY_ORDER[f.severity], f.id))
         decision = self.decide(findings)[0]
         known = {f.id for f in ranked}
@@ -1170,10 +1287,18 @@ class Pipeline:
     @staticmethod
     def _number_questions(questions: list[Question], ranked: list[Finding]) -> list[Question]:
         by_id = {f.id: f for f in ranked}
-        # При равном весе раньше вопрос по замечанию набора (S): он про расхождение мест документа.
-        # Иначе решал бы порядок модели, а она идёт по списку, где D стоят выше S того же уровня.
-        questions.sort(key=lambda q: (-q.priority, not any(
-            by_id[fid].scope == "set" for fid in q.finding_ids if fid in by_id)))
+
+        def order(q: Question) -> tuple:
+            linked = [by_id[fid] for fid in q.finding_ids if fid in by_id]
+            active = [f for f in linked if f.status not in INACTIVE_STATUSES]
+            critical = [f for f in active if f.severity == "CRITICAL"]
+            # Первыми вопросы по противоречию мест документа уровня CRITICAL: без ответа нельзя реализовать
+            # ни одно из мест. Потом остальные с CRITICAL, потом по весу. При равном весе раньше вопрос по
+            # замечанию набора (S): иначе решал бы порядок модели, а у неё D стоят выше S того же уровня.
+            contradiction = any(f.scope == "set" and f.kind == "contradiction" for f in critical)
+            return (not contradiction, not critical, -q.priority, not any(f.scope == "set" for f in linked))
+
+        questions.sort(key=order)
         for number, q in enumerate(questions, start=1):
             q.id = make_id("Q", number, len(questions))
             for fid in q.finding_ids:
@@ -1228,28 +1353,30 @@ class Pipeline:
         mark = self._begin("3", f"Нарезка требований ({doc.n} строк)")
         requirements = self.segment(doc)
         if not requirements:
-            if not self.failed_steps:
-                self.failed_steps.append(
-                    "нарезка: модель не выделила ни одного требования; проверьте, что документ содержит требования")
-            self._end(mark, "требований не выделено", failed=True)
-            return self._partial_without_requirements(doc, agent_version, started, t0)
+            if self.failed_steps:
+                self._end(mark, "требований не выделено", failed=True)
+                return self._partial_without_requirements(doc, agent_version, started, t0, model_failed=True)
+            # Модель ответила, но требований в документе не нашла: это не сбой агента (С-4).
+            self._end(mark, "требований не выделено, все строки с текстом отмечены как не требования")
+            return self._partial_without_requirements(doc, agent_version, started, t0, model_failed=False)
         lost = f"; идентификаторы документа вне нарезки: {', '.join(self.quality.ids_missing)}" if self.quality.ids_missing else ""
-        self._end(mark, f"требований {len(requirements)}, пропущено фрагментов {len(self.skipped)}{lost}")
+        added = f"; добавлено кодом по идентификаторам: {', '.join(self.quality.ids_added)}" if self.quality.ids_added else ""
+        self._end(mark, f"требований {len(requirements)}, пропущено фрагментов {len(self.skipped)}{added}{lost}")
         index = TextIndex(doc)
 
-        mark = self._begin("4", "Проверка каждого требования")
+        mark = self._begin("4", STEP_NAMES["4"])
         req_findings, rewritten = self.review_requirements(doc, requirements, index)
         self._end(
             mark, f"дефектов {len(req_findings)}, без проверки {len(self.unreviewed)}",
             failed=len(self.unreviewed) == len(requirements),
         )
 
-        mark = self._begin("5", "Набор требований целиком (два прохода)")
+        mark = self._begin("5", STEP_NAMES["5"])
         set_findings = self.review_set(doc, requirements, index)
         self._end(mark, f"замечаний {len(set_findings)}, анализов по критериям {len(self.set_analyses)}")
         self._skip("5в", "Чек-лист ревью из документа", "желательная часть")
 
-        mark = self._begin("6", "Сверка цитат с документом")
+        mark = self._begin("6", STEP_NAMES["6"])
         order = {r.id: i for i, r in enumerate(requirements)}
         req_findings.sort(key=lambda f: (order[f.req_ids[0]], SEVERITY_ORDER[f.severity]))
         for number, finding in enumerate(req_findings, start=1):
@@ -1266,14 +1393,17 @@ class Pipeline:
         g = self.grounding
         self._end(
             mark,
-            f"цитат точных {g.exact}, нечётких {g.fuzzy}, не найдено {g.missing}; в карантине {g.quarantine}, "
-            f"противоречий только с вопросом {g.question_only}, свёрнуто в системные {g.folded}, "
-            f"отброшено без опоры {g.dropped_findings}",
+            f"замечаний {len(findings)}, свёрнуто в системные {g.folded}; сверка цитат на шагах 4 и 5: "
+            f"точных {g.exact}, нечётких {g.fuzzy}, не найдено {g.missing}; в карантине {g.quarantine}, "
+            f"противоречий только с вопросом {g.question_only}, отброшено без опоры {g.dropped_findings}",
         )
         if self.s.critic:
-            mark = self._begin("7", "Критик")
+            mark = self._begin("7", STEP_NAMES["7"])
             self.critique(doc, findings)
             c = self.critic
+            if not c.done and self.fatal is None:
+                # Вердикт от критика не зависит, но CRITICAL и MAJOR остались без второго взгляда (Н-3).
+                self.failed_steps.append("критик: замечания не перепроверены, вердикт посчитан без перепроверки критиком")
             self._end(
                 mark,
                 f"проверено {c.reviewed} (групп кандидатов на слияние {c.candidate_groups}): оставлено {c.keep}, понижено {c.downgraded}, снято {c.dropped}, "
@@ -1281,24 +1411,46 @@ class Pipeline:
                 failed=not c.done,
             )
         else:
-            self._skip("7", "Критик", "выключен (--no-critic или REQASK_CRITIC=0)")
+            self._skip("7", STEP_NAMES["7"], "выключен (--no-critic или REQASK_CRITIC=0)")
 
-        mark = self._begin("8", "Итог и сводные вопросы")
+        mark = self._begin("8", STEP_NAMES["8"])
         verdict, questions = self.conclude(doc, requirements, findings)
         tail = "" if verdict.questions_by_model else " (запасной путь: из полей замечаний)"
         self._end(mark, f"решение: {verdict.decision}; вопросов {len(questions)}{tail}")
 
         return self._result(doc, agent_version, started, t0, requirements, findings, rewritten, questions, verdict)
 
-    def _partial_without_requirements(self, doc: Document, agent_version: str, started: datetime, t0: float) -> RunResult:
-        """Нарезка не дала требований: отчёт из паспорта и причины (К-03, К-10)."""
-        for number, name in (("4", "Проверка каждого требования"), ("5", "Набор требований целиком (два прохода)"),
-                             ("6", "Сверка цитат с документом"), ("8", "Итог и сводные вопросы")):
-            self.steps.append(StepStat(number=number, name=name, status="failed", reason="нет требований после нарезки"))
-        verdict = self._verdict(
-            [], rationale="Решение не принято: требования не выделены, проверка не проводилась.",
-            generated_by_model=False, questions_by_model=False,
-        )
+    def _partial_without_requirements(self, doc: Document, agent_version: str, started: datetime, t0: float,
+                                      model_failed: bool = True) -> RunResult:
+        """Нарезка не дала требований: отчёт из паспорта и причины (К-03, К-10).
+
+        Сбой модели на нарезке: шаги 4-8 не выполнены. Модель ответила, но требований нет:
+        шаги 4-8 пропущены, причина в вердикте говорит про документ, а не про агента (С-4).
+        """
+        for number in ("4", "5", "6", "7", "8"):
+            if number == "7" and not self.s.critic:
+                self.steps.append(StepStat(number="7", name=STEP_NAMES["7"], status="skipped",
+                                           reason="выключен (--no-critic или REQASK_CRITIC=0)"))
+            elif model_failed:
+                self.steps.append(StepStat(number=number, name=STEP_NAMES[number], status="failed",
+                                           reason="нет требований после нарезки"))
+            else:
+                self.steps.append(StepStat(number=number, name=STEP_NAMES[number], status="skipped",
+                                           reason="в документе не найдено требований"))
+        if model_failed:
+            verdict = self._verdict(
+                [], rationale="Решение не принято: требования не выделены, проверка не проводилась.",
+                generated_by_model=False, questions_by_model=False,
+            )
+        else:
+            reason = NO_REQUIREMENTS
+            if self.uncovered(doc, []):
+                reason = "В документе не найдено требований: модель не выделила ни одного требования."
+            verdict = Verdict(
+                decision=NO_DECISION, ready_for_development=NOT_DEFINED, ready_for_testing=NOT_DEFINED,
+                rule=DECISION_RULE, rationale=f"{reason} Проверьте, что передан документ с требованиями.",
+                partial_reason=reason, generated_by_model=False, questions_by_model=False,
+            )
         verdict.decision, verdict.ready_for_development, verdict.ready_for_testing = NO_DECISION, NOT_DEFINED, NOT_DEFINED
         verdict.partial = True
         return self._result(doc, agent_version, started, t0, [], [], {}, [], verdict)

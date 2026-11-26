@@ -393,6 +393,8 @@ class QualityStats(BaseModel):
     # Сверка нарезки с идентификаторами, которые код нашёл в документе (К-03).
     ids_in_document: int = 0
     ids_missing: list[str] = Field(default_factory=list)
+    # Требования со своим идентификатором, которые нарезка пропустила и добавил код.
+    ids_added: list[str] = Field(default_factory=list)
     # Ответ модели прошёл схему, но элемент отброшен кодом (неверный код критерия, уровень и т.п.).
     dropped_defects: int = 0
     dropped_checks: int = 0

@@ -194,7 +194,11 @@ def _main(argv: list[str] | None = None) -> int:
     )
     print(f"Отчёт: {output}\nВопросы автору: {questions_path}")
     if is_incomplete(result):
-        print("Отчёт неполный: часть шагов не выполнена, причина в начале отчёта.", file=sys.stderr)
+        if not result.requirements and not result.failed_steps:
+            print("Требования не найдены: все строки с текстом отмечены как не требования. "
+                  "Проверьте, что передан документ с требованиями.", file=sys.stderr)
+        else:
+            print("Отчёт неполный: часть шагов не выполнена, причина в начале отчёта.", file=sys.stderr)
         return EXIT_PARTIAL
     if args.fail_on_critical and result.verdict.decision == DECISIONS[0]:
         return EXIT_CRITICAL
@@ -202,8 +206,8 @@ def _main(argv: list[str] | None = None) -> int:
 
 
 def is_incomplete(result) -> bool:
-    """Отчёт неполный (код 3): фатальная ошибка, сбой шага или требования без проверки."""
-    return bool(result.fatal or result.failed_steps or result.unreviewed
+    """Отчёт неполный (код 3): фатальная ошибка, сбой шага, требования без проверки или требований нет совсем."""
+    return bool(result.fatal or result.failed_steps or result.unreviewed or not result.requirements
                 or any(s.status in ("failed", "degraded") for s in result.steps))
 
 
