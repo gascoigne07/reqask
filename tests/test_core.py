@@ -867,6 +867,7 @@ def test_review_prompt_rewrites_in_language_of_requirement(doc):
     text = prompts.review_prompt(result.requirements[:1], doc.numbered(), True)
     rule = text[text.index("Язык rewritten"):]
     assert "язык текста этого требования" in rule and "<N seconds>" in rule
+    assert "каждую метку в угловых скобках пиши на том же языке, и короткую, и описательную" in " ".join(rule.split())
     assert "остальные поля ответа пиши по-русски" in rule
     assert "если задача прямо не велит для поля другой язык" in prompts.SYSTEM
 
