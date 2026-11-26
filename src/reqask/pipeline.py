@@ -902,7 +902,9 @@ class Pipeline:
             test = "Да, с оговорками"
         else:
             test = "Да"
-        return decision, dev, test, [f.id for f in critical]
+        # Блокеры: сначала замечания по набору, потом по требованиям, внутри в исходном порядке.
+        blockers = sorted(critical, key=lambda f: f.scope != "set")
+        return decision, dev, test, [f.id for f in blockers]
 
     def _verdict(self, findings: list[Finding], **fields) -> Verdict:
         decision, dev, test, blockers = self.decide(findings)

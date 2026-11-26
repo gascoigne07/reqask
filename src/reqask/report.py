@@ -48,7 +48,9 @@ BLOCKER_GROUPS = (
 )
 # Подраздел раздела 4 для системного замечания, свёрнутого из критерия отдельного требования.
 SYSTEM_GROUP = {"CONSISTENT": "consistency", "FEASIBLE": "feasibility", "CORRECT": "feasibility", "APPROPRIATE": "feasibility"}
+# Блокеры на первом экране: все, если их не больше FIRST_SCREEN_BLOCKERS_ALL, иначе первые FIRST_SCREEN_BLOCKERS.
 FIRST_SCREEN_BLOCKERS = 5
+FIRST_SCREEN_BLOCKERS_ALL = 8
 FIRST_SCREEN_QUESTIONS = 5
 BLOCKER_TEXT = 160
 
@@ -263,10 +265,11 @@ class _Report:
         self.add("")
         if v.blockers:
             self.add("**Блокеры:**\n")
-            for fid in v.blockers[:FIRST_SCREEN_BLOCKERS]:
+            shown = len(v.blockers) if len(v.blockers) <= FIRST_SCREEN_BLOCKERS_ALL else FIRST_SCREEN_BLOCKERS
+            for fid in v.blockers[:shown]:
                 f = self.by_id[fid]
                 self.add(f"- {_link(fid)} · {_where_finding(f, self.reqs)} · {_gist(f)}")
-            rest = len(v.blockers) - FIRST_SCREEN_BLOCKERS
+            rest = len(v.blockers) - shown
             if rest > 0:
                 self.add(f"- и ещё {rest}, полный список в [разделе 5](#summary)")
             self.add("")

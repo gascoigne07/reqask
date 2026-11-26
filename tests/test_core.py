@@ -260,7 +260,7 @@ def test_pipeline_end_to_end(doc):
     assert "Разное число книг" in llm.users[3]
 
     v = result.verdict
-    assert v.decision == "Не рекомендуется начинать" and v.blockers == ["D-01", "S-01"] and v.critic_done
+    assert v.decision == "Не рекомендуется начинать" and v.blockers == ["S-01", "D-01"] and v.critic_done
     assert v.ready_for_development == "Нет" and v.ready_for_testing == "Нет"
     assert [fix.finding_ids for fix in v.top_fixes] == [["S-01"]]
 
@@ -931,3 +931,29 @@ def test_critic_retries_once_for_findings_without_decision(doc):
     result = pipe2.run(doc, "test")
     result.critic = c
     assert report_row in render(result)
+
+
+def test_blockers_set_first_and_all_on_first_screen_up_to_eight(doc):
+    """Блокеры: S раньше D; на первом экране все, если их не больше восьми, иначе пять и ссылка."""
+    from reqask.schemas import Finding
+
+    def crit(fid):
+        return Finding(id=fid, scope="set" if fid.startswith("S") else "requirement", criterion="COMPLETE",
+                       severity="CRITICAL", title=f"суть {fid}", problem=f"п {fid}", recommendation="р",
+                       status="confirmed")
+
+    ids = ["D-01", "D-02", "S-01", "S-02", "S-03", "S-04", "S-05", "S-06"]
+    assert Pipeline.decide([crit(i) for i in ids])[3] == ids[2:] + ids[:2]
+
+    def first_screen(n_set):
+        result = Pipeline(FakeLLM(), SETTINGS).run(doc, "test")
+        result.findings = [crit("D-01"), crit("D-02")] + [crit(f"S-{i:02d}") for i in range(1, n_set + 1)]
+        result.verdict.blockers = Pipeline.decide(result.findings)[3]
+        report = render(result)
+        return report[report.index("**Блокеры:**"):report.index("**Блокеры:**") + 3000].split("\n\n")[1]
+
+    eight = first_screen(6)
+    assert eight.count("\n- ") + 1 == 8 and "и ещё" not in eight
+    assert eight.index("[S-01]") < eight.index("[D-01]")
+    nine = first_screen(7)
+    assert nine.count("\n- ") + 1 == 6 and "- и ещё 4, полный список" in nine
