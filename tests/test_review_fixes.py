@@ -251,3 +251,47 @@ def test_key_in_base_url_is_hidden(client_with, capsys):
     printed = capsys.readouterr()
     assert "Адрес: " in printed.out and "key=***" in printed.out
     assert KEY not in printed.out + printed.err and "Проверка не прошла" in printed.err
+
+
+# ---------- 3. контекст критика на длинном документе сохраняет строки ----------
+
+
+from reqask.schemas import Evidence, Finding  # noqa: E402
+
+
+def test_critic_context_of_long_document_keeps_lines(tmp_path):
+    from reqask.loader import load_document
+
+    path = tmp_path / "long.md"
+    path.write_text("\n".join(f"ФТ-{i}. Система должна обработать заявку номер {i} без ошибок." for i in range(1, 2001)),
+                    encoding="utf-8")
+    spec = load_document(path)
+    assert len(spec.numbered()) > 60_000
+    finding = Finding(scope="requirement", criterion="VERIFIABLE", severity="MAJOR", req_ids=["REQ-01"],
+                      evidence=[Evidence(quote="заявку номер 100", line=100, status="exact")], problem="п", recommendation="р")
+    text, full = Pipeline(FakeLLM(), SETTINGS)._critic_context(spec, [finding])
+    assert not full and text.count("\n") >= 16 and "заявку номер 100" in text
+
+
+# ---------- 4. добор по идентификатору только с известными префиксами ----------
+
+
+def test_id_recovery_only_for_known_prefixes(tmp_path):
+    from reqask.loader import load_document
+    from test_audit_fixes import _Seg, _settings
+
+    path = tmp_path / "spec.md"
+    path.write_text(
+        "# Требования\n\nФТ-5. Система хранит заказы.\nФТ-6. Система шлёт письмо.\nФТ-7. Система пишет журнал.\n\n"
+        "## Форматы\n\nUTF-8 используется для всех файлов.\n\nISO-8601 задаёт формат дат.\n\n"
+        "SHA-256 считается для каждого вложения.\n", encoding="utf-8")
+    spec = load_document(path)
+    seg = {"requirements": [
+        {"line_start": 3, "line_end": 3, "source_id": "ФТ-5", "section": "", "kind": "functional", "summary": "Заказы"},
+        {"line_start": 4, "line_end": 4, "source_id": "ФТ-6", "section": "", "kind": "functional", "summary": "Письмо"},
+    ], "skipped": []}
+    pipe = Pipeline(_Seg(seg), _settings())
+    reqs = pipe.segment(spec)
+    assert [r.source_id for r in reqs] == ["ФТ-5", "ФТ-6", "ФТ-7"]
+    assert pipe.quality.ids_added == ["ФТ-7"] and pipe.quality.ids_missing == []
+    assert not any(r.line_start >= 9 for r in reqs)  # строки UTF-8, ISO-8601, SHA-256 требованиями не стали

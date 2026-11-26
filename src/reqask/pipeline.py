@@ -247,6 +247,11 @@ def _norm_doc_id(raw: str) -> str:
     return re.sub(r"\s+", "", (raw or "").strip().strip("*`.:)")).upper()
 
 
+def _id_prefix(ident: str) -> str:
+    """Буквенная часть идентификатора: «ФТ-5» и «NFR-3.1» дают «ФТ» и «NFR»."""
+    return _norm_doc_id(ident).split("-", 1)[0]
+
+
 def _with_trailing_dash(quote: str, line: str) -> str:
     """Цитата обрывается перед тире, которым строка документа кончается («Адрес: —» как «Адрес:»):
     тире возвращается, иначе пустое значение в документе выглядит обрезанной цитатой."""
@@ -374,11 +379,15 @@ class Pipeline:
     def _recover_ids(self, doc: Document, requirements: list[Requirement]) -> list[SegItem]:
         """Требование со своим идентификатором, которое нарезка пропустила, добавляет код (К-03).
 
+        Добирается только идентификатор с префиксом, который уже есть у принятых требований.
         Берётся первая строка с этим идентификатором, если она не заголовок, не входит в другое
         требование и лежит в куске, по которому модель ответила (сбой нарезки так не маскируется). Конец: строка перед следующей строкой с идентификатором, заголовком, пустой
         строкой, разметкой или уже выделенным требованием.
         """
-        missing = set(self.quality.ids_missing)
+        # Добираем только идентификаторы с префиксом, который модель уже приняла у других требований:
+        # «UTF-8», «ISO-8601», «SHA-256» в начале строки похожи на идентификатор, но требованием не являются.
+        prefixes = {_id_prefix(r.source_id) for r in requirements if r.source_id}
+        missing = {i for i in self.quality.ids_missing if _id_prefix(i) in prefixes}
         if not missing:
             return []
         taken: set[int] = set()
@@ -434,6 +443,11 @@ class Pipeline:
                 if ident not in in_doc:
                     in_doc.append(ident)
         known = {_norm_doc_id(r.source_id) for r in requirements if r.source_id}
+        # «UTF-8» или «SHA-256» в начале строки не идентификатор требования: если модель приняла
+        # идентификаторы, считаем только с их префиксами. Не приняла ни одного: считаем все, это тоже сигнал.
+        prefixes = {_id_prefix(i) for i in known}
+        if prefixes:
+            in_doc = [i for i in in_doc if _id_prefix(i) in prefixes]
         self.quality.ids_in_document = len(in_doc)
         self.quality.ids_missing = [i for i in in_doc if i not in known]
 
@@ -908,7 +922,8 @@ class Pipeline:
                 spans.append([start, end])
         parts = [doc.numbered(a, b) for a, b in spans]
         text = "\n...\n".join(parts)
-        return _clip(text, FULL_CONTEXT_CHARS), False
+        # Строки с номерами должны остаться строками: _clip склеил бы их в одну.
+        return text[:FULL_CONTEXT_CHARS], False
 
     def critique(self, doc: Document, findings: list[Finding]) -> None:
         """Шаг 7 (К-07): второй ревьюер решает по каждому CRITICAL и MAJOR: keep, downgrade, drop, merge.
