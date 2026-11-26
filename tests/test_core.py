@@ -772,6 +772,15 @@ def test_final_prompt_marks_findings_without_question(doc):
     assert "Документ (слева номера строк)" in text and doc.numbered() in text
 
 
+def test_final_prompt_forbids_invented_numbers_in_options(doc):
+    """Числа, которого нет в документе, вариант ответа не выдаёт за готовый ответ."""
+    text = prompts.final_prompt("spec.md", 3, [], "решение", 5, doc.numbered())
+    rule = text[text.index("- Числа в вариантах."):]
+    rule = rule[:rule.index("\n- ")]
+    assert "только из документа" in rule
+    assert "«задать значение» с единицей измерения" in rule and "«например»" in rule
+
+
 def test_review_prompt_rewrites_in_language_of_requirement(doc):
     """Готовая формулировка заменяет текст требования: язык требования, остальное по-русски."""
     result = Pipeline(FakeLLM(), SETTINGS).run(doc, "test")
