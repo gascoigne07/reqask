@@ -12,12 +12,19 @@ import pytest
 
 ROOT = Path(__file__).resolve().parent.parent
 DOC = ROOT / "input" / "requirements.md"
-CHECKED = ["prompts.py", "lint.py", "criteria.py"]
+# Проверяем все модули агента, а не только промпты и правила: привязки к выданному
+# документу не должно быть нигде в коде. Список берётся из папки, новые модули войдут сами.
+CHECKED = sorted(p.name for p in (ROOT / "src" / "reqask").glob("*.py"))
 
 # Общие технические слова: встречаются в любом документе требований, привязкой не считаются.
+# Сюда же обычные слова из словаря кода (path, message, body, field): документ их тоже
+# содержит как подписи полей («Path-параметры», «Request body»), но к выданному документу
+# они не привязывают. Доменные токены (saveLimit, alerts, cardId, limit_kzt, тиын) не общие
+# и остаются под проверкой.
 COMMON = {
     "api", "http", "https", "json", "id", "url", "pdf", "rest", "get", "post", "put", "delete",
     "curl", "data", "integer", "string", "boolean", "result", "text", "type", "error", "true", "false",
+    "path", "message", "body", "field",
 }
 UNITS = r"(?:₸|KZT|тенге|руб\w*|сек\w*|мин\w*|мс|час\w*|дн\w*|%|МБ|КБ|ГБ)"
 

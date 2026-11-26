@@ -31,6 +31,11 @@ WORD_HEADING_RE = re.compile(
 MAX_HEADING_CHARS = 90
 MAX_HEADING_WORDS = 12
 SENTENCE_END = ".:;!?"
+# Строка оглавления: после названия стоит номер страницы («1.1 Purpose 6»).
+# Точки-заполнители к этому времени уже убраны в _clean, остаётся хвостовой номер.
+# Заголовок тела тоже может кончаться числом («4.2 Ответ с кодом 400»), поэтому одного
+# хвоста мало: строки оглавления идут подряд, заголовок тела стоит один (см. _mark_headings).
+TOC_PAGE_TAIL_RE = re.compile(r"[^\W\d_].*\s\d{1,4}$")
 
 
 @dataclass
@@ -187,6 +192,11 @@ def _drop_headers(pages: list[list[PdfLine]]) -> int:
     return removed
 
 
+def _page_tail(text: str) -> bool:
+    """Строка кончается числом без точки после текста: так выглядит строка оглавления с номером страницы."""
+    return bool(TOC_PAGE_TAIL_RE.search(text.strip()))
+
+
 def heading_level(text: str) -> int:
     """Уровень заголовка по шаблону (Ч-06) или 0, если строка на заголовок не похожа."""
     text = text.strip()
@@ -253,12 +263,18 @@ _SIMPLE_ITEM_RE = re.compile(r"^\d{1,2}[.)]\s")
 
 
 def _mark_headings(lines: list[PdfLine]) -> None:
-    """Заголовки по шаблону после склейки строк. «1. Текст» рядом с «2. Текст» это список, а не заголовки."""
+    """Заголовки по шаблону после склейки строк. «1. Текст» рядом с «2. Текст» это список, а не заголовки.
+    Строка с числом в конце рядом с такой же строкой это оглавление с номерами страниц, а не заголовок.
+    Сосед может быть длинным пунктом оглавления, который сам на заголовок не похож."""
     text_lines = [line for line in lines if line.kind == "text" and line.text]
     for index, line in enumerate(text_lines):
         level = heading_level(line.text)
         if not level:
             continue
+        if _page_tail(line.text):
+            around = text_lines[max(0, index - 1):index] + text_lines[index + 1:index + 2]
+            if any(_page_tail(n.text) for n in around):
+                continue
         if _SIMPLE_ITEM_RE.match(line.text):
             neighbours = text_lines[max(0, index - 1):index] + text_lines[index + 1:index + 2]
             if any(_SIMPLE_ITEM_RE.match(n.text) for n in neighbours):

@@ -184,6 +184,31 @@ def test_pdf_ligatures_and_toc_leaders():
     assert _clean("и так далее...") == "и так далее..."
 
 
+def test_table_of_contents_lines_are_not_headings():
+    # Т-02. Строки оглавления после удаления точек-заполнителей кончаются номером страницы
+    # и идут подряд: это не заголовки. Одиночный заголовок тела с числом в конце остаётся.
+    from reqask.pdfread import PdfLine, _mark_headings
+
+    texts = [
+        "Table of Contents",
+        "1.1 Purpose 6",
+        "1.3.1 Actor 7",
+        "Appendix A Glossary 45",
+        "3.2 Audio Recording 9",
+        "3.2.1 The system must allow actors to organize their voice clips into a portfolio and share it. 9",
+        "1.1 Purpose",
+        "This document describes the system.",
+        "4.2 Ответ с кодом 400",
+        "Сервис возвращает описание ошибки.",
+        "3.1 Требования к версии 2",
+        "Версия 2 сохраняет прежний формат.",
+    ]
+    lines = [PdfLine(text=t, page=1) for t in texts]
+    _mark_headings(lines)
+    headings = [line.text for line in lines if line.kind == "heading"]
+    assert headings == ["1.1 Purpose", "4.2 Ответ с кодом 400", "3.1 Требования к версии 2"]
+
+
 def test_pdf_header_table_removed_and_sentence_joined_across_pages(tmp_path):
     # Колонтитул свёрстан таблицей с датой, предложение разорвано границей страницы.
     path = tmp_path / "header_table.pdf"
