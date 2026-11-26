@@ -73,7 +73,8 @@ def _check_output(path: str) -> Path:
 
 def run_check(settings, log) -> int:
     """--check: ключ, модель, режим JSON и уровень рассуждения одним вызовом (М-14)."""
-    llm = LLMClient(settings, log)
+    # Проверка короткая: ждать ответ дольше минуты нет смысла, зависшая модель должна быть видна сразу.
+    llm = LLMClient(settings.with_overrides(timeout_sec=min(settings.timeout_sec, 60.0)), log)
     print(f"Провайдер: {settings.provider}. Модель: {settings.model}. Адрес: {settings.base_url or 'по умолчанию'}")
     try:
         info = llm.check()
