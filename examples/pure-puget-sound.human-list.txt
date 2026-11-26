@@ -1,0 +1,20 @@
+# Задача 1. Дефекты в pure-puget-sound.pdf
+# Формат: страница и раздел | цитата из PDF (английский) | что не так | вид дефекта
+
+стр. 8, раздел 3.1 | "The system must be able to capture and manage files where appropriate." | "manage" не расшифровано: какие операции (удалить, заменить, скачать?); "where appropriate" — кто и как решает, где уместно | неоднозначность
+
+стр. 8, раздел 3.1 | "An actor in the role of course administrator should be able to optionally upload multiple files where he or she finds that such a feature would be useful" | "where he or she finds useful" — субъективно, нет критерия, каждый решит по-своему | неоднозначность
+
+стр. 8, раздел 3.1 | "One of the fundamental tasks of the system is to allow actors to upload and manage files on certain pages of the system." | нет ограничений на файлы: тип, размер, количество нигде не заданы | неполнота
+
+стр. 9, раздел 3.2.1 | "Equal and finite drive space needs to be allotted to each actor in the role of professor or administrator" | "equal and finite drive space" без числа: сколько ГБ/МБ — не сказано | неполнота
+
+стр. 9, раздел 3.2.1 | "This can be done one of two ways: 1) the actor can be allowed to preview the voice clip before it is archived ... or 2) a newly created voice clip can be automatically archived." | даны два способа через "or", ни один не выбран; не сказано, что будет, если актор не решит | неоднозначность
+
+стр. 11, раздел 3.4.2 | "The system must display a search box on every page after an actor has logged in." | "on every page / from any page" — даже страница логина и сброса пароля? границы не заданы | неполнота
+
+стр. 12, раздел 4.1.1 | "As far as possible, the system should provide a simple, responsive interface." | "simple, responsive", "reduces page clutter" — не измеримо, тест не написать | непроверяемость
+
+стр. 13, раздел 4.2.1 | "The system should be backed up with a frequency that ensures system and course data is protected." | "a frequency that ensures", "inordinate period of time" — без чисел, проверить нельзя | непроверяемость
+
+стр. 8 (разд. 2.4) и стр. 6 (разд. 1.4.1) | 2.4: "based on that feedback which is summarized in Moodle Requirements Brainstorming.pdf (referenced in section 1.4.1)." / 1.4.1: "This document does not make any further reference to the requirements brainstorming document." | два места спорят: 2.4 говорит "ссылка в 1.4.1", а 1.4.1 говорит "ссылок больше нет"; самого файла в комплекте тоже нет | противоречие

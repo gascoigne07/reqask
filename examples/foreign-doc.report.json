@@ -1,0 +1,5760 @@
+{
+  "document_name": "foreign-doc.md",
+  "document_format": "md",
+  "document_lines": 128,
+  "document_sha256": "93a0c48bc91ff5f93c0dc320e2b46ce672cbbf72b0cf3d174a5b206758f587c2",
+  "started_at": "2026-11-27 03:29:51 +0500",
+  "duration_sec": 533.7,
+  "provider": "anthropic",
+  "model": "claude-haiku-5-5",
+  "agent_version": "0.1.0, коммит b9ec28d",
+  "requirements": [
+    {
+      "id": "REQ-01",
+      "source_id": null,
+      "section": "1. Общие сведения / 1.1 Цель",
+      "line_start": 16,
+      "line_end": 16,
+      "page": null,
+      "kind": "functional",
+      "summary": "Остаток видим в момент операции; инвентаризация занимает один рабочий день",
+      "quote": "Перевести учёт прихода, расхода и перемещения товаров с бумажных журналов на электронную систему. Остаток по каждой позиции должен быть виден в момент операции, а инвентаризация должна занимать один рабочий день вместо трёх.",
+      "lint_hints": [],
+      "lint_confirmed": []
+    },
+    {
+      "id": "REQ-02",
+      "source_id": null,
+      "section": "2. Роли",
+      "line_start": 29,
+      "line_end": 29,
+      "page": null,
+      "kind": "functional",
+      "summary": "Кладовщик принимает и выдаёт товар, сканирует штрихкоды, проводит пересчёт",
+      "quote": "| Кладовщик | Принимает и выдаёт товар, сканирует штрихкоды, проводит пересчёт |",
+      "lint_hints": [],
+      "lint_confirmed": []
+    },
+    {
+      "id": "REQ-03",
+      "source_id": null,
+      "section": "2. Роли",
+      "line_start": 30,
+      "line_end": 30,
+      "page": null,
+      "kind": "functional",
+      "summary": "Старший кладовщик проводит накладные и утверждает перемещения между складами",
+      "quote": "| Старший кладовщик | Проводит накладные, утверждает перемещения между складами |",
+      "lint_hints": [],
+      "lint_confirmed": []
+    },
+    {
+      "id": "REQ-04",
+      "source_id": null,
+      "section": "2. Роли",
+      "line_start": 31,
+      "line_end": 31,
+      "page": null,
+      "kind": "functional",
+      "summary": "Менеджер по закупкам ведёт справочник и создаёт заказы поставщикам",
+      "quote": "| Менеджер по закупкам | Ведёт справочник товаров, создаёт заказы поставщикам |",
+      "lint_hints": [],
+      "lint_confirmed": []
+    },
+    {
+      "id": "REQ-05",
+      "source_id": null,
+      "section": "2. Роли",
+      "line_start": 32,
+      "line_end": 32,
+      "page": null,
+      "kind": "functional",
+      "summary": "Администратор управляет пользователями и правами",
+      "quote": "| Администратор | Управляет пользователями и правами |",
+      "lint_hints": [],
+      "lint_confirmed": []
+    },
+    {
+      "id": "REQ-06",
+      "source_id": "ФТ-01",
+      "section": "3. Функциональные требования / 3.1 Справочник товаров",
+      "line_start": 40,
+      "line_end": 40,
+      "page": null,
+      "kind": "functional",
+      "summary": "Менеджер создаёт позицию с полями артикул, наименование, единица, штрихкод, срок годности",
+      "quote": "**ФТ-01.** Менеджер по закупкам создаёт позицию с полями: артикул, наименование, единица измерения, штрихкод, срок годности (если применимо).",
+      "lint_hints": [],
+      "lint_confirmed": []
+    },
+    {
+      "id": "REQ-07",
+      "source_id": "ФТ-02",
+      "section": "3. Функциональные требования / 3.1 Справочник товаров",
+      "line_start": 42,
+      "line_end": 42,
+      "page": null,
+      "kind": "data",
+      "summary": "Артикул из 8 цифр, уникален в пределах справочника",
+      "quote": "**ФТ-02.** Артикул состоит из 8 цифр и уникален в пределах справочника.",
+      "lint_hints": [],
+      "lint_confirmed": []
+    },
+    {
+      "id": "REQ-08",
+      "source_id": "ФТ-03",
+      "section": "3. Функциональные требования / 3.1 Справочник товаров",
+      "line_start": 44,
+      "line_end": 44,
+      "page": null,
+      "kind": "functional",
+      "summary": "Весовые товары учитываются в килограммах с точностью 0,001 кг",
+      "quote": "**ФТ-03.** Для весовых товаров количество учитывается в килограммах с точностью до 0,001 кг.",
+      "lint_hints": [],
+      "lint_confirmed": []
+    },
+    {
+      "id": "REQ-09",
+      "source_id": "ФТ-04",
+      "section": "3. Функциональные требования / 3.1 Справочник товаров",
+      "line_start": 46,
+      "line_end": 46,
+      "page": null,
+      "kind": "functional",
+      "summary": "Запрет удалять позицию с остатком больше нуля хотя бы на одном складе",
+      "quote": "**ФТ-04.** Система запрещает удалять позицию из справочника, если её остаток хотя бы на одном складе больше нуля.",
+      "lint_hints": [],
+      "lint_confirmed": []
+    },
+    {
+      "id": "REQ-10",
+      "source_id": "ФТ-05",
+      "section": "3. Функциональные требования / 3.2 Приход товара",
+      "line_start": 50,
+      "line_end": 50,
+      "page": null,
+      "kind": "functional",
+      "summary": "Создание приходной накладной, печать этикеток и отправка накладной в 1С",
+      "quote": "**ФТ-05.** Система должна позволять создавать приходную накладную, печатать этикетки на каждую единицу товара и отправлять накладную в бухгалтерию 1С.",
+      "lint_hints": [],
+      "lint_confirmed": []
+    },
+    {
+      "id": "REQ-11",
+      "source_id": "ФТ-06",
+      "section": "3. Функциональные требования / 3.2 Приход товара",
+      "line_start": 52,
+      "line_end": 52,
+      "page": null,
+      "kind": "ui",
+      "summary": "Сканирование штрихкода на ТСД показывает позицию, наименование и остаток",
+      "quote": "**ФТ-06.** Кладовщик сканирует штрихкод товара на ТСД, система находит позицию в справочнике и показывает её наименование и текущий остаток.",
+      "lint_hints": [],
+      "lint_confirmed": []
+    },
+    {
+      "id": "REQ-12",
+      "source_id": "ФТ-07",
+      "section": "3. Функциональные требования / 3.2 Приход товара",
+      "line_start": 54,
+      "line_end": 54,
+      "page": null,
+      "kind": "functional",
+      "summary": "После проведения накладной остаток увеличивается на принятое количество",
+      "quote": "**ФТ-07.** После проведения накладной старшим кладовщиком остаток позиции увеличивается на принятое количество.",
+      "lint_hints": [],
+      "lint_confirmed": []
+    },
+    {
+      "id": "REQ-13",
+      "source_id": "ФТ-08",
+      "section": "3. Функциональные требования / 3.3 Выдача и резерв",
+      "line_start": 58,
+      "line_end": 58,
+      "page": null,
+      "kind": "functional",
+      "summary": "Резерв при создании заказа действует 24 часа, затем снимается автоматически",
+      "quote": "**ФТ-08.** При создании заказа на отгрузку система резервирует товар. Резерв действует 24 часа с момента создания заказа, после чего снимается автоматически.",
+      "lint_hints": [],
+      "lint_confirmed": []
+    },
+    {
+      "id": "REQ-14",
+      "source_id": "ФТ-09",
+      "section": "3. Функциональные требования / 3.3 Выдача и резерв",
+      "line_start": 60,
+      "line_end": 60,
+      "page": null,
+      "kind": "functional",
+      "summary": "Списание сверх доступного остатка отклоняется с сообщением о нехватке товара",
+      "quote": "**ФТ-09.** Списание товара, количество которого больше доступного остатка (остаток минус резерв), отклоняется с сообщением «Недостаточно товара».",
+      "lint_hints": [],
+      "lint_confirmed": []
+    },
+    {
+      "id": "REQ-15",
+      "source_id": "ФТ-10",
+      "section": "3. Функциональные требования / 3.3 Выдача и резерв",
+      "line_start": 62,
+      "line_end": 62,
+      "page": null,
+      "kind": "ui",
+      "summary": "Товары с истекающим сроком годности выделяются цветом в списке остатков",
+      "quote": "**ФТ-10.** Товары с истекающим сроком годности выделяются в списке остатков цветом.",
+      "lint_hints": [],
+      "lint_confirmed": []
+    },
+    {
+      "id": "REQ-16",
+      "source_id": "ФТ-11",
+      "section": "3. Функциональные требования / 3.4 Перемещение между складами",
+      "line_start": 66,
+      "line_end": 66,
+      "page": null,
+      "kind": "functional",
+      "summary": "Перемещение создаёт кладовщик и считается выполненным после утверждения старшим кладовщиком",
+      "quote": "**ФТ-11.** Перемещение создаёт кладовщик склада-отправителя. Перемещение считается выполненным после того, как старший кладовщик утвердит его.",
+      "lint_hints": [],
+      "lint_confirmed": []
+    },
+    {
+      "id": "REQ-17",
+      "source_id": "ФТ-12",
+      "section": "3. Функциональные требования / 3.4 Перемещение между складами",
+      "line_start": 68,
+      "line_end": 68,
+      "page": null,
+      "kind": "functional",
+      "summary": "Товар в перемещении не входит в остаток ни одного склада",
+      "quote": "**ФТ-12.** Во время перемещения товар не входит в остаток ни одного из складов.",
+      "lint_hints": [],
+      "lint_confirmed": []
+    },
+    {
+      "id": "REQ-18",
+      "source_id": "ФТ-13",
+      "section": "3. Функциональные требования / 3.5 Инвентаризация",
+      "line_start": 72,
+      "line_end": 72,
+      "page": null,
+      "kind": "process",
+      "summary": "Кладовщик пересчитывает товар в ячейке и вводит количество на ТСД",
+      "quote": "**ФТ-13.** Кладовщик пересчитывает товар в ячейке и вводит фактическое количество на ТСД.",
+      "lint_hints": [],
+      "lint_confirmed": []
+    },
+    {
+      "id": "REQ-19",
+      "source_id": "ФТ-14",
+      "section": "3. Функциональные требования / 3.5 Инвентаризация",
+      "line_start": 74,
+      "line_end": 74,
+      "page": null,
+      "kind": "functional",
+      "summary": "Расхождение больше 5% создаёт акт, меньше 5% исправляется автоматически",
+      "quote": "**ФТ-14.** Если фактический остаток отличается от учётного больше чем на 5%, система создаёт акт расхождения. Если отличие меньше 5%, учётный остаток исправляется на фактический автоматически.",
+      "lint_hints": [],
+      "lint_confirmed": []
+    },
+    {
+      "id": "REQ-20",
+      "source_id": "ФТ-15",
+      "section": "3. Функциональные требования / 3.5 Инвентаризация",
+      "line_start": 76,
+      "line_end": 76,
+      "page": null,
+      "kind": "functional",
+      "summary": "Акт расхождения утверждает руководитель",
+      "quote": "**ФТ-15.** Акт расхождения утверждает руководитель.",
+      "lint_hints": [],
+      "lint_confirmed": []
+    },
+    {
+      "id": "REQ-21",
+      "source_id": "ФТ-16",
+      "section": "3. Функциональные требования / 3.6 Отчёты и доступ",
+      "line_start": 80,
+      "line_end": 80,
+      "page": null,
+      "kind": "functional",
+      "summary": "Роль Кладовщик не видит раздел Отчёты в меню",
+      "quote": "**ФТ-16.** Пользователь с ролью «Кладовщик» не видит раздел «Отчёты» в меню.",
+      "lint_hints": [],
+      "lint_confirmed": []
+    },
+    {
+      "id": "REQ-22",
+      "source_id": "ФТ-17",
+      "section": "3. Функциональные требования / 3.6 Отчёты и доступ",
+      "line_start": 82,
+      "line_end": 82,
+      "page": null,
+      "kind": "nonfunctional",
+      "summary": "Поиск позиции по артикулу или наименованию должен работать быстро",
+      "quote": "**ФТ-17.** Поиск позиции по артикулу или наименованию должен работать быстро.",
+      "lint_hints": [
+        "«быстро»: оценка скорости без числа"
+      ],
+      "lint_confirmed": [
+        "«быстро»: оценка скорости без числа"
+      ]
+    },
+    {
+      "id": "REQ-23",
+      "source_id": "ФТ-18",
+      "section": "3. Функциональные требования / 3.6 Отчёты и доступ",
+      "line_start": 84,
+      "line_end": 84,
+      "page": null,
+      "kind": "other",
+      "summary": "ФТ-18. Срок хранения журнала операций: TBD, уточнить у службы безопасности.",
+      "quote": "**ФТ-18.** Срок хранения журнала операций: TBD, уточнить у службы безопасности.",
+      "lint_hints": [
+        "«безопасности»: свойство без измеримого критерия",
+        "«tbd»: незаполненное место"
+      ],
+      "lint_confirmed": [
+        "«tbd»: незаполненное место"
+      ]
+    },
+    {
+      "id": "REQ-24",
+      "source_id": null,
+      "section": "4. Интеграция и данные / 4.1 Метод API `POST /api/v1/stock/writeoff`",
+      "line_start": 90,
+      "line_end": 90,
+      "page": null,
+      "kind": "interface",
+      "summary": "Метод списывает товар со склада, вызывается с ТСД и внешних систем",
+      "quote": "Метод списывает товар со склада. Вызывается с ТСД и из внешних систем.",
+      "lint_hints": [],
+      "lint_confirmed": []
+    },
+    {
+      "id": "REQ-25",
+      "source_id": null,
+      "section": "4. Интеграция и данные / 4.1 Метод API `POST /api/v1/stock/writeoff`",
+      "line_start": 94,
+      "line_end": 94,
+      "page": null,
+      "kind": "interface",
+      "summary": "Параметр sku: строка из 8 символов, обязательный, артикул позиции",
+      "quote": "| `sku` | string(8) | да | Артикул позиции |",
+      "lint_hints": [],
+      "lint_confirmed": []
+    },
+    {
+      "id": "REQ-26",
+      "source_id": null,
+      "section": "4. Интеграция и данные / 4.1 Метод API `POST /api/v1/stock/writeoff`",
+      "line_start": 95,
+      "line_end": 95,
+      "page": null,
+      "kind": "interface",
+      "summary": "Параметр warehouse_id: целое число, обязательный, идентификатор склада",
+      "quote": "| `warehouse_id` | integer | да | Идентификатор склада |",
+      "lint_hints": [],
+      "lint_confirmed": []
+    },
+    {
+      "id": "REQ-27",
+      "source_id": null,
+      "section": "4. Интеграция и данные / 4.1 Метод API `POST /api/v1/stock/writeoff`",
+      "line_start": 96,
+      "line_end": 96,
+      "page": null,
+      "kind": "interface",
+      "summary": "Параметр cell_code: строка, необязательный, код ячейки",
+      "quote": "| `cell_code` | string | нет | Код ячейки, например `A-01-03` |",
+      "lint_hints": [],
+      "lint_confirmed": []
+    },
+    {
+      "id": "REQ-28",
+      "source_id": null,
+      "section": "4. Интеграция и данные / 4.1 Метод API `POST /api/v1/stock/writeoff`",
+      "line_start": 97,
+      "line_end": 97,
+      "page": null,
+      "kind": "interface",
+      "summary": "Параметр quantity: целое число, обязательный, списываемое количество",
+      "quote": "| `quantity` | integer | да | Списываемое количество |",
+      "lint_hints": [],
+      "lint_confirmed": []
+    },
+    {
+      "id": "REQ-29",
+      "source_id": null,
+      "section": "4. Интеграция и данные / 4.1 Метод API `POST /api/v1/stock/writeoff`",
+      "line_start": 98,
+      "line_end": 98,
+      "page": null,
+      "kind": "interface",
+      "summary": "Параметр reason обязательный, допустимые значения sale, damage, expired",
+      "quote": "| `reason` | string | да | Причина списания: `sale`, `damage`, `expired` |",
+      "lint_hints": [],
+      "lint_confirmed": []
+    },
+    {
+      "id": "REQ-30",
+      "source_id": null,
+      "section": "4. Интеграция и данные / 4.1 Метод API `POST /api/v1/stock/writeoff`",
+      "line_start": 99,
+      "line_end": 99,
+      "page": null,
+      "kind": "interface",
+      "summary": "Параметр user_id: целое число, обязательный, кто списывает",
+      "quote": "| `user_id` | integer | да | Кто списывает |",
+      "lint_hints": [],
+      "lint_confirmed": []
+    },
+    {
+      "id": "REQ-31",
+      "source_id": null,
+      "section": "4. Интеграция и данные / 4.1 Метод API `POST /api/v1/stock/writeoff`",
+      "line_start": 101,
+      "line_end": 101,
+      "page": null,
+      "kind": "interface",
+      "summary": "При успехе ответ с кодом 200 и телом operation_id и balance",
+      "quote": "Ответ при успехе: код 200 и тело `{\"operation_id\": \"<uuid>\", \"balance\": <число>}`.",
+      "lint_hints": [],
+      "lint_confirmed": []
+    },
+    {
+      "id": "REQ-32",
+      "source_id": null,
+      "section": "4. Интеграция и данные / 4.2 Списание при недостатке остатка",
+      "line_start": 105,
+      "line_end": 105,
+      "page": null,
+      "kind": "functional",
+      "summary": "При нехватке остатка списание проходит в минус с флагом negative_balance",
+      "quote": "Если на складе меньше товара, чем указано в `quantity`, метод выполняет списание, остаток уходит в минус, а операция помечается флагом `negative_balance` для последующего разбора старшим кладовщиком.",
+      "lint_hints": [],
+      "lint_confirmed": []
+    },
+    {
+      "id": "REQ-33",
+      "source_id": null,
+      "section": "4. Интеграция и данные / 4.3 Обмен с 1С",
+      "line_start": 109,
+      "line_end": 109,
+      "page": null,
+      "kind": "interface",
+      "summary": "Проведённые накладные выгружаются в 1С раз в сутки в 23:00 по Астане",
+      "quote": "Проведённые накладные выгружаются в 1С раз в сутки в 23:00 по времени Астаны.",
+      "lint_hints": [],
+      "lint_confirmed": []
+    },
+    {
+      "id": "REQ-34",
+      "source_id": "НФТ-01",
+      "section": "5. Нефункциональные требования",
+      "line_start": 113,
+      "line_end": 113,
+      "page": null,
+      "kind": "nonfunctional",
+      "summary": "Интерфейс ТСД должен быть удобным для кладовщика",
+      "quote": "**НФТ-01.** Интерфейс ТСД должен быть удобным для кладовщика.",
+      "lint_hints": [
+        "«удобным»: субъективная оценка"
+      ],
+      "lint_confirmed": [
+        "«удобным»: субъективная оценка"
+      ]
+    },
+    {
+      "id": "REQ-35",
+      "source_id": "НФТ-02",
+      "section": "5. Нефункциональные требования",
+      "line_start": 115,
+      "line_end": 115,
+      "page": null,
+      "kind": "nonfunctional",
+      "summary": "Круглосуточная работа; плановые работы не чаще раза в месяц с предупреждением за 24 часа",
+      "quote": "**НФТ-02.** Система работает круглосуточно, плановые работы проводятся не чаще одного раза в месяц с предупреждением пользователей за 24 часа.",
+      "lint_hints": [],
+      "lint_confirmed": []
+    },
+    {
+      "id": "REQ-36",
+      "source_id": "НФТ-03",
+      "section": "5. Нефункциональные требования",
+      "line_start": 117,
+      "line_end": 117,
+      "page": null,
+      "kind": "nonfunctional",
+      "summary": "Обмен между ТСД и сервером только по HTTPS с TLS 1.2 или выше",
+      "quote": "**НФТ-03.** Обмен данными между ТСД и сервером идёт только по HTTPS с TLS версии 1.2 или выше.",
+      "lint_hints": [],
+      "lint_confirmed": []
+    },
+    {
+      "id": "REQ-37",
+      "source_id": "НФТ-04",
+      "section": "5. Нефункциональные требования",
+      "line_start": 119,
+      "line_end": 119,
+      "page": null,
+      "kind": "nonfunctional",
+      "summary": "Одновременно в системе работают до 60 пользователей",
+      "quote": "**НФТ-04.** Одновременно в системе работают до 60 пользователей.",
+      "lint_hints": [],
+      "lint_confirmed": []
+    },
+    {
+      "id": "REQ-38",
+      "source_id": null,
+      "section": "6. Критерии приёмки",
+      "line_start": 123,
+      "line_end": 123,
+      "page": null,
+      "kind": "acceptance",
+      "summary": "Позиция создаётся с артикулом из 8 цифр, повторный артикул отклоняется",
+      "quote": "1. Позиция создаётся с артикулом из 8 цифр, повторный артикул отклоняется.",
+      "lint_hints": [],
+      "lint_confirmed": []
+    },
+    {
+      "id": "REQ-39",
+      "source_id": null,
+      "section": "6. Критерии приёмки",
+      "line_start": 124,
+      "line_end": 124,
+      "page": null,
+      "kind": "acceptance",
+      "summary": "Приход по накладной увеличивает остаток после проведения",
+      "quote": "2. Приход по накладной увеличивает остаток после проведения.",
+      "lint_hints": [],
+      "lint_confirmed": []
+    },
+    {
+      "id": "REQ-40",
+      "source_id": null,
+      "section": "6. Критерии приёмки",
+      "line_start": 125,
+      "line_end": 125,
+      "page": null,
+      "kind": "acceptance",
+      "summary": "Резерв автоматически снимается через 72 часа, если заказ не отгружен",
+      "quote": "3. Резерв по заказу автоматически снимается через 72 часа, если заказ не отгружен.",
+      "lint_hints": [],
+      "lint_confirmed": []
+    },
+    {
+      "id": "REQ-41",
+      "source_id": null,
+      "section": "6. Критерии приёмки",
+      "line_start": 126,
+      "line_end": 126,
+      "page": null,
+      "kind": "acceptance",
+      "summary": "Списание сверх доступного остатка отклоняется",
+      "quote": "4. Списание сверх доступного остатка отклоняется.",
+      "lint_hints": [],
+      "lint_confirmed": []
+    },
+    {
+      "id": "REQ-42",
+      "source_id": null,
+      "section": "6. Критерии приёмки",
+      "line_start": 127,
+      "line_end": 127,
+      "page": null,
+      "kind": "acceptance",
+      "summary": "Инвентаризация с расхождением больше 5% создаёт акт расхождения",
+      "quote": "5. Инвентаризация с расхождением больше 5% создаёт акт расхождения.",
+      "lint_hints": [],
+      "lint_confirmed": []
+    },
+    {
+      "id": "REQ-43",
+      "source_id": null,
+      "section": "6. Критерии приёмки",
+      "line_start": 128,
+      "line_end": 128,
+      "page": null,
+      "kind": "acceptance",
+      "summary": "Кладовщик не видит раздел Отчёты",
+      "quote": "6. Кладовщик не видит раздел «Отчёты».",
+      "lint_hints": [],
+      "lint_confirmed": []
+    }
+  ],
+  "findings": [
+    {
+      "id": "D-01",
+      "scope": "requirement",
+      "kind": "defect",
+      "criterion": "SINGULAR",
+      "severity": "MINOR",
+      "title": "",
+      "req_ids": [
+        "REQ-01"
+      ],
+      "section": null,
+      "evidence": [
+        {
+          "quote": "а инвентаризация должна занимать один рабочий день вместо трёх",
+          "line": 16,
+          "status": "exact"
+        }
+      ],
+      "problem": "В одном требовании описаны две цели: видимость остатка в момент операции и сокращение срока инвентаризации. Вторая цель добавлена через союз «а».",
+      "impact": "Каждую цель нельзя отдельно принять и проверить по своему критерию.",
+      "recommendation": "Разделить на два требования: видимость остатка в момент операции и срок проведения инвентаризации.",
+      "question": null,
+      "addressee": null,
+      "question_id": null,
+      "status": "unreviewed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": null,
+      "severity_raised_from": null,
+      "places": [],
+      "origin": null
+    },
+    {
+      "id": "D-02",
+      "scope": "requirement",
+      "kind": "defect",
+      "criterion": "UNAMBIGUOUS",
+      "severity": "MAJOR",
+      "title": "",
+      "req_ids": [
+        "REQ-06"
+      ],
+      "section": null,
+      "evidence": [
+        {
+          "quote": "срок годности (если применимо)",
+          "line": 40,
+          "status": "exact"
+        }
+      ],
+      "problem": "Оговорка «если применимо» не говорит, для каких товаров заполняется срок годности.",
+      "impact": "Нельзя реализовать правило обязательности поля и проверить его для конкретной позиции.",
+      "recommendation": "Указать признак товаров, для которых срок годности заполняется.",
+      "question": "Для каких товаров срок годности заполняется при создании позиции: для всех позиций или только для товаров с заданным признаком (задать признак)?",
+      "addressee": "business",
+      "question_id": null,
+      "status": "confirmed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": null,
+      "severity_raised_from": null,
+      "places": [],
+      "origin": null
+    },
+    {
+      "id": "D-03",
+      "scope": "requirement",
+      "kind": "defect",
+      "criterion": "COMPLETE",
+      "severity": "MAJOR",
+      "title": "",
+      "req_ids": [
+        "REQ-06"
+      ],
+      "section": null,
+      "evidence": [
+        {
+          "quote": "артикул, наименование, единица измерения, штрихкод",
+          "line": 40,
+          "status": "exact"
+        }
+      ],
+      "problem": "Не указано, какие поля обязательны при создании позиции, в том числе штрихкод, по которому работает сканирование на ТСД.",
+      "impact": "Нельзя написать проверку заполнения формы создания позиции и её ожидаемый результат при пустом поле.",
+      "recommendation": "Перечислить обязательные поля отдельно от необязательных и указать, обязателен ли штрихкод.",
+      "question": "Обязателен ли штрихкод при создании позиции: да или позиция создаётся без него?",
+      "addressee": "business",
+      "question_id": null,
+      "status": "confirmed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": null,
+      "severity_raised_from": null,
+      "places": [],
+      "origin": null
+    },
+    {
+      "id": "D-04",
+      "scope": "requirement",
+      "kind": "defect",
+      "criterion": "UNAMBIGUOUS",
+      "severity": "MAJOR",
+      "title": "",
+      "req_ids": [
+        "REQ-08"
+      ],
+      "section": null,
+      "evidence": [
+        {
+          "quote": "Для весовых товаров количество учитывается",
+          "line": 44,
+          "status": "exact"
+        }
+      ],
+      "problem": "Из текста не видно, по какому признаку товар считается весовым. Термин «весовых товаров» не определён ни здесь, ни в разделе 1.2.",
+      "impact": "Нельзя определить, для каких позиций включать учёт в килограммах с точностью 0,001 кг.",
+      "recommendation": "Указать признак весового товара, например через единицу измерения позиции из ФТ-01 или отдельный флаг в карточке позиции.",
+      "question": "По какому признаку товар считается весовым: по единице измерения «кг» в карточке позиции или по отдельному флагу, задаваемому при создании позиции?",
+      "addressee": "analyst",
+      "question_id": "Q-01",
+      "status": "confirmed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": null,
+      "severity_raised_from": null,
+      "places": [],
+      "origin": null
+    },
+    {
+      "id": "D-05",
+      "scope": "requirement",
+      "kind": "defect",
+      "criterion": "COMPLETE",
+      "severity": "MAJOR",
+      "title": "",
+      "req_ids": [
+        "REQ-09"
+      ],
+      "section": null,
+      "evidence": [
+        {
+          "quote": "если её остаток хотя бы на одном складе больше нуля",
+          "line": 46,
+          "status": "exact"
+        }
+      ],
+      "problem": "Условие запрета задано только для остатка больше нуля. Раздел 4.2 допускает отрицательный остаток, и для такой позиции правило не определено.",
+      "impact": "Нельзя реализовать проверку удаления для позиции с отрицательным остатком, так как результат не задан.",
+      "recommendation": "Задать, запрещено ли удаление при отрицательном остатке на любом складе, и явно указать граничное условие.",
+      "question": "Можно ли удалить позицию, если её остаток на каком-либо складе отрицательный: запрещено или разрешено?",
+      "addressee": "business",
+      "question_id": null,
+      "status": "confirmed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": null,
+      "severity_raised_from": null,
+      "places": [],
+      "origin": null
+    },
+    {
+      "id": "D-06",
+      "scope": "requirement",
+      "kind": "defect",
+      "criterion": "SINGULAR",
+      "severity": "MAJOR",
+      "title": "",
+      "req_ids": [
+        "REQ-10"
+      ],
+      "section": null,
+      "evidence": [
+        {
+          "quote": "создавать приходную накладную, печатать этикетки на каждую единицу товара и отправлять накладную в бухгалтерию 1С",
+          "line": 50,
+          "status": "exact"
+        }
+      ],
+      "problem": "В одном требовании описаны три самостоятельные функции, каждая из которых проверяется отдельно. Фраза «на каждую единицу товара» также требует отдельного уточнения.",
+      "impact": "Нельзя назначить каждой функции отдельную оценку, приёмку и срок реализации.",
+      "recommendation": "Разбить на три требования: создание накладной, печать этикеток, отправка в 1С. Выгрузку в 1С согласовать с разделом 4.3.",
+      "question": "Печать этикеток выполняется сразу при создании накладной или отдельной командой кладовщика?",
+      "addressee": "analyst",
+      "question_id": null,
+      "status": "confirmed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": null,
+      "severity_raised_from": null,
+      "places": [],
+      "origin": null
+    },
+    {
+      "id": "D-07",
+      "scope": "requirement",
+      "kind": "defect",
+      "criterion": "UNAMBIGUOUS",
+      "severity": "MAJOR",
+      "title": "",
+      "req_ids": [
+        "REQ-11"
+      ],
+      "section": null,
+      "evidence": [
+        {
+          "quote": "показывает её наименование и текущий остаток",
+          "line": 52,
+          "status": "exact"
+        }
+      ],
+      "problem": "Документ описывает два склада, но не сказано, какой остаток показывается: склада кладовщика или сумма по всем складам.",
+      "impact": "Нельзя реализовать экран ТСД и проверить, какое значение остатка ожидается.",
+      "recommendation": "Указать склад, для которого показывается остаток, или правило суммирования по складам.",
+      "question": "Какой остаток показывается кладовщику: остаток склада, на котором он работает, или сумма остатков по всем складам?",
+      "addressee": "analyst",
+      "question_id": null,
+      "status": "confirmed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": null,
+      "severity_raised_from": null,
+      "places": [],
+      "origin": null
+    },
+    {
+      "id": "D-08",
+      "scope": "requirement",
+      "kind": "defect",
+      "criterion": "COMPLETE",
+      "severity": "MAJOR",
+      "title": "",
+      "req_ids": [
+        "REQ-11"
+      ],
+      "section": null,
+      "evidence": [
+        {
+          "quote": "система находит позицию в справочнике",
+          "line": 52,
+          "status": "exact"
+        }
+      ],
+      "problem": "Не описано, что делает система, если отсканированный штрихкод отсутствует в справочнике.",
+      "impact": "Нельзя реализовать и проверить сценарий ошибочного или нового штрихкода на приходе.",
+      "recommendation": "Описать реакцию ТСД на ненайденный штрихкод: сообщение и дальнейшее действие кладовщика.",
+      "question": "Что показывает ТСД, если штрихкод не найден в справочнике: сообщение об ошибке или предложение создать позицию?",
+      "addressee": "analyst",
+      "question_id": null,
+      "status": "confirmed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": null,
+      "severity_raised_from": null,
+      "places": [],
+      "origin": null
+    },
+    {
+      "id": "D-09",
+      "scope": "requirement",
+      "kind": "defect",
+      "criterion": "UNAMBIGUOUS",
+      "severity": "MAJOR",
+      "title": "",
+      "req_ids": [
+        "REQ-12"
+      ],
+      "section": null,
+      "evidence": [
+        {
+          "quote": "остаток позиции увеличивается на принятое количество",
+          "line": 54,
+          "status": "exact"
+        }
+      ],
+      "problem": "Из текста неясно, у какого склада увеличивается остаток: склада, указанного в накладной, или склада, где работает старший кладовщик.",
+      "impact": "Нельзя определить, в каком остатке должна появиться принятая сумма и как её проверить.",
+      "recommendation": "Указать, что остаток увеличивается на складе, указанном в приходной накладной.",
+      "question": "Остаток какого склада увеличивается при проведении: склада, указанного в приходной накладной, или склада, где работает старший кладовщик?",
+      "addressee": "analyst",
+      "question_id": null,
+      "status": "confirmed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": null,
+      "severity_raised_from": null,
+      "places": [],
+      "origin": null
+    },
+    {
+      "id": "D-10",
+      "scope": "requirement",
+      "kind": "defect",
+      "criterion": "COMPLETE",
+      "severity": "MAJOR",
+      "title": "",
+      "req_ids": [
+        "REQ-13"
+      ],
+      "section": null,
+      "evidence": [
+        {
+          "quote": "система резервирует товар",
+          "line": 58,
+          "status": "exact"
+        }
+      ],
+      "problem": "Не сказано, в каком количестве резервируется товар из заказа. Не описано, что происходит, если доступного остатка меньше заказанного.",
+      "impact": "Нельзя реализовать резервирование и проверить его поведение на границе остатка.",
+      "recommendation": "Указать, что резерв равен количеству из заказа, и задать поведение при нехватке доступного остатка.",
+      "question": "Что делает система при создании заказа, если доступного остатка меньше заказанного количества: отклоняет заказ или резервирует доступный остаток?",
+      "addressee": "analyst",
+      "question_id": "Q-14",
+      "status": "confirmed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": null,
+      "severity_raised_from": null,
+      "places": [],
+      "origin": null
+    },
+    {
+      "id": "D-11",
+      "scope": "requirement",
+      "kind": "defect",
+      "criterion": "CONSISTENT",
+      "severity": "CRITICAL",
+      "title": "",
+      "req_ids": [
+        "REQ-14"
+      ],
+      "section": null,
+      "evidence": [
+        {
+          "quote": "Списание товара, количество которого больше доступного остатка",
+          "line": 60,
+          "status": "exact"
+        }
+      ],
+      "problem": "ФТ-09 отклоняет списание сверх доступного остатка, а раздел 4.2 для метода writeoff выполняет такое списание с отрицательным остатком и флагом negative_balance.",
+      "impact": "Нельзя реализовать поведение списания сверх остатка, пока не выбран один вариант.",
+      "recommendation": "Оставить одно поведение и привести к нему ФТ-09 или раздел 4.2.",
+      "question": "Что делает система при списании сверх доступного остатка: отклоняет операцию с сообщением «Недостаточно товара» (ФТ-09) или выполняет списание с флагом negative_balance (раздел 4.2)?",
+      "addressee": "business",
+      "question_id": null,
+      "status": "merged",
+      "critic_reason": "То же противоречие ФТ-09 и раздела 4.2, что и в S-06, исправление общее.",
+      "merged_into": "S-06",
+      "severity_before": null,
+      "divergence": null,
+      "severity_raised_from": null,
+      "places": [],
+      "origin": null
+    },
+    {
+      "id": "D-12",
+      "scope": "requirement",
+      "kind": "defect",
+      "criterion": "UNAMBIGUOUS",
+      "severity": "MAJOR",
+      "title": "",
+      "req_ids": [
+        "REQ-15"
+      ],
+      "section": null,
+      "evidence": [
+        {
+          "quote": "Товары с истекающим сроком годности",
+          "line": 62,
+          "status": "exact"
+        }
+      ],
+      "problem": "Слово «истекающим» не определено: не сказано, за какой срок до окончания годности товар считается истекающим.",
+      "impact": "Нельзя определить, какие товары выделять в списке, и проверить выделение.",
+      "recommendation": "Задать срок в днях до окончания годности, при котором товар считается истекающим.",
+      "question": "За сколько дней до окончания срока годности товар считается истекающим: задать число дней (например, 30)?",
+      "addressee": "business",
+      "question_id": null,
+      "status": "merged",
+      "critic_reason": "Не задан порог истекающего срока годности, это тот же дефект, что в S-16.",
+      "merged_into": "S-16",
+      "severity_before": null,
+      "divergence": null,
+      "severity_raised_from": null,
+      "places": [],
+      "origin": null
+    },
+    {
+      "id": "D-13",
+      "scope": "requirement",
+      "kind": "defect",
+      "criterion": "COMPLETE",
+      "severity": "MAJOR",
+      "title": "",
+      "req_ids": [
+        "REQ-16"
+      ],
+      "section": null,
+      "evidence": [
+        {
+          "quote": "Перемещение считается выполненным после того",
+          "line": 66,
+          "status": "exact"
+        }
+      ],
+      "problem": "Не описано, что происходит с перемещением, если старший кладовщик его не утверждает. Не сказано, с какого момента товар учитывается на складе-получателе.",
+      "impact": "Нельзя реализовать переход товара между складами и проверить сценарий отказа.",
+      "recommendation": "Описать поведение при отказе в утверждении и момент, с которого товар попадает в остаток склада-получателя.",
+      "question": "Если старший кладовщик отклоняет перемещение, товар возвращается на склад-отправитель или остаётся в перемещении до повторного утверждения?",
+      "addressee": "analyst",
+      "question_id": null,
+      "status": "merged",
+      "critic_reason": "Сценарий неутверждённого перемещения не описан, это тот же дефект, что в S-14.",
+      "merged_into": "S-14",
+      "severity_before": null,
+      "divergence": null,
+      "severity_raised_from": null,
+      "places": [],
+      "origin": null
+    },
+    {
+      "id": "D-14",
+      "scope": "requirement",
+      "kind": "defect",
+      "criterion": "COMPLETE",
+      "severity": "MAJOR",
+      "title": "",
+      "req_ids": [
+        "REQ-18"
+      ],
+      "section": null,
+      "evidence": [
+        {
+          "quote": "Кладовщик пересчитывает товар в ячейке",
+          "line": 72,
+          "status": "exact"
+        }
+      ],
+      "problem": "Не сказано, каким кодом кладовщик на ТСД выбирает ячейку или позицию для пересчёта.",
+      "impact": "Нельзя реализовать экран пересчёта и проверить, что выбрана верная ячейка и позиция.",
+      "recommendation": "Указать, что сканируется на ТСД для начала пересчёта: код ячейки или штрихкод позиции.",
+      "question": "Какой код кладовщик сканирует на ТСД, чтобы начать пересчёт: код ячейки или штрихкод позиции?",
+      "addressee": "analyst",
+      "question_id": null,
+      "status": "confirmed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": null,
+      "severity_raised_from": null,
+      "places": [],
+      "origin": null
+    },
+    {
+      "id": "D-15",
+      "scope": "requirement",
+      "kind": "defect",
+      "criterion": "UNAMBIGUOUS",
+      "severity": "MAJOR",
+      "title": "",
+      "req_ids": [
+        "REQ-19"
+      ],
+      "section": null,
+      "evidence": [
+        {
+          "quote": "отличается от учётного больше чем на 5%",
+          "line": 74,
+          "status": "exact"
+        }
+      ],
+      "problem": "Процент не привязан к базе: неясно, 5% от учётного или от фактического остатка. От выбора базы зависит, создаётся ли акт.",
+      "impact": "Нельзя реализовать условие создания акта расхождения без выбора базы расчёта.",
+      "recommendation": "Указать базу расчёта 5% и при необходимости формулу расчёта отличия.",
+      "question": "От какого остатка считается 5%: от учётного или от фактического?",
+      "addressee": "business",
+      "question_id": "Q-13",
+      "status": "confirmed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": null,
+      "severity_raised_from": null,
+      "places": [],
+      "origin": null
+    },
+    {
+      "id": "D-16",
+      "scope": "requirement",
+      "kind": "defect",
+      "criterion": "COMPLETE",
+      "severity": "MAJOR",
+      "title": "",
+      "req_ids": [
+        "REQ-19"
+      ],
+      "section": null,
+      "evidence": [
+        {
+          "quote": "Если отличие меньше 5%",
+          "line": 74,
+          "status": "exact"
+        }
+      ],
+      "problem": "Ветки «больше 5%» и «меньше 5%» не покрывают отличие ровно 5%, для этого граничного случая поведение не задано.",
+      "impact": "Нельзя написать тест на граничное значение 5% и выбрать одну ветку реализации.",
+      "recommendation": "Задать поведение при отличии ровно 5%: создание акта или автоматическая корректировка.",
+      "question": "Что происходит при отличии ровно 5%: создаётся акт расхождения или учётный остаток исправляется автоматически?",
+      "addressee": "business",
+      "question_id": null,
+      "status": "merged",
+      "critic_reason": "Граничное отличие ровно 5% не покрыто, это тот же дефект, что в S-13.",
+      "merged_into": "S-13",
+      "severity_before": null,
+      "divergence": null,
+      "severity_raised_from": null,
+      "places": [],
+      "origin": null
+    },
+    {
+      "id": "D-17",
+      "scope": "requirement",
+      "kind": "defect",
+      "criterion": "UNAMBIGUOUS",
+      "severity": "MAJOR",
+      "title": "",
+      "req_ids": [
+        "REQ-20"
+      ],
+      "section": null,
+      "evidence": [
+        {
+          "quote": "Акт расхождения утверждает руководитель.",
+          "line": 76,
+          "status": "exact"
+        }
+      ],
+      "problem": "Роль «руководитель» отсутствует в разделе 2, неясно, какая роль утверждает акт.",
+      "impact": "Нельзя назначить права на утверждение акта расхождения.",
+      "recommendation": "Назвать роль из раздела 2, которая утверждает акт, либо добавить роль руководителя в раздел 2.",
+      "question": "Какая роль утверждает акт расхождения: старший кладовщик из раздела 2 или отдельная роль руководителя?",
+      "addressee": "business",
+      "question_id": null,
+      "status": "merged",
+      "critic_reason": "Роль руководитель не входит в раздел 2, тот же дефект, что в S-12.",
+      "merged_into": "S-12",
+      "severity_before": null,
+      "divergence": null,
+      "severity_raised_from": null,
+      "places": [],
+      "origin": null
+    },
+    {
+      "id": "D-18",
+      "scope": "requirement",
+      "kind": "defect",
+      "criterion": "COMPLETE",
+      "severity": "MAJOR",
+      "title": "",
+      "req_ids": [
+        "REQ-20"
+      ],
+      "section": null,
+      "evidence": [
+        {
+          "quote": "Акт расхождения утверждает руководитель.",
+          "line": 76,
+          "status": "exact"
+        }
+      ],
+      "problem": "Не описано, что происходит с учётным остатком после утверждения акта и при его отклонении.",
+      "impact": "Нельзя реализовать завершение сценария расхождения и проверить итоговый остаток.",
+      "recommendation": "Описать действие с остатком после утверждения и при отклонении акта.",
+      "question": "Что происходит с учётным остатком при отклонении акта: остаётся прежним или исправляется на фактический?",
+      "addressee": "business",
+      "question_id": null,
+      "status": "confirmed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": null,
+      "severity_raised_from": null,
+      "places": [],
+      "origin": null
+    },
+    {
+      "id": "D-19",
+      "scope": "requirement",
+      "kind": "defect",
+      "criterion": "COMPLETE",
+      "severity": "MAJOR",
+      "title": "",
+      "req_ids": [
+        "REQ-21",
+        "REQ-43"
+      ],
+      "section": null,
+      "evidence": [
+        {
+          "quote": "не видит раздел «Отчёты» в меню",
+          "line": 80,
+          "status": "exact"
+        },
+        {
+          "quote": "Кладовщик не видит раздел «Отчёты».",
+          "line": 128,
+          "status": "exact"
+        }
+      ],
+      "problem": "Требование касается только скрытия пункта меню, при этом прямой доступ к разделу текстом не запрещён.",
+      "impact": "Нельзя проверить, что доступ закрыт, а не только скрыт.",
+      "recommendation": "Добавить запрет доступа при прямом обращении и код или сообщение отказа.",
+      "question": "Должен ли кладовщик получать отказ в доступе к разделу «Отчёты» при прямом обращении, а не только не видеть пункт меню?",
+      "addressee": "security",
+      "question_id": null,
+      "status": "confirmed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": null,
+      "severity_raised_from": null,
+      "places": [],
+      "origin": null
+    },
+    {
+      "id": "D-20",
+      "scope": "requirement",
+      "kind": "defect",
+      "criterion": "VERIFIABLE",
+      "severity": "CRITICAL",
+      "title": "",
+      "req_ids": [
+        "REQ-22"
+      ],
+      "section": null,
+      "evidence": [
+        {
+          "quote": "должен работать быстро",
+          "line": 82,
+          "status": "exact"
+        }
+      ],
+      "problem": "Слово «быстро» не задаёт порога времени, поэтому нет критерия успеха для проверки.",
+      "impact": "Нельзя написать тест и принять требование, так как результат не измеряется.",
+      "recommendation": "Задать предельное время ответа в секундах и объём справочника, при котором оно достигается.",
+      "question": "Какое предельное время ответа поиска задать, в секундах (например, 1)?",
+      "addressee": "business",
+      "question_id": "Q-06",
+      "status": "confirmed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": null,
+      "severity_raised_from": null,
+      "places": [],
+      "origin": null
+    },
+    {
+      "id": "D-21",
+      "scope": "requirement",
+      "kind": "defect",
+      "criterion": "COMPLETE",
+      "severity": "CRITICAL",
+      "title": "",
+      "req_ids": [
+        "REQ-23"
+      ],
+      "section": null,
+      "evidence": [
+        {
+          "quote": "Срок хранения журнала операций: TBD",
+          "line": 84,
+          "status": "exact"
+        }
+      ],
+      "problem": "Значение срока хранения не задано, вместо него стоит TBD.",
+      "impact": "Нельзя реализовать очистку журнала и проверить соблюдение срока хранения.",
+      "recommendation": "Задать срок хранения в днях и правило действий по истечении срока.",
+      "question": "Какой срок хранения журнала операций задать, в днях (например, 1095)?",
+      "addressee": "security",
+      "question_id": null,
+      "status": "merged",
+      "critic_reason": "Срок хранения журнала стоит TBD в строке 84, это тот же дефект, что в S-07.",
+      "merged_into": "S-07",
+      "severity_before": null,
+      "divergence": null,
+      "severity_raised_from": null,
+      "places": [],
+      "origin": null
+    },
+    {
+      "id": "D-22",
+      "scope": "requirement",
+      "kind": "defect",
+      "criterion": "UNAMBIGUOUS",
+      "severity": "MAJOR",
+      "title": "",
+      "req_ids": [
+        "REQ-24"
+      ],
+      "section": null,
+      "evidence": [
+        {
+          "quote": "Вызывается с ТСД и из внешних систем",
+          "line": 90,
+          "status": "exact"
+        }
+      ],
+      "problem": "Внешние системы не названы, неясно, какие системы кроме ТСД вызывают метод.",
+      "impact": "Нельзя определить состав вызывающих систем и права доступа к методу.",
+      "recommendation": "Перечислить внешние системы, которые вызывают метод списания.",
+      "question": "Кроме ТСД, какие внешние системы вызывают метод списания: только бухгалтерия 1С или другие (назвать)?",
+      "addressee": "architect",
+      "question_id": null,
+      "status": "merged",
+      "critic_reason": "Внешние системы не названы, тот же дефект, что в S-20, которое полнее.",
+      "merged_into": "S-20",
+      "severity_before": null,
+      "divergence": null,
+      "severity_raised_from": null,
+      "places": [],
+      "origin": null
+    },
+    {
+      "id": "D-23",
+      "scope": "requirement",
+      "kind": "defect",
+      "criterion": "UNAMBIGUOUS",
+      "severity": "MAJOR",
+      "title": "",
+      "req_ids": [
+        "REQ-25"
+      ],
+      "section": null,
+      "evidence": [
+        {
+          "quote": "string(8) | да | Артикул позиции",
+          "line": 94,
+          "status": "exact"
+        }
+      ],
+      "problem": "Тип string(8) не говорит, точная ли длина поля и допустимы ли только цифры. ФТ-02 требует артикул из ровно 8 цифр.",
+      "impact": "Нельзя написать валидацию поля sku и тест на неверный формат артикула.",
+      "recommendation": "Указать в типе поля ровно 8 цифр, в соответствии с ФТ-02.",
+      "question": "Поле sku это строка ровно из 8 цифр (как в ФТ-02) или строка длиной до 8 символов любого вида?",
+      "addressee": "analyst",
+      "question_id": null,
+      "status": "confirmed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": null,
+      "severity_raised_from": null,
+      "places": [],
+      "origin": null
+    },
+    {
+      "id": "D-24",
+      "scope": "requirement",
+      "kind": "defect",
+      "criterion": "COMPLETE",
+      "severity": "MAJOR",
+      "title": "",
+      "req_ids": [
+        "REQ-27"
+      ],
+      "section": null,
+      "evidence": [
+        {
+          "quote": "Код ячейки, например `A-01-03`",
+          "line": 96,
+          "status": "exact"
+        }
+      ],
+      "problem": "Поле cell_code необязательное, но не сказано, что делает метод, если его нет. Из документа неясно, откуда списывается товар в этом случае.",
+      "impact": "Нельзя реализовать списание без указания ячейки и проверить его результат.",
+      "recommendation": "Описать поведение при отсутствии cell_code: списание без привязки к ячейке или отказ в запросе.",
+      "question": "Если cell_code не передан, списание выполняется без привязки к ячейке или запрос отклоняется?",
+      "addressee": "analyst",
+      "question_id": null,
+      "status": "confirmed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": null,
+      "severity_raised_from": null,
+      "places": [],
+      "origin": null
+    },
+    {
+      "id": "D-25",
+      "scope": "requirement",
+      "kind": "defect",
+      "criterion": "CONSISTENT",
+      "severity": "CRITICAL",
+      "title": "",
+      "req_ids": [
+        "REQ-28"
+      ],
+      "section": null,
+      "evidence": [
+        {
+          "quote": "`quantity` | integer | да | Списываемое количество",
+          "line": 97,
+          "status": "exact"
+        }
+      ],
+      "problem": "Тип integer не допускает дробных значений, а ФТ-03 учитывает весовые товары в кг с точностью до 0,001 кг. Одно и то же количество в этих местах задано в разных единицах и с разной точностью.",
+      "impact": "Нельзя однозначно рассчитать списание весового товара, потому что результат зависит от выбранного места документа.",
+      "recommendation": "Задать тип quantity с учётом единиц: целое число для штучных товаров, дробное число с точностью 0,001 для весовых.",
+      "question": "Для весовых товаров поле quantity передаётся в кг с точностью до 0,001, как в ФТ-03, или только целым числом?",
+      "addressee": "analyst",
+      "question_id": null,
+      "status": "merged",
+      "critic_reason": "Целое quantity против веса в кг, тот же дефект, что в S-21.",
+      "merged_into": "S-21",
+      "severity_before": null,
+      "divergence": null,
+      "severity_raised_from": null,
+      "places": [],
+      "origin": null
+    },
+    {
+      "id": "D-26",
+      "scope": "requirement",
+      "kind": "defect",
+      "criterion": "COMPLETE",
+      "severity": "MAJOR",
+      "title": "",
+      "req_ids": [
+        "REQ-30"
+      ],
+      "section": null,
+      "evidence": [
+        {
+          "quote": "integer | да | Кто списывает",
+          "line": 99,
+          "status": "exact"
+        }
+      ],
+      "problem": "Метод вызывается и из внешних систем, но описание Кто списывает не говорит, какой идентификатор передаётся в user_id в этом случае.",
+      "impact": "Нельзя реализовать проверку user_id для внешних вызовов и привязать списание к конкретному исполнителю.",
+      "recommendation": "Указать, передаётся ли ID сотрудника, инициировавшего списание, или ID служебной учётной записи внешней системы.",
+      "question": "При вызове из внешней системы в user_id передаётся ID сотрудника, инициировавшего списание, или ID служебной учётной записи системы?",
+      "addressee": "analyst",
+      "question_id": null,
+      "status": "confirmed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": null,
+      "severity_raised_from": null,
+      "places": [],
+      "origin": null
+    },
+    {
+      "id": "D-27",
+      "scope": "requirement",
+      "kind": "defect",
+      "criterion": "COMPLETE",
+      "severity": "MAJOR",
+      "title": "",
+      "req_ids": [
+        "REQ-31"
+      ],
+      "section": null,
+      "evidence": [
+        {
+          "quote": "Ответ при успехе: код 200 и тело",
+          "line": 101,
+          "status": "exact"
+        }
+      ],
+      "problem": "Описан только успешный ответ. Коды и тело ответа при отказе в списании или ошибке входных данных не заданы.",
+      "impact": "Нельзя реализовать обработку ошибок метода и написать тесты негативных сценариев.",
+      "recommendation": "Описать HTTP-код и тело ответа для каждой ошибки метода, включая отказ в списании.",
+      "question": "Какой HTTP-код и тело ответа возвращает метод, когда списание отклонено?",
+      "addressee": "architect",
+      "question_id": null,
+      "status": "merged",
+      "critic_reason": "Ответы при отказе не заданы, тот же дефект, что в S-09.",
+      "merged_into": "S-09",
+      "severity_before": null,
+      "divergence": null,
+      "severity_raised_from": null,
+      "places": [],
+      "origin": null
+    },
+    {
+      "id": "D-28",
+      "scope": "requirement",
+      "kind": "defect",
+      "criterion": "CONSISTENT",
+      "severity": "CRITICAL",
+      "title": "",
+      "req_ids": [
+        "REQ-32"
+      ],
+      "section": null,
+      "evidence": [
+        {
+          "quote": "метод выполняет списание, остаток уходит в минус",
+          "line": 105,
+          "status": "exact"
+        }
+      ],
+      "problem": "Здесь списание больше остатка выполняется с минусом, а ФТ-09 и критерий приёмки 4 требуют отклонять такое списание. Поведение при нехватке товара противоречит другим местам документа.",
+      "impact": "Нельзя выбрать одно поведение метода при нехватке товара и написать для него тесты.",
+      "recommendation": "Оставить одно правило: отклонять списание сверх доступного остатка или разрешать минус, и привести ФТ-09 и критерий приёмки 4 в соответствие с выбранным.",
+      "question": "Какое поведение верно при списании больше остатка: отклонять списание (ФТ-09) или выполнять его с минусом (раздел 4.2)?",
+      "addressee": "business",
+      "question_id": null,
+      "status": "merged",
+      "critic_reason": "Списание в минус против ФТ-09 и критерия 4, то же противоречие, что в S-06.",
+      "merged_into": "S-06",
+      "severity_before": null,
+      "divergence": null,
+      "severity_raised_from": null,
+      "places": [],
+      "origin": null
+    },
+    {
+      "id": "D-29",
+      "scope": "requirement",
+      "kind": "defect",
+      "criterion": "COMPLETE",
+      "severity": "MAJOR",
+      "title": "",
+      "req_ids": [
+        "REQ-32"
+      ],
+      "section": null,
+      "evidence": [
+        {
+          "quote": "остаток уходит в минус, а операция",
+          "line": 105,
+          "status": "exact"
+        }
+      ],
+      "problem": "Не сказано, насколько остаток может уйти в минус, нижняя граница не задана.",
+      "impact": "Нельзя реализовать проверку допустимого минуса и написать тесты граничных значений.",
+      "recommendation": "Задать предельный отрицательный остаток в единицах товара или прямо запретить минус.",
+      "question": "Какой предельный отрицательный остаток допустим: задать значение в единицах товара (например, 0) или ограничения нет?",
+      "addressee": "analyst",
+      "question_id": "Q-12",
+      "status": "confirmed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": null,
+      "severity_raised_from": null,
+      "places": [],
+      "origin": null
+    },
+    {
+      "id": "D-30",
+      "scope": "requirement",
+      "kind": "defect",
+      "criterion": "COMPLETE",
+      "severity": "MAJOR",
+      "title": "",
+      "req_ids": [
+        "REQ-33"
+      ],
+      "section": null,
+      "evidence": [
+        {
+          "quote": "Проведённые накладные выгружаются в 1С раз в сутки",
+          "line": 109,
+          "status": "exact"
+        }
+      ],
+      "problem": "Не описано, что происходит, если выгрузка в 23:00 не удалась или 1С недоступна.",
+      "impact": "Нельзя реализовать повтор выгрузки и проверить поведение при сбое интеграции.",
+      "recommendation": "Описать повтор выгрузки, его интервал и уведомление старшего кладовщика при неудаче.",
+      "question": "Что делать с накладными, если выгрузка в 1С в 23:00 не удалась: повторить выгрузку в тот же день или перенести на следующие сутки?",
+      "addressee": "analyst",
+      "question_id": null,
+      "status": "merged",
+      "critic_reason": "Сбой выгрузки в 23:00 не описан, тот же дефект, что в S-08.",
+      "merged_into": "S-08",
+      "severity_before": null,
+      "divergence": null,
+      "severity_raised_from": null,
+      "places": [],
+      "origin": null
+    },
+    {
+      "id": "D-31",
+      "scope": "requirement",
+      "kind": "defect",
+      "criterion": "VERIFIABLE",
+      "severity": "CRITICAL",
+      "title": "",
+      "req_ids": [
+        "REQ-34"
+      ],
+      "section": null,
+      "evidence": [
+        {
+          "quote": "Интерфейс ТСД должен быть удобным",
+          "line": 113,
+          "status": "exact"
+        },
+        {
+          "quote": "должен быть удобным для кладовщика",
+          "line": 113,
+          "status": "exact"
+        }
+      ],
+      "problem": "Нет порога и метода проверки, поэтому тест или осмотр не дадут однозначного результата.",
+      "impact": "Нельзя проверить выполнение требования и принять интерфейс ТСД.",
+      "recommendation": "Задать измеримый порог и метод проверки, например замер времени операции на ТСД.",
+      "question": "Какое предельное время выполнения основной операции на ТСД задать, в секундах?",
+      "addressee": "business",
+      "question_id": "Q-07",
+      "status": "confirmed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": null,
+      "severity_raised_from": null,
+      "places": [],
+      "origin": null
+    },
+    {
+      "id": "D-32",
+      "scope": "requirement",
+      "kind": "defect",
+      "criterion": "UNAMBIGUOUS",
+      "severity": "MAJOR",
+      "title": "",
+      "req_ids": [
+        "REQ-34"
+      ],
+      "section": null,
+      "evidence": [
+        {
+          "quote": "должен быть удобным для кладовщика",
+          "line": 113,
+          "status": "exact"
+        }
+      ],
+      "problem": "Слово «удобным» оценочное и не определено, понимать его можно по-разному.",
+      "impact": "Нельзя определить, какой результат считать соответствием требованию.",
+      "recommendation": "Заменить оценку на измеримые признаки, например время операции на ТСД или число ошибок ввода.",
+      "question": "Что означает удобство для кладовщика: время выполнения операции на ТСД или число ошибок ввода?",
+      "addressee": "business",
+      "question_id": null,
+      "status": "merged",
+      "critic_reason": "Слово удобным в той же строке 113, исправление общее с D-31.",
+      "merged_into": "D-31",
+      "severity_before": null,
+      "divergence": null,
+      "severity_raised_from": null,
+      "places": [],
+      "origin": null
+    },
+    {
+      "id": "D-33",
+      "scope": "requirement",
+      "kind": "defect",
+      "criterion": "VERIFIABLE",
+      "severity": "CRITICAL",
+      "title": "",
+      "req_ids": [
+        "REQ-35"
+      ],
+      "section": null,
+      "evidence": [
+        {
+          "quote": "Система работает круглосуточно",
+          "line": 115,
+          "status": "exact"
+        }
+      ],
+      "problem": "«Круглосуточно» не задаёт допустимую долю недоступности, а плановые работы не ограничены по длительности, поэтому нарушение не определить.",
+      "impact": "Нельзя доказать выполнение требования ни тестом, ни мониторингом доступности.",
+      "recommendation": "Задать минимальную доступность за период и максимальную длительность планового простоя.",
+      "question": "Какую минимальную доступность системы задать, в процентах за месяц?",
+      "addressee": "business",
+      "question_id": "Q-08",
+      "status": "confirmed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": null,
+      "severity_raised_from": null,
+      "places": [],
+      "origin": null
+    },
+    {
+      "id": "D-34",
+      "scope": "requirement",
+      "kind": "defect",
+      "criterion": "UNAMBIGUOUS",
+      "severity": "MAJOR",
+      "title": "",
+      "req_ids": [
+        "REQ-37"
+      ],
+      "section": null,
+      "evidence": [
+        {
+          "quote": "Одновременно в системе работают до 60 пользователей",
+          "line": 119,
+          "status": "exact"
+        }
+      ],
+      "problem": "Глагол «работают» не говорит, что считается одновременной работой. Пользователь может быть залогинен без действий или выполнять операцию прямо сейчас.",
+      "impact": "Нельзя определить, какую нагрузку тестировать и что считать превышением лимита.",
+      "recommendation": "Определить «одновременно работающего пользователя» через конкретное состояние, например открытую сессию или выполняемую операцию.",
+      "question": "Что считается одновременной работой: открытая сессия пользователя или выполняемая в данный момент операция?",
+      "addressee": "analyst",
+      "question_id": null,
+      "status": "confirmed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": null,
+      "severity_raised_from": null,
+      "places": [],
+      "origin": null
+    },
+    {
+      "id": "D-35",
+      "scope": "requirement",
+      "kind": "defect",
+      "criterion": "COMPLETE",
+      "severity": "MAJOR",
+      "title": "",
+      "req_ids": [
+        "REQ-37"
+      ],
+      "section": null,
+      "evidence": [
+        {
+          "quote": "работают до 60 пользователей",
+          "line": 119,
+          "status": "exact"
+        }
+      ],
+      "problem": "Требование задаёт только число пользователей без времени отклика и без поведения системы под такой нагрузкой.",
+      "impact": "Нельзя проверить, что система справляется с 60 пользователями, потому что нет порога успеха.",
+      "recommendation": "Добавить предельное время отклика при 60 одновременных пользователях с единицей измерения.",
+      "question": "Какое предельное время ответа системы задать при 60 одновременных пользователях, в секундах?",
+      "addressee": "business",
+      "question_id": null,
+      "status": "confirmed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": null,
+      "severity_raised_from": null,
+      "places": [],
+      "origin": null
+    },
+    {
+      "id": "D-36",
+      "scope": "requirement",
+      "kind": "defect",
+      "criterion": "COMPLETE",
+      "severity": "MAJOR",
+      "title": "",
+      "req_ids": [
+        "REQ-43"
+      ],
+      "section": null,
+      "evidence": [
+        {
+          "quote": "Кладовщик не видит раздел «Отчёты».",
+          "line": 128,
+          "status": "exact"
+        }
+      ],
+      "problem": "Критерий описывает только то, что раздел не виден кладовщику. Не сказано, что система делает, если кладовщик открывает раздел напрямую, минуя меню.",
+      "impact": "Нельзя проверить и реализовать запрет доступа к разделу, а не только скрытие пункта меню.",
+      "recommendation": "Дописать ожидаемое поведение системы при прямом обращении кладовщика к разделу «Отчёты».",
+      "question": "Что система показывает кладовщику при прямом открытии раздела «Отчёты», минуя меню: сообщение об отказе в доступе или перенаправление на главную страницу?",
+      "addressee": "analyst",
+      "question_id": null,
+      "status": "merged",
+      "critic_reason": "Прямой доступ к разделу не запрещён, тот же дефект, что в D-19.",
+      "merged_into": "D-19",
+      "severity_before": null,
+      "divergence": null,
+      "severity_raised_from": null,
+      "places": [],
+      "origin": null
+    },
+    {
+      "id": "S-01",
+      "scope": "set",
+      "kind": "contradiction",
+      "criterion": "SET_COMPLETE",
+      "severity": "MAJOR",
+      "title": "Момент отправки накладной в 1С задан по-разному",
+      "req_ids": [
+        "REQ-10",
+        "REQ-33"
+      ],
+      "section": "3.2 Приход товара",
+      "evidence": [
+        {
+          "quote": "ФТ-05. Система должна позволять создавать приходную накладную, печатать этикетки на каждую единицу товара и отправлять накладную в бухгалтерию 1С.",
+          "line": 50,
+          "status": "exact"
+        },
+        {
+          "quote": "Проведённые накладные выгружаются в 1С раз в сутки в 23:00 по времени Астаны.",
+          "line": 109,
+          "status": "exact"
+        }
+      ],
+      "problem": "ФТ-05 не задаёт момента отправки накладной в 1С, а раздел 4.3 задаёт выгрузку раз в сутки в 23:00.",
+      "impact": "Нельзя определить, когда накладная должна появиться в 1С и какой срок считать нарушением.",
+      "recommendation": "Указать один порядок отправки в ФТ-05 и в разделе 4.3 и привести их к одному моменту.",
+      "question": "Какое из двух мест верно: отправка накладной в 1С сразу после проведения (строка 50) или пакетная выгрузка раз в сутки в 23:00 (строка 109)?",
+      "addressee": "business",
+      "question_id": "Q-09",
+      "status": "downgraded",
+      "critic_reason": "ФТ-05 не задаёт момент отправки, это неполнота, а не прямое противоречие с пунктом 4.3.",
+      "merged_into": null,
+      "severity_before": "CRITICAL",
+      "divergence": "behavior",
+      "severity_raised_from": "MAJOR",
+      "places": [],
+      "origin": "completeness"
+    },
+    {
+      "id": "S-02",
+      "scope": "set",
+      "kind": "gap",
+      "criterion": "SET_COMPLETE",
+      "severity": "CRITICAL",
+      "title": "Повторный вызов метода списания с теми же параметрами",
+      "req_ids": [
+        "REQ-24",
+        "REQ-28"
+      ],
+      "section": "4.1",
+      "evidence": [
+        {
+          "quote": "Метод списывает товар со склада.",
+          "line": 90,
+          "status": "exact"
+        }
+      ],
+      "problem": "Не описано, что делает метод, если тот же запрос на списание пришёл повторно, например после обрыва связи с ТСД и повторной отправки. Не указано, выполняется ли второе списание или возвращается результат первого.",
+      "impact": "Нельзя реализовать защиту от двойного списания, и остаток может уменьшиться дважды за одну операцию.",
+      "recommendation": "Описать поведение при повторном запросе: ключ идемпотентности, срок его действия и ответ, который получает повторный вызов.",
+      "question": "При повторном вызове с теми же параметрами, которым списание уже выполнено, система выполняет новое списание или возвращает operation_id первого списания?",
+      "addressee": "architect",
+      "question_id": "Q-04",
+      "status": "confirmed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": "none",
+      "severity_raised_from": null,
+      "places": [],
+      "origin": "edge"
+    },
+    {
+      "id": "S-03",
+      "scope": "set",
+      "kind": "gap",
+      "criterion": "SET_COMPLETE",
+      "severity": "MAJOR",
+      "title": "Отмена проведённой приходной накладной",
+      "req_ids": [
+        "REQ-12",
+        "REQ-39"
+      ],
+      "section": "3.2",
+      "evidence": [
+        {
+          "quote": "После проведения накладной старшим кладовщиком остаток позиции увеличивается на принятое количество.",
+          "line": 54,
+          "status": "exact"
+        },
+        {
+          "quote": "Система должна позволять создавать приходную накладную",
+          "line": 50,
+          "status": "exact"
+        }
+      ],
+      "problem": "Документ описывает только проведение накладной и увеличение остатка. Не описано, можно ли отменить проведённую накладную, как это влияет на остаток и что происходит с уже отправленной в 1С накладной.",
+      "impact": "Ошибочный приход нельзя исправить по тексту, и разработчик не знает, уменьшать ли остаток при отмене.",
+      "recommendation": "Описать операцию отмены проведённой накладной: кто её выполняет, что происходит с остатком и с выгрузкой в 1С.",
+      "question": "Допускается ли отмена проведённой приходной накладной с уменьшением остатка на принятое количество: да или нет?",
+      "addressee": "business",
+      "question_id": null,
+      "status": "downgraded",
+      "critic_reason": "Отмена проведённой накладной не описана, это неполный сценарий.",
+      "merged_into": null,
+      "severity_before": "CRITICAL",
+      "divergence": "none",
+      "severity_raised_from": null,
+      "places": [],
+      "origin": "edge"
+    },
+    {
+      "id": "S-04",
+      "scope": "set",
+      "kind": "gap",
+      "criterion": "SET_COMPLETE",
+      "severity": "MAJOR",
+      "title": "Нулевое и отрицательное значение quantity при списании",
+      "req_ids": [
+        "REQ-28"
+      ],
+      "section": "4.1",
+      "evidence": [
+        {
+          "quote": "| `quantity` | integer | да | Списываемое количество |",
+          "line": 97,
+          "status": "exact"
+        }
+      ],
+      "problem": "Поле quantity обязательно и целое, но ограничения снизу не заданы. Не описано, что система делает со значением 0 или отрицательным значением.",
+      "impact": "Отрицательное списание может увеличить остаток, а нулевое не имеет смысла. Нельзя написать проверку входных данных и тесты на граничные значения.",
+      "recommendation": "Задать минимальное допустимое значение quantity и код ответа при нарушении.",
+      "question": "Отклоняет ли метод значение quantity, равное нулю или меньше нуля, и с каким кодом ответа: да или нет?",
+      "addressee": "analyst",
+      "question_id": null,
+      "status": "downgraded",
+      "critic_reason": "Значения 0 и отрицательные для quantity не заданы, это граничный случай.",
+      "merged_into": null,
+      "severity_before": "CRITICAL",
+      "divergence": "none",
+      "severity_raised_from": null,
+      "places": [],
+      "origin": "edge"
+    },
+    {
+      "id": "S-05",
+      "scope": "set",
+      "kind": "contradiction",
+      "criterion": "SET_CONSISTENT",
+      "severity": "CRITICAL",
+      "title": "Срок резерва: 24 часа по ФТ-08 против 72 часов в критерии приёмки 3",
+      "req_ids": [
+        "REQ-13",
+        "REQ-40"
+      ],
+      "section": "3.3",
+      "evidence": [
+        {
+          "quote": "При создании заказа на отгрузку система резервирует товар. Резерв действует 24 часа с момента создания заказа, после чего снимается автоматически.",
+          "line": 58,
+          "status": "exact"
+        },
+        {
+          "quote": "3. Резерв по заказу автоматически снимается через 72 часа, если заказ не отгружен.",
+          "line": 125,
+          "status": "exact"
+        }
+      ],
+      "problem": "ФТ-08 задаёт автоснятие резерва через 24 часа с момента создания заказа, а критерий приёмки 3 требует снятия через 72 часа, и только если заказ не отгружен. Цитаты несовместимы: при первом читается снятие через 24 часа в любом случае, при втором через 72 часа.",
+      "impact": "Нельзя написать корректную логику снятия резерва и тесты для неё: по одному источнику резерв снимается через сутки, по другому через трое суток.",
+      "recommendation": "Привести ФТ-08 и критерий приёмки 3 к одному сроку и одному условию снятия резерва.",
+      "question": "Какое из двух значений верно: резерв снимается через 24 часа с момента создания заказа (строка 58) или через 72 часа, если заказ не отгружен (строка 125)?",
+      "addressee": "business",
+      "question_id": "Q-02",
+      "status": "confirmed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": "behavior",
+      "severity_raised_from": null,
+      "places": [],
+      "origin": "consistency"
+    },
+    {
+      "id": "S-06",
+      "scope": "set",
+      "kind": "contradiction",
+      "criterion": "SET_CONSISTENT",
+      "severity": "CRITICAL",
+      "title": "Списание сверх остатка: отклонение по ФТ-09 против списания в минус по разделу 4.2",
+      "req_ids": [
+        "REQ-14",
+        "REQ-32"
+      ],
+      "section": "4.2",
+      "evidence": [
+        {
+          "quote": "Списание товара, количество которого больше доступного остатка (остаток минус резерв), отклоняется с сообщением «Недостаточно товара».",
+          "line": 60,
+          "status": "exact"
+        },
+        {
+          "quote": "Если на складе меньше товара, чем указано в `quantity`, метод выполняет списание, остаток уходит в минус, а операция помечается флагом `negative_balance` для последующего разбора старшим кладовщиком.",
+          "line": 105,
+          "status": "exact"
+        }
+      ],
+      "problem": "ФТ-09 требует отклонять списание, если количество больше доступного остатка, и выдавать сообщение. Раздел 4.2 для того же действия требует выполнять списание в минус с флагом negative_balance. Расходятся и результат (отказ или проведение), и база сравнения (доступный остаток за вычетом резерва или фактический остаток на складе).",
+      "impact": "Нельзя определить, что возвращает метод списания при нехватке товара, проводится ли операция и учитывается ли резерв. Тесты на этот случай будут противоречить друг другу.",
+      "recommendation": "Определить одно поведение списания при нехватке товара и одну базу сравнения (доступный остаток или фактический остаток), и привести ФТ-09, раздел 4.2 и критерий приёмки 4 к нему.",
+      "question": "Должен ли метод списания отклонять запрос, если quantity больше доступного остатка (остаток минус резерв), или выполнять списание в минус с флагом negative_balance?",
+      "addressee": "business",
+      "question_id": "Q-03",
+      "status": "confirmed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": "behavior",
+      "severity_raised_from": null,
+      "places": [],
+      "origin": "consistency"
+    },
+    {
+      "id": "S-07",
+      "scope": "set",
+      "kind": "gap",
+      "criterion": "SET_COMPLETE",
+      "severity": "CRITICAL",
+      "title": "Срок хранения журнала операций не задан, стоит TBD",
+      "req_ids": [
+        "REQ-23"
+      ],
+      "section": "3.6 Отчёты и доступ",
+      "evidence": [
+        {
+          "quote": "ФТ-18. Срок хранения журнала операций: TBD, уточнить у службы безопасности.",
+          "line": 84,
+          "status": "exact"
+        }
+      ],
+      "problem": "Срок хранения журнала операций не определён, в строке стоит пометка TBD.",
+      "impact": "Нельзя реализовать очистку журнала и проверить соответствие требованиям аудита.",
+      "recommendation": "Задать срок хранения журнала операций и правило его удаления.",
+      "question": "Сколько дней хранится журнал операций: задать значение в днях (например, 365)?",
+      "addressee": "security",
+      "question_id": "Q-05",
+      "status": "confirmed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": "MAJOR",
+      "divergence": "none",
+      "severity_raised_from": null,
+      "places": [],
+      "origin": "completeness"
+    },
+    {
+      "id": "S-08",
+      "scope": "set",
+      "kind": "gap",
+      "criterion": "SET_COMPLETE",
+      "severity": "MAJOR",
+      "title": "Не описано, что происходит с накладной при сбое выгрузки в 1С",
+      "req_ids": [
+        "REQ-10",
+        "REQ-33"
+      ],
+      "section": "4.3 Обмен с 1С",
+      "evidence": [
+        {
+          "quote": "Проведённые накладные выгружаются в 1С раз в сутки в 23:00 по времени Астаны.",
+          "line": 109,
+          "status": "exact"
+        }
+      ],
+      "problem": "Нет сценария отказа или недоступности 1С во время выгрузки в 23:00: не сказано, повторяется ли отправка и кто её контролирует.",
+      "impact": "Накладные могут быть потеряны или не попасть в бухгалтерию, поведение при сбое не проверить.",
+      "recommendation": "Описать повтор выгрузки, порог ошибок и оповещение ответственного при неудаче.",
+      "question": "Что происходит с накладной, если выгрузка в 1С в 23:00 не выполнилась: повтор в следующем цикле или ручная повторная отправка?",
+      "addressee": "architect",
+      "question_id": "Q-09",
+      "status": "confirmed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": "none",
+      "severity_raised_from": null,
+      "places": [],
+      "origin": "completeness"
+    },
+    {
+      "id": "S-09",
+      "scope": "set",
+      "kind": "gap",
+      "criterion": "SET_COMPLETE",
+      "severity": "MAJOR",
+      "title": "Не описаны коды и тело ответа при отказе метода списания",
+      "req_ids": [
+        "REQ-24",
+        "REQ-31"
+      ],
+      "section": "4.1 Метод API POST /api/v1/stock/writeoff",
+      "evidence": [
+        {
+          "quote": "Ответ при успехе: код 200 и тело `{\"operation_id\": \"<uuid>\", \"balance\": <число>}`.",
+          "line": 101,
+          "status": "exact"
+        }
+      ],
+      "problem": "Описан только ответ при успехе, ответы при неверных или отсутствующих параметрах и при ошибке склада не заданы.",
+      "impact": "Вызывающие системы и ТСД не знают, как различать отказ и успех, и тестировщик не может проверить ошибочные сценарии.",
+      "recommendation": "Описать коды и тело ответа для каждого класса ошибок метода списания.",
+      "question": "Какой HTTP-код возвращает метод при неверном значении параметра reason: задать код, например 400?",
+      "addressee": "architect",
+      "question_id": null,
+      "status": "confirmed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": "none",
+      "severity_raised_from": null,
+      "places": [],
+      "origin": "completeness"
+    },
+    {
+      "id": "S-10",
+      "scope": "set",
+      "kind": "gap",
+      "criterion": "SET_COMPLETE",
+      "severity": "MAJOR",
+      "title": "Не описана аутентификация вызывающих систем метода списания",
+      "req_ids": [
+        "REQ-24",
+        "REQ-30"
+      ],
+      "section": "5. Нефункциональные требования",
+      "evidence": [
+        {
+          "quote": "| `user_id` | integer | да | Кто списывает |",
+          "line": 99,
+          "status": "exact"
+        }
+      ],
+      "problem": "Метод вызывается из внешних систем и ТСД, но способ подтверждения вызывающей стороны не описан, а user_id передаётся в теле запроса.",
+      "impact": "Нельзя проверить, что списание выполнено уполномоченным пользователем, и не определено, как закрыть метод от посторонних вызовов.",
+      "recommendation": "Описать способ аутентификации внешних систем и ТСД и правило проверки user_id против токена.",
+      "question": "Чем подтверждается вызывающая сторона метода списания: токеном внешней системы или ТСД, или user_id из тела запроса?",
+      "addressee": "security",
+      "question_id": "Q-10",
+      "status": "confirmed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": "none",
+      "severity_raised_from": null,
+      "places": [],
+      "origin": "completeness"
+    },
+    {
+      "id": "S-11",
+      "scope": "set",
+      "kind": "gap",
+      "criterion": "SET_COMPLETE",
+      "severity": "MAJOR",
+      "title": "Одновременные запросы на резерв и списание не описаны",
+      "req_ids": [
+        "REQ-13",
+        "REQ-14"
+      ],
+      "section": "3.3 Выдача и резерв",
+      "evidence": [
+        {
+          "quote": "ФТ-08. При создании заказа на отгрузку система резервирует товар.",
+          "line": 58,
+          "status": "exact"
+        }
+      ],
+      "problem": "Не описано, что происходит при одновременном списании одной позиции несколькими пользователями или при резервировании товара, который уже списывается.",
+      "impact": "Без правила параллельной обработки остаток может уйти в минус или быть зарезервирован дважды, и такой сценарий нельзя проверить.",
+      "recommendation": "Описать порядок обработки параллельных запросов на один и тот же остаток.",
+      "question": "При одновременном списании одной позиции двумя пользователями второй запрос отклоняется или ожидает завершения первого?",
+      "addressee": "architect",
+      "question_id": null,
+      "status": "confirmed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": "none",
+      "severity_raised_from": null,
+      "places": [],
+      "origin": "completeness"
+    },
+    {
+      "id": "S-12",
+      "scope": "set",
+      "kind": "gap",
+      "criterion": "SET_COMPLETE",
+      "severity": "MAJOR",
+      "title": "Роль, утверждающая акт расхождения, не определена в списке ролей",
+      "req_ids": [
+        "REQ-20"
+      ],
+      "section": "2. Роли",
+      "evidence": [
+        {
+          "quote": "ФТ-15. Акт расхождения утверждает руководитель.",
+          "line": 76,
+          "status": "exact"
+        }
+      ],
+      "problem": "Роль «руководитель» не входит в таблицу ролей раздела 2, и не ясно, какая из заявленных ролей её выполняет.",
+      "impact": "Нельзя назначить права на утверждение акта расхождения и проверить это требование.",
+      "recommendation": "Добавить роль руководителя в таблицу ролей или назначить существующую роль на утверждение акта.",
+      "question": "Какая роль утверждает акт расхождения: Старший кладовщик, Администратор или отдельная роль Руководитель?",
+      "addressee": "business",
+      "question_id": "Q-11",
+      "status": "confirmed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": "none",
+      "severity_raised_from": null,
+      "places": [],
+      "origin": "completeness"
+    },
+    {
+      "id": "S-13",
+      "scope": "set",
+      "kind": "gap",
+      "criterion": "SET_COMPLETE",
+      "severity": "MAJOR",
+      "title": "Расхождение ровно 5% при инвентаризации",
+      "req_ids": [
+        "REQ-19",
+        "REQ-42"
+      ],
+      "section": "3.5",
+      "evidence": [
+        {
+          "quote": "Если фактический остаток отличается от учётного больше чем на 5%, система создаёт акт расхождения.",
+          "line": 74,
+          "status": "exact"
+        },
+        {
+          "quote": "Если отличие меньше 5%, учётный остаток исправляется на фактический автоматически.",
+          "line": 74,
+          "status": "exact"
+        }
+      ],
+      "problem": "Строки покрывают отличие больше 5% и меньше 5%, но не описывают случай, когда отличие ровно 5%.",
+      "impact": "Для точного совпадения границы нельзя определить, создаётся ли акт или остаток исправляется автоматически.",
+      "recommendation": "Указать, к какой ветке относится отличие ровно 5%, и проверить это на тестах граничного значения.",
+      "question": "При отличии фактического остатка от учётного ровно на 5% система создаёт акт расхождения или исправляет остаток автоматически?",
+      "addressee": "business",
+      "question_id": null,
+      "status": "confirmed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": "none",
+      "severity_raised_from": null,
+      "places": [],
+      "origin": "edge"
+    },
+    {
+      "id": "S-14",
+      "scope": "set",
+      "kind": "gap",
+      "criterion": "SET_COMPLETE",
+      "severity": "MAJOR",
+      "title": "Отклонение перемещения старшим кладовщиком",
+      "req_ids": [
+        "REQ-16",
+        "REQ-17"
+      ],
+      "section": "3.4",
+      "evidence": [
+        {
+          "quote": "Перемещение считается выполненным после того, как старший кладовщик утвердит его.",
+          "line": 66,
+          "status": "exact"
+        },
+        {
+          "quote": "Во время перемещения товар не входит в остаток ни одного из складов.",
+          "line": 68,
+          "status": "exact"
+        }
+      ],
+      "problem": "Не описано, что происходит, если старший кладовщик не утверждает перемещение. Не указано, отменяется ли оно и где находится товар.",
+      "impact": "Товар может остаться вне остатков обоих складов без срока и без способа вернуть его.",
+      "recommendation": "Описать статус отклонённого перемещения и возврат товара на склад-отправитель.",
+      "question": "Возвращается ли товар на склад-отправитель, если старший кладовщик отклонил перемещение: да или нет?",
+      "addressee": "business",
+      "question_id": null,
+      "status": "confirmed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": "none",
+      "severity_raised_from": null,
+      "places": [],
+      "origin": "edge"
+    },
+    {
+      "id": "S-15",
+      "scope": "set",
+      "kind": "gap",
+      "criterion": "SET_COMPLETE",
+      "severity": "MAJOR",
+      "title": "Удаление позиции с нулевым остатком, но с резервом или товаром в перемещении",
+      "req_ids": [
+        "REQ-09",
+        "REQ-17"
+      ],
+      "section": "3.1",
+      "evidence": [
+        {
+          "quote": "Система запрещает удалять позицию из справочника, если её остаток хотя бы на одном складе больше нуля.",
+          "line": 46,
+          "status": "exact"
+        },
+        {
+          "quote": "Во время перемещения товар не входит в остаток ни одного из складов.",
+          "line": 68,
+          "status": "exact"
+        }
+      ],
+      "problem": "Запрет привязан только к остатку. Не описано, можно ли удалить позицию, у которой остаток равен нулю, но есть резерв или товар в перемещении.",
+      "impact": "Удаление такой позиции оставит без справочной записи заказ или перемещение, и разработчик не знает, разрешать ли удаление.",
+      "recommendation": "Добавить в правило удаления резерв и товар в перемещении как условия запрета либо описать порядок действий.",
+      "question": "Разрешено ли удалять позицию, у которой остаток равен нулю, но есть резерв или товар в перемещении: да или нет?",
+      "addressee": "business",
+      "question_id": null,
+      "status": "confirmed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": "none",
+      "severity_raised_from": null,
+      "places": [],
+      "origin": "edge"
+    },
+    {
+      "id": "S-16",
+      "scope": "set",
+      "kind": "gap",
+      "criterion": "SET_COMPLETE",
+      "severity": "MAJOR",
+      "title": "Порог истекающего срока годности",
+      "req_ids": [
+        "REQ-15",
+        "REQ-06"
+      ],
+      "section": "3.3",
+      "evidence": [
+        {
+          "quote": "Товары с истекающим сроком годности выделяются в списке остатков цветом.",
+          "line": 62,
+          "status": "exact"
+        }
+      ],
+      "problem": "Не задано, за сколько до окончания срока товар считается истекающим. Не описано, выделяются ли товары с уже истёкшим сроком.",
+      "impact": "Выделение цветом нельзя проверить, так как неизвестно, какие позиции должны быть выделены.",
+      "recommendation": "Задать порог в днях и поведение для товара с истёкшим сроком.",
+      "question": "За сколько дней до окончания срока годности товар считается истекающим: задать число дней, например 30?",
+      "addressee": "business",
+      "question_id": null,
+      "status": "confirmed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": "none",
+      "severity_raised_from": null,
+      "places": [],
+      "origin": "edge"
+    },
+    {
+      "id": "S-17",
+      "scope": "set",
+      "kind": "gap",
+      "criterion": "SET_COMPLETE",
+      "severity": "MAJOR",
+      "title": "Доступ роли Кладовщик к чужому складу",
+      "req_ids": [
+        "REQ-02",
+        "REQ-03",
+        "REQ-05"
+      ],
+      "section": "2",
+      "evidence": [
+        {
+          "quote": "Центральный склад и склад №2",
+          "line": 11,
+          "status": "exact"
+        },
+        {
+          "quote": "Принимает и выдаёт товар, сканирует штрихкоды, проводит пересчёт",
+          "line": 29,
+          "status": "exact"
+        }
+      ],
+      "problem": "Документ называет два склада, но не описывает, ограничивается ли роль Кладовщик складом, к которому он приписан. Не описано, может ли он списывать или проводить операции на другом складе.",
+      "impact": "Нельзя определить, какие операции над каким складом проверять при авторизации.",
+      "recommendation": "Описать привязку пользователя к складу и правило доступа к операциям на другом складе.",
+      "question": "Ограничивается ли роль Кладовщик операциями только на том складе, к которому он приписан: да или нет?",
+      "addressee": "business",
+      "question_id": null,
+      "status": "confirmed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": "none",
+      "severity_raised_from": null,
+      "places": [],
+      "origin": "edge"
+    },
+    {
+      "id": "S-18",
+      "scope": "set",
+      "kind": "gap",
+      "criterion": "SET_COMPLETE",
+      "severity": "MAJOR",
+      "title": "Состояние резерва при отгрузке или отмене заказа до истечения 24 часов",
+      "req_ids": [
+        "REQ-13"
+      ],
+      "section": "3.3",
+      "evidence": [
+        {
+          "quote": "Резерв действует 24 часа с момента создания заказа, после чего снимается автоматически.",
+          "line": 58,
+          "status": "exact"
+        }
+      ],
+      "problem": "Строка описывает только автоматическое снятие резерва по времени. Не описано, снимается ли резерв при отгрузке или отмене заказа до истечения срока.",
+      "impact": "Без этого правила нельзя понять, остаётся ли товар зарезервированным после отгрузки и не уменьшает ли он доступный остаток для других операций.",
+      "recommendation": "Описать снятие резерва при отгрузке и отмене заказа, а также обработку уже отгруженного количества.",
+      "question": "Снимается ли резерв сразу после отгрузки или отмены заказа, не дожидаясь истечения 24 часов: да или нет?",
+      "addressee": "business",
+      "question_id": null,
+      "status": "confirmed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": "none",
+      "severity_raised_from": null,
+      "places": [],
+      "origin": "edge"
+    },
+    {
+      "id": "S-19",
+      "scope": "set",
+      "kind": "gap",
+      "criterion": "SET_COMPLETE",
+      "severity": "MAJOR",
+      "title": "Погашение отрицательного остатка последующим приходом",
+      "req_ids": [
+        "REQ-32",
+        "REQ-12"
+      ],
+      "section": "4.2",
+      "evidence": [
+        {
+          "quote": "операция помечается флагом `negative_balance` для последующего разбора старшим кладовщиком.",
+          "line": 105,
+          "status": "exact"
+        }
+      ],
+      "problem": "Не описано, как отрицательный остаток возвращается к нормальному значению. Не указано, гасит ли последующий приход или инвентаризация минус автоматически или только вручную.",
+      "impact": "Нельзя определить итоговый остаток после прихода товара при отрицательном балансе.",
+      "recommendation": "Описать порядок погашения отрицательного остатка приходом и инвентаризацией.",
+      "question": "Гасит ли последующий приход товара отрицательный остаток автоматически: да или нет?",
+      "addressee": "business",
+      "question_id": null,
+      "status": "confirmed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": "none",
+      "severity_raised_from": null,
+      "places": [],
+      "origin": "edge"
+    },
+    {
+      "id": "S-20",
+      "scope": "set",
+      "kind": "gap",
+      "criterion": "SET_COMPREHENSIBLE",
+      "severity": "MAJOR",
+      "title": "Внешние системы, вызывающие метод списания, не названы и не описаны",
+      "req_ids": [
+        "REQ-24"
+      ],
+      "section": "1",
+      "evidence": [
+        {
+          "quote": "Метод списывает товар со склада. Вызывается с ТСД и из внешних систем.",
+          "line": 90,
+          "status": "exact"
+        },
+        {
+          "quote": "| Смежные системы | Бухгалтерия 1С, терминалы сбора данных (ТСД) |",
+          "line": 12,
+          "status": "exact"
+        }
+      ],
+      "problem": "В разделе 4.1 метод списания вызывается из внешних систем, но в списке смежных систем названы только 1С и ТСД. Какие это внешние системы и как они подключаются, в документе не описано. Требование HTTPS (НФТ-03) относится только к обмену между ТСД и сервером.",
+      "impact": "Нельзя определить состав окружения системы, круг вызывающих сторон и требования к их подключению и безопасности обмена.",
+      "recommendation": "Перечислить внешние системы, вызывающие API, и описать их связь с сервером, включая требования к безопасности обмена.",
+      "question": "Какие внешние системы, кроме ТСД, вызывают метод списания POST /api/v1/stock/writeoff?",
+      "addressee": "business",
+      "question_id": null,
+      "status": "confirmed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": "none",
+      "severity_raised_from": null,
+      "places": [],
+      "origin": "consistency"
+    },
+    {
+      "id": "S-21",
+      "scope": "set",
+      "kind": "contradiction",
+      "criterion": "SET_CONSISTENT",
+      "severity": "CRITICAL",
+      "title": "Тип поля quantity (integer) не совместим с весовыми товарами в килограммах с шагом 0,001",
+      "req_ids": [
+        "REQ-08",
+        "REQ-28"
+      ],
+      "section": "4.1",
+      "evidence": [
+        {
+          "quote": "Для весовых товаров количество учитывается в килограммах с точностью до 0,001 кг.",
+          "line": 44,
+          "status": "exact"
+        },
+        {
+          "quote": "| `quantity` | integer | да | Списываемое количество |",
+          "line": 97,
+          "status": "exact"
+        }
+      ],
+      "problem": "ФТ-03 задаёт учёт весовых товаров в килограммах с точностью 0,001 кг, а в описании метода списания поле quantity имеет тип integer. Целое число не может передать дробное количество в килограммах.",
+      "impact": "Нельзя реализовать списание весового товара по методу API: поле либо не примет дробное значение, либо будет округлять его до целого.",
+      "recommendation": "Задать тип поля quantity с учётом единиц (целое число для штучных товаров, число с тремя знаками после запятой для весовых) или отдельное поле для веса.",
+      "question": "Может ли параметр quantity при списании весового товара принимать дробные значения с точностью 0,001 кг: да или нет?",
+      "addressee": "analyst",
+      "question_id": "Q-01",
+      "status": "confirmed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": "MAJOR",
+      "divergence": "format",
+      "severity_raised_from": null,
+      "places": [],
+      "origin": "consistency"
+    },
+    {
+      "id": "S-22",
+      "scope": "set",
+      "kind": "other",
+      "criterion": "SET_CONSISTENT",
+      "severity": "MAJOR",
+      "title": "Права ролей отсылают к разделу 7.3, которого в документе нет",
+      "req_ids": [
+        "REQ-02",
+        "REQ-03",
+        "REQ-04",
+        "REQ-05"
+      ],
+      "section": "1",
+      "evidence": [
+        {
+          "quote": "Права ролей подробно описаны в разделе 7.3.",
+          "line": 34,
+          "status": "exact"
+        }
+      ],
+      "problem": "В документе есть разделы только до 6. Раздел 7.3 отсутствует, и подробного описания прав ролей в тексте нет. Таблица ролей в разделе 2 описывает только функции.",
+      "impact": "Нельзя проверить, какие действия разрешены каждой роли, и согласовать права Администратора, Кладовщика, Старшего кладовщика и Менеджера по закупкам.",
+      "recommendation": "Добавить описание прав ролей в документ, либо исправить ссылку на существующий раздел.",
+      "question": "Где должны быть описаны права ролей: в разделе 7.3, которого в документе нет, или в разделе 2 этого ТЗ?",
+      "addressee": "analyst",
+      "question_id": null,
+      "status": "confirmed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": "none",
+      "severity_raised_from": null,
+      "places": [],
+      "origin": "consistency"
+    },
+    {
+      "id": "S-23",
+      "scope": "set",
+      "kind": "gap",
+      "criterion": "SET_FEASIBLE",
+      "severity": "MAJOR",
+      "title": "Формат обмена накладными с 1С не описан",
+      "req_ids": [
+        "REQ-10",
+        "REQ-33"
+      ],
+      "section": "4.3 Обмен с 1С",
+      "evidence": [
+        {
+          "quote": "| Смежные системы | Бухгалтерия 1С, терминалы сбора данных (ТСД) |",
+          "line": 12,
+          "status": "exact"
+        }
+      ],
+      "problem": "Бухгалтерия 1С названа смежной системой, но формат и протокол передачи накладных не заданы.",
+      "impact": "Интеграцию с 1С нельзя спроектировать и реализовать по этому тексту.",
+      "recommendation": "Описать формат и способ передачи накладных в 1С.",
+      "question": "В каком формате передаются накладные в 1С, например XML или JSON?",
+      "addressee": "architect",
+      "question_id": null,
+      "status": "confirmed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": "none",
+      "severity_raised_from": null,
+      "places": [],
+      "origin": "completeness"
+    },
+    {
+      "id": "S-24",
+      "scope": "set",
+      "kind": "gap",
+      "criterion": "SET_TRACEABLE",
+      "severity": "MAJOR",
+      "title": "Требования раздела 4.1 и критерии приёмки без идентификаторов",
+      "req_ids": [
+        "REQ-24",
+        "REQ-25",
+        "REQ-26",
+        "REQ-27",
+        "REQ-28",
+        "REQ-29",
+        "REQ-30",
+        "REQ-31"
+      ],
+      "section": "4.1 Метод API POST /api/v1/stock/writeoff",
+      "evidence": [
+        {
+          "quote": "Метод списывает товар со склада. Вызывается с ТСД и из внешних систем.",
+          "line": 90,
+          "status": "exact"
+        }
+      ],
+      "problem": "Метод списания и его параметры не имеют идентификаторов требований, а критерии приёмки нумеруются 1-6 без связи с ФТ и НФТ.",
+      "impact": "Требование к методу нельзя сослаться из кода, тестов и проекта, и нельзя сопоставить его с приёмкой.",
+      "recommendation": "Присвоить метод и его параметры уникальные идентификаторы и связать критерии приёмки с ними.",
+      "question": "Под каким идентификатором фиксируется метод списания в разделе 4.1: задать код требования, например ИНТ-01?",
+      "addressee": "analyst",
+      "question_id": null,
+      "status": "confirmed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": "none",
+      "severity_raised_from": null,
+      "places": [],
+      "origin": "completeness"
+    },
+    {
+      "id": "S-25",
+      "scope": "set",
+      "kind": "gap",
+      "criterion": "SET_VALIDATABLE",
+      "severity": "MAJOR",
+      "title": "Цель по сроку инвентаризации не проверяется критерием приёмки",
+      "req_ids": [
+        "REQ-01"
+      ],
+      "section": "6. Критерии приёмки",
+      "evidence": [
+        {
+          "quote": "Остаток по каждой позиции должен быть виден в момент операции, а инвентаризация должна занимать один рабочий день вместо трёх.",
+          "line": 16,
+          "status": "exact"
+        }
+      ],
+      "problem": "Цель про один рабочий день для инвентаризации не связана ни с одним критерием приёмки, и не определено, что считать началом и концом инвентаризации.",
+      "impact": "Нельзя подтвердить достижение цели перевода учёта на электронную систему.",
+      "recommendation": "Добавить критерий приёмки, который измеряет длительность инвентаризации от начала до окончания по заданному признаку.",
+      "question": "Что считается окончанием инвентаризации: последний ввод количества на ТСД или утверждение акта расхождения?",
+      "addressee": "business",
+      "question_id": null,
+      "status": "confirmed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": "none",
+      "severity_raised_from": null,
+      "places": [],
+      "origin": "completeness"
+    },
+    {
+      "id": "S-26",
+      "scope": "set",
+      "kind": "gap",
+      "criterion": "SET_VALIDATABLE",
+      "severity": "MAJOR",
+      "title": "Критерии приёмки покрывают малую часть требований",
+      "req_ids": [
+        "REQ-08",
+        "REQ-10",
+        "REQ-11",
+        "REQ-15",
+        "REQ-16",
+        "REQ-17",
+        "REQ-24",
+        "REQ-31",
+        "REQ-33",
+        "REQ-34",
+        "REQ-35",
+        "REQ-36",
+        "REQ-37"
+      ],
+      "section": "6. Критерии приёмки",
+      "evidence": [
+        {
+          "quote": "## 6. Критерии приёмки",
+          "line": 121,
+          "status": "exact"
+        },
+        {
+          "quote": "6. Кладовщик не видит раздел «Отчёты».",
+          "line": 128,
+          "status": "exact"
+        }
+      ],
+      "problem": "В разделе 6 шесть критериев. Требования о перемещении, интеграции с 1С, методе списания, сроке годности, весовом учёте и нефункциональных свойствах в них не отражены.",
+      "impact": "Выполнение этих требований нельзя подтвердить приёмкой, поэтому приёмка не даёт гарантии полноты.",
+      "recommendation": "Добавить критерий приёмки для каждого требования или группы требований, которые в разделе 6 не отражены.",
+      "question": "Какой наблюдаемый результат подтверждает, что товар в перемещении не входит в остаток ни одного склада?",
+      "addressee": "qa",
+      "question_id": null,
+      "status": "confirmed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": "none",
+      "severity_raised_from": null,
+      "places": [],
+      "origin": "completeness"
+    }
+  ],
+  "rewritten": {
+    "REQ-06": "Менеджер по закупкам создаёт позицию с полями: артикул, наименование, единица измерения, штрихкод, срок годности. Обязательные для заполнения поля: <перечень обязательных полей>. Срок годности заполняется для товаров: <признак товаров>.",
+    "REQ-08": "Для товаров с признаком <признак весового товара> количество учитывается в килограммах с точностью до 0,001 кг.",
+    "REQ-09": "Система запрещает удалять позицию из справочника, если её остаток хотя бы на одном складе <правило для отрицательного остатка>.",
+    "REQ-10": "Система должна позволять создавать приходную накладную.",
+    "REQ-11": "Кладовщик сканирует штрихкод товара на ТСД, система находит позицию в справочнике и показывает её наименование и остаток <склад, для которого показывается остаток, или сумма по всем складам>. Если штрихкод не найден, система <действие при ненайденном штрихкоде>.",
+    "REQ-12": "После проведения накладной старшим кладовщиком остаток позиции на <склад, указанный в накладной> увеличивается на принятое количество.",
+    "REQ-13": "При создании заказа на отгрузку система резервирует товар в количестве, указанном в заказе. Если доступного остатка (остаток минус резерв) меньше этого количества, система <поведение при нехватке остатка>. Резерв действует 24 часа с момента создания заказа, после чего снимается автоматически.",
+    "REQ-14": "Списание товара, количество которого больше доступного остатка (остаток минус резерв), <поведение при нехватке остатка>.",
+    "REQ-15": "Товары, у которых до окончания срока годности осталось <N дней> или меньше, выделяются в списке остатков цветом.",
+    "REQ-16": "Перемещение создаёт кладовщик склада-отправителя. Перемещение считается выполненным после того, как старший кладовщик утвердит его. При отказе старшего кладовщика в утверждении <поведение при отказе>.",
+    "REQ-18": "Кладовщик сканирует <код ячейки или штрихкод позиции> на ТСД, пересчитывает товар в ячейке и вводит фактическое количество на ТСД.",
+    "REQ-19": "Если фактический остаток отличается от учётного больше чем на 5% <база расчёта 5%: учётный или фактический остаток>, система создаёт акт расхождения. Если отличие меньше 5%, учётный остаток исправляется на фактический автоматически. Если отличие равно 5%, <поведение при отличии ровно 5%>.",
+    "REQ-20": "Акт расхождения утверждает <роль утверждающего из раздела 2>. После утверждения учётный остаток <действие с остатком после утверждения>; при отклонении <действие при отклонении>.",
+    "REQ-21": "Пользователь с ролью «Кладовщик» не видит раздел «Отчёты» в меню и при прямом обращении к нему получает <код или сообщение отказа в доступе>.",
+    "REQ-22": "Поиск позиции по артикулу или наименованию должен возвращать результат за не более <N секунд> при справочнике из <количество позиций> позиций.",
+    "REQ-23": "Журнал операций хранится <срок хранения, дней>, по истечении срока <действие с записями журнала>.",
+    "REQ-24": "Метод списывает товар со склада. Вызывается с ТСД и из внешних систем: <перечень внешних систем>.",
+    "REQ-25": "| `sku` | string(8), ровно 8 цифр | да | Артикул позиции |",
+    "REQ-27": "| `cell_code` | string | нет | Код ячейки, например `A-01-03`. Если не передан: <поведение при отсутствии cell_code> |",
+    "REQ-28": "| `quantity` | <тип количества, допускающий дробные значения> | да | Списываемое количество: штучные товары целым числом, весовые в кг с точностью до 0,001 |",
+    "REQ-30": "| `user_id` | integer | да | ID пользователя, инициировавшего списание; для внешней системы <ID служебной учётной записи> |",
+    "REQ-31": "Ответ при успехе: код 200 и тело `{\"operation_id\": \"<uuid>\", \"balance\": <число>}`. Ответ при ошибке: код <код ошибки> и тело <формат тела ошибки>.",
+    "REQ-32": "Если на складе меньше товара, чем указано в `quantity`, метод <правило при нехватке остатка>, а при разрешённом отрицательном остатке он не опускает остаток ниже <предельное значение остатка, в единицах товара>, операция помечается флагом `negative_balance` для последующего разбора старшим кладовщиком.",
+    "REQ-33": "Проведённые накладные выгружаются в 1С раз в сутки в 23:00 по времени Астаны. Если выгрузка не удалась, система <правило повтора выгрузки>.",
+    "REQ-34": "**НФТ-01.** Кладовщик выполняет <основная операция на ТСД> не дольше <N секунд> на операцию при доле ошибок ввода не выше <N процентов>.",
+    "REQ-35": "**НФТ-02.** Система доступна не менее <доля доступности, в процентах> времени в месяц; плановые работы проводятся не чаще одного раза в месяц продолжительностью не более <N часов> с предупреждением пользователей за 24 часа.",
+    "REQ-37": "Одновременно в системе активно работают до 60 пользователей (открытая сессия с выполняемой операцией), время ответа не превышает <N секунд>.",
+    "REQ-43": "Кладовщик не видит раздел «Отчёты» в меню, а при прямом обращении к разделу система показывает <ответ системы при отказе в доступе>."
+  },
+  "unreviewed": [],
+  "failed_steps": [],
+  "uncovered_lines": [],
+  "skipped_lines": [
+    {
+      "line_start": 1,
+      "line_end": 1,
+      "reason": "heading"
+    },
+    {
+      "line_start": 3,
+      "line_end": 3,
+      "reason": "service"
+    },
+    {
+      "line_start": 5,
+      "line_end": 5,
+      "reason": "heading"
+    },
+    {
+      "line_start": 7,
+      "line_end": 8,
+      "reason": "template"
+    },
+    {
+      "line_start": 9,
+      "line_end": 12,
+      "reason": "intro"
+    },
+    {
+      "line_start": 14,
+      "line_end": 14,
+      "reason": "heading"
+    },
+    {
+      "line_start": 18,
+      "line_end": 18,
+      "reason": "heading"
+    },
+    {
+      "line_start": 20,
+      "line_end": 23,
+      "reason": "intro"
+    },
+    {
+      "line_start": 25,
+      "line_end": 25,
+      "reason": "heading"
+    },
+    {
+      "line_start": 27,
+      "line_end": 28,
+      "reason": "template"
+    },
+    {
+      "line_start": 34,
+      "line_end": 34,
+      "reason": "other"
+    },
+    {
+      "line_start": 36,
+      "line_end": 36,
+      "reason": "heading"
+    },
+    {
+      "line_start": 38,
+      "line_end": 38,
+      "reason": "heading"
+    },
+    {
+      "line_start": 48,
+      "line_end": 48,
+      "reason": "heading"
+    },
+    {
+      "line_start": 56,
+      "line_end": 56,
+      "reason": "heading"
+    },
+    {
+      "line_start": 64,
+      "line_end": 64,
+      "reason": "heading"
+    },
+    {
+      "line_start": 70,
+      "line_end": 70,
+      "reason": "heading"
+    },
+    {
+      "line_start": 78,
+      "line_end": 78,
+      "reason": "heading"
+    },
+    {
+      "line_start": 86,
+      "line_end": 86,
+      "reason": "heading"
+    },
+    {
+      "line_start": 88,
+      "line_end": 88,
+      "reason": "heading"
+    },
+    {
+      "line_start": 92,
+      "line_end": 93,
+      "reason": "template"
+    },
+    {
+      "line_start": 103,
+      "line_end": 103,
+      "reason": "heading"
+    },
+    {
+      "line_start": 107,
+      "line_end": 107,
+      "reason": "heading"
+    },
+    {
+      "line_start": 111,
+      "line_end": 111,
+      "reason": "heading"
+    },
+    {
+      "line_start": 121,
+      "line_end": 121,
+      "reason": "heading"
+    }
+  ],
+  "checks": {
+    "REQ-01": [
+      {
+        "criterion": "NECESSARY",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "APPROPRIATE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "UNAMBIGUOUS",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "COMPLETE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "SINGULAR",
+        "status": "fail",
+        "note": "В одном требовании две самостоятельные цели: видимость остатка и срок инвентаризации."
+      },
+      {
+        "criterion": "FEASIBLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "VERIFIABLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CORRECT",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CONSISTENT",
+        "status": "pass",
+        "note": ""
+      }
+    ],
+    "REQ-02": [
+      {
+        "criterion": "NECESSARY",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "APPROPRIATE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "UNAMBIGUOUS",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "COMPLETE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "SINGULAR",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "FEASIBLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "VERIFIABLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CORRECT",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CONSISTENT",
+        "status": "pass",
+        "note": ""
+      }
+    ],
+    "REQ-03": [
+      {
+        "criterion": "NECESSARY",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "APPROPRIATE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "UNAMBIGUOUS",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "COMPLETE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "SINGULAR",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "FEASIBLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "VERIFIABLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CORRECT",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CONSISTENT",
+        "status": "pass",
+        "note": ""
+      }
+    ],
+    "REQ-04": [
+      {
+        "criterion": "NECESSARY",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "APPROPRIATE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "UNAMBIGUOUS",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "COMPLETE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "SINGULAR",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "FEASIBLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "VERIFIABLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CORRECT",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CONSISTENT",
+        "status": "pass",
+        "note": ""
+      }
+    ],
+    "REQ-05": [
+      {
+        "criterion": "NECESSARY",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "APPROPRIATE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "UNAMBIGUOUS",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "COMPLETE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "SINGULAR",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "FEASIBLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "VERIFIABLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CORRECT",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CONSISTENT",
+        "status": "pass",
+        "note": ""
+      }
+    ],
+    "REQ-06": [
+      {
+        "criterion": "NECESSARY",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "APPROPRIATE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "UNAMBIGUOUS",
+        "status": "fail",
+        "note": "Условие «если применимо» не определяет, когда поле заполняется."
+      },
+      {
+        "criterion": "COMPLETE",
+        "status": "fail",
+        "note": "Не указано, какие поля обязательны для создания позиции."
+      },
+      {
+        "criterion": "SINGULAR",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "FEASIBLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "VERIFIABLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CORRECT",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CONSISTENT",
+        "status": "pass",
+        "note": ""
+      }
+    ],
+    "REQ-07": [
+      {
+        "criterion": "NECESSARY",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "APPROPRIATE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "UNAMBIGUOUS",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "COMPLETE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "SINGULAR",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "FEASIBLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "VERIFIABLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CORRECT",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CONSISTENT",
+        "status": "pass",
+        "note": ""
+      }
+    ],
+    "REQ-08": [
+      {
+        "criterion": "NECESSARY",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "APPROPRIATE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "UNAMBIGUOUS",
+        "status": "fail",
+        "note": "Признак весового товара в тексте не определён, поэтому применение правила неясно."
+      },
+      {
+        "criterion": "COMPLETE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "SINGULAR",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "FEASIBLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "VERIFIABLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CORRECT",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CONSISTENT",
+        "status": "pass",
+        "note": ""
+      }
+    ],
+    "REQ-09": [
+      {
+        "criterion": "NECESSARY",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "APPROPRIATE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "UNAMBIGUOUS",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "COMPLETE",
+        "status": "fail",
+        "note": "Не определено, можно ли удалить позицию с отрицательным остатком; граница не описана."
+      },
+      {
+        "criterion": "SINGULAR",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "FEASIBLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "VERIFIABLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CORRECT",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CONSISTENT",
+        "status": "pass",
+        "note": ""
+      }
+    ],
+    "REQ-10": [
+      {
+        "criterion": "NECESSARY",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "APPROPRIATE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "UNAMBIGUOUS",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "COMPLETE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "SINGULAR",
+        "status": "fail",
+        "note": "Требование объединяет три отдельные возможности: создание накладной, печать этикеток и выгрузку в 1С."
+      },
+      {
+        "criterion": "FEASIBLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "VERIFIABLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CORRECT",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CONSISTENT",
+        "status": "pass",
+        "note": ""
+      }
+    ],
+    "REQ-11": [
+      {
+        "criterion": "NECESSARY",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "APPROPRIATE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "UNAMBIGUOUS",
+        "status": "fail",
+        "note": "Не указано, остаток какого склада показывается при сканировании."
+      },
+      {
+        "criterion": "COMPLETE",
+        "status": "fail",
+        "note": "Не описано поведение при штрихкоде, которого нет в справочнике."
+      },
+      {
+        "criterion": "SINGULAR",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "FEASIBLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "VERIFIABLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CORRECT",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CONSISTENT",
+        "status": "pass",
+        "note": ""
+      }
+    ],
+    "REQ-12": [
+      {
+        "criterion": "NECESSARY",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "APPROPRIATE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "UNAMBIGUOUS",
+        "status": "fail",
+        "note": "Не указано, на остаток какого склада влияет проведение накладной."
+      },
+      {
+        "criterion": "COMPLETE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "SINGULAR",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "FEASIBLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "VERIFIABLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CORRECT",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CONSISTENT",
+        "status": "pass",
+        "note": ""
+      }
+    ],
+    "REQ-13": [
+      {
+        "criterion": "NECESSARY",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "APPROPRIATE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "UNAMBIGUOUS",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "COMPLETE",
+        "status": "fail",
+        "note": "Не указано количество резерва и поведение при нехватке остатка."
+      },
+      {
+        "criterion": "SINGULAR",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "FEASIBLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "VERIFIABLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CORRECT",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CONSISTENT",
+        "status": "pass",
+        "note": ""
+      }
+    ],
+    "REQ-14": [
+      {
+        "criterion": "NECESSARY",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "APPROPRIATE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "UNAMBIGUOUS",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "COMPLETE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "SINGULAR",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "FEASIBLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "VERIFIABLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CORRECT",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CONSISTENT",
+        "status": "fail",
+        "note": "Раздел 4.2 для того же списания разрешает отрицательный остаток с флагом negative_balance."
+      }
+    ],
+    "REQ-15": [
+      {
+        "criterion": "NECESSARY",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "APPROPRIATE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "UNAMBIGUOUS",
+        "status": "fail",
+        "note": "Слово «истекающим» не определено, порог по срокам не задан."
+      },
+      {
+        "criterion": "COMPLETE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "SINGULAR",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "FEASIBLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "VERIFIABLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CORRECT",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CONSISTENT",
+        "status": "pass",
+        "note": ""
+      }
+    ],
+    "REQ-16": [
+      {
+        "criterion": "NECESSARY",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "APPROPRIATE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "UNAMBIGUOUS",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "COMPLETE",
+        "status": "fail",
+        "note": "Не описан отказ старшего кладовщика и момент появления товара на складе-получателе."
+      },
+      {
+        "criterion": "SINGULAR",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "FEASIBLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "VERIFIABLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CORRECT",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CONSISTENT",
+        "status": "pass",
+        "note": ""
+      }
+    ],
+    "REQ-17": [
+      {
+        "criterion": "NECESSARY",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "APPROPRIATE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "UNAMBIGUOUS",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "COMPLETE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "SINGULAR",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "FEASIBLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "VERIFIABLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CORRECT",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CONSISTENT",
+        "status": "pass",
+        "note": ""
+      }
+    ],
+    "REQ-18": [
+      {
+        "criterion": "NECESSARY",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "APPROPRIATE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "UNAMBIGUOUS",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "COMPLETE",
+        "status": "fail",
+        "note": "Не указано, какой код сканируется на ТСД для выбора ячейки или позиции."
+      },
+      {
+        "criterion": "SINGULAR",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "FEASIBLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "VERIFIABLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CORRECT",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CONSISTENT",
+        "status": "pass",
+        "note": ""
+      }
+    ],
+    "REQ-19": [
+      {
+        "criterion": "NECESSARY",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "APPROPRIATE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "UNAMBIGUOUS",
+        "status": "fail",
+        "note": "База расчёта пяти процентов не указана, результат зависит от выбора остатка."
+      },
+      {
+        "criterion": "COMPLETE",
+        "status": "fail",
+        "note": "Поведение при отличии ровно 5% не описано, ветки не покрывают границу."
+      },
+      {
+        "criterion": "SINGULAR",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "FEASIBLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "VERIFIABLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CORRECT",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CONSISTENT",
+        "status": "pass",
+        "note": ""
+      }
+    ],
+    "REQ-20": [
+      {
+        "criterion": "NECESSARY",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "APPROPRIATE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "UNAMBIGUOUS",
+        "status": "fail",
+        "note": "Роль «руководитель» не определена в разделе 2 Роли."
+      },
+      {
+        "criterion": "COMPLETE",
+        "status": "fail",
+        "note": "Не описан исход утверждения и отклонения акта для остатка."
+      },
+      {
+        "criterion": "SINGULAR",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "FEASIBLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "VERIFIABLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CORRECT",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CONSISTENT",
+        "status": "pass",
+        "note": ""
+      }
+    ],
+    "REQ-21": [
+      {
+        "criterion": "NECESSARY",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "APPROPRIATE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "UNAMBIGUOUS",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "COMPLETE",
+        "status": "fail",
+        "note": "Текст описывает только пункт меню, доступ при прямом обращении не закрыт."
+      },
+      {
+        "criterion": "SINGULAR",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "FEASIBLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "VERIFIABLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CORRECT",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CONSISTENT",
+        "status": "pass",
+        "note": ""
+      }
+    ],
+    "REQ-22": [
+      {
+        "criterion": "NECESSARY",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "APPROPRIATE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "UNAMBIGUOUS",
+        "status": "unknown",
+        "note": "Слово «быстро» без порога: смысл нужно уточнить у автора."
+      },
+      {
+        "criterion": "COMPLETE",
+        "status": "unknown",
+        "note": "Нет времени ответа и объёма справочника, нужен ответ автора."
+      },
+      {
+        "criterion": "SINGULAR",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "FEASIBLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "VERIFIABLE",
+        "status": "fail",
+        "note": "Нет порога времени, критерия успеха для теста нет."
+      },
+      {
+        "criterion": "CORRECT",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CONSISTENT",
+        "status": "pass",
+        "note": ""
+      }
+    ],
+    "REQ-23": [
+      {
+        "criterion": "NECESSARY",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "APPROPRIATE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "UNAMBIGUOUS",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "COMPLETE",
+        "status": "fail",
+        "note": "Срок хранения не задан, вместо значения стоит TBD."
+      },
+      {
+        "criterion": "SINGULAR",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "FEASIBLE",
+        "status": "unknown",
+        "note": "Без срока хранения нельзя оценить объём и осуществимость."
+      },
+      {
+        "criterion": "VERIFIABLE",
+        "status": "unknown",
+        "note": "Без значения срока нельзя определить критерий проверки."
+      },
+      {
+        "criterion": "CORRECT",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CONSISTENT",
+        "status": "pass",
+        "note": ""
+      }
+    ],
+    "REQ-24": [
+      {
+        "criterion": "NECESSARY",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "APPROPRIATE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "UNAMBIGUOUS",
+        "status": "fail",
+        "note": "Внешние системы, которые вызывают метод, не названы."
+      },
+      {
+        "criterion": "COMPLETE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "SINGULAR",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "FEASIBLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "VERIFIABLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CORRECT",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CONSISTENT",
+        "status": "pass",
+        "note": ""
+      }
+    ],
+    "REQ-25": [
+      {
+        "criterion": "NECESSARY",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "APPROPRIATE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "UNAMBIGUOUS",
+        "status": "fail",
+        "note": "Тип string(8) не задаёт, точная ли длина и допустимы ли только цифры."
+      },
+      {
+        "criterion": "COMPLETE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "SINGULAR",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "FEASIBLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "VERIFIABLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CORRECT",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CONSISTENT",
+        "status": "pass",
+        "note": ""
+      }
+    ],
+    "REQ-26": [
+      {
+        "criterion": "NECESSARY",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "APPROPRIATE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "UNAMBIGUOUS",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "COMPLETE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "SINGULAR",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "FEASIBLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "VERIFIABLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CORRECT",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CONSISTENT",
+        "status": "pass",
+        "note": ""
+      }
+    ],
+    "REQ-27": [
+      {
+        "criterion": "NECESSARY",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "APPROPRIATE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "UNAMBIGUOUS",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "COMPLETE",
+        "status": "fail",
+        "note": "Не описано поведение метода, если необязательный cell_code не передан."
+      },
+      {
+        "criterion": "SINGULAR",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "FEASIBLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "VERIFIABLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CORRECT",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CONSISTENT",
+        "status": "pass",
+        "note": ""
+      }
+    ],
+    "REQ-28": [
+      {
+        "criterion": "NECESSARY",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "APPROPRIATE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "UNAMBIGUOUS",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "COMPLETE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "SINGULAR",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "FEASIBLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "VERIFIABLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CORRECT",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CONSISTENT",
+        "status": "fail",
+        "note": "Тип integer расходится с ФТ-03, где весовой товар считается в кг с шагом 0,001."
+      }
+    ],
+    "REQ-29": [
+      {
+        "criterion": "NECESSARY",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "APPROPRIATE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "UNAMBIGUOUS",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "COMPLETE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "SINGULAR",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "FEASIBLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "VERIFIABLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CORRECT",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CONSISTENT",
+        "status": "pass",
+        "note": ""
+      }
+    ],
+    "REQ-30": [
+      {
+        "criterion": "NECESSARY",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "APPROPRIATE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "UNAMBIGUOUS",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "COMPLETE",
+        "status": "fail",
+        "note": "Не указано, какой user_id передаётся при вызове из внешних систем."
+      },
+      {
+        "criterion": "SINGULAR",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "FEASIBLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "VERIFIABLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CORRECT",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CONSISTENT",
+        "status": "pass",
+        "note": ""
+      }
+    ],
+    "REQ-31": [
+      {
+        "criterion": "NECESSARY",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "APPROPRIATE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "UNAMBIGUOUS",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "COMPLETE",
+        "status": "fail",
+        "note": "Описан только успешный ответ, ответ при ошибке не описан."
+      },
+      {
+        "criterion": "SINGULAR",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "FEASIBLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "VERIFIABLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CORRECT",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CONSISTENT",
+        "status": "pass",
+        "note": ""
+      }
+    ],
+    "REQ-32": [
+      {
+        "criterion": "NECESSARY",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "APPROPRIATE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "UNAMBIGUOUS",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "COMPLETE",
+        "status": "fail",
+        "note": "Не задан предел отрицательного остатка."
+      },
+      {
+        "criterion": "SINGULAR",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "FEASIBLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "VERIFIABLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CORRECT",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CONSISTENT",
+        "status": "fail",
+        "note": "Расходится с ФТ-09 и критерием приёмки 4 об отклонении списания."
+      }
+    ],
+    "REQ-33": [
+      {
+        "criterion": "NECESSARY",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "APPROPRIATE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "UNAMBIGUOUS",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "COMPLETE",
+        "status": "fail",
+        "note": "Не описано поведение при неудачной выгрузке в 1С."
+      },
+      {
+        "criterion": "SINGULAR",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "FEASIBLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "VERIFIABLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CORRECT",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CONSISTENT",
+        "status": "pass",
+        "note": ""
+      }
+    ],
+    "REQ-34": [
+      {
+        "criterion": "NECESSARY",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "APPROPRIATE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "UNAMBIGUOUS",
+        "status": "fail",
+        "note": "Оценочное слово «удобным» не определено."
+      },
+      {
+        "criterion": "COMPLETE",
+        "status": "unknown",
+        "note": "Критериев удобства нет, оценка зависит от ответа автора."
+      },
+      {
+        "criterion": "SINGULAR",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "FEASIBLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "VERIFIABLE",
+        "status": "fail",
+        "note": "Нет порога и метода проверки удобства."
+      },
+      {
+        "criterion": "CORRECT",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CONSISTENT",
+        "status": "pass",
+        "note": ""
+      }
+    ],
+    "REQ-35": [
+      {
+        "criterion": "NECESSARY",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "APPROPRIATE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "UNAMBIGUOUS",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "COMPLETE",
+        "status": "unknown",
+        "note": "Длительность простоя и поведение при сбое не заданы, оценка зависит от автора."
+      },
+      {
+        "criterion": "SINGULAR",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "FEASIBLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "VERIFIABLE",
+        "status": "fail",
+        "note": "Без порога доступности нельзя однозначно проверить выполнение."
+      },
+      {
+        "criterion": "CORRECT",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CONSISTENT",
+        "status": "pass",
+        "note": ""
+      }
+    ],
+    "REQ-36": [
+      {
+        "criterion": "NECESSARY",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "APPROPRIATE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "UNAMBIGUOUS",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "COMPLETE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "SINGULAR",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "FEASIBLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "VERIFIABLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CORRECT",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CONSISTENT",
+        "status": "pass",
+        "note": ""
+      }
+    ],
+    "REQ-37": [
+      {
+        "criterion": "NECESSARY",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "APPROPRIATE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "UNAMBIGUOUS",
+        "status": "fail",
+        "note": "Слово «работают» не определено: открытые сессии или выполняемые операции."
+      },
+      {
+        "criterion": "COMPLETE",
+        "status": "fail",
+        "note": "Нет времени отклика и критерия успеха при 60 пользователях."
+      },
+      {
+        "criterion": "SINGULAR",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "FEASIBLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "VERIFIABLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CORRECT",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CONSISTENT",
+        "status": "pass",
+        "note": ""
+      }
+    ],
+    "REQ-38": [
+      {
+        "criterion": "NECESSARY",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "APPROPRIATE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "UNAMBIGUOUS",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "COMPLETE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "SINGULAR",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "FEASIBLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "VERIFIABLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CORRECT",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CONSISTENT",
+        "status": "pass",
+        "note": ""
+      }
+    ],
+    "REQ-39": [
+      {
+        "criterion": "NECESSARY",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "APPROPRIATE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "UNAMBIGUOUS",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "COMPLETE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "SINGULAR",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "FEASIBLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "VERIFIABLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CORRECT",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CONSISTENT",
+        "status": "pass",
+        "note": ""
+      }
+    ],
+    "REQ-40": [
+      {
+        "criterion": "NECESSARY",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "APPROPRIATE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "UNAMBIGUOUS",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "COMPLETE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "SINGULAR",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "FEASIBLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "VERIFIABLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CORRECT",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CONSISTENT",
+        "status": "pass",
+        "note": ""
+      }
+    ],
+    "REQ-41": [
+      {
+        "criterion": "NECESSARY",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "APPROPRIATE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "UNAMBIGUOUS",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "COMPLETE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "SINGULAR",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "FEASIBLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "VERIFIABLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CORRECT",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CONSISTENT",
+        "status": "pass",
+        "note": ""
+      }
+    ],
+    "REQ-42": [
+      {
+        "criterion": "NECESSARY",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "APPROPRIATE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "UNAMBIGUOUS",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "COMPLETE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "SINGULAR",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "FEASIBLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "VERIFIABLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CORRECT",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CONSISTENT",
+        "status": "pass",
+        "note": ""
+      }
+    ],
+    "REQ-43": [
+      {
+        "criterion": "NECESSARY",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "APPROPRIATE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "UNAMBIGUOUS",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "COMPLETE",
+        "status": "fail",
+        "note": "Нет поведения при прямом открытии раздела кладовщиком."
+      },
+      {
+        "criterion": "SINGULAR",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "FEASIBLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "VERIFIABLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CORRECT",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CONSISTENT",
+        "status": "pass",
+        "note": ""
+      }
+    ]
+  },
+  "set_analyses": [
+    {
+      "criterion": "SET_CONSISTENT",
+      "status": "fail",
+      "analysis": "Сравнил срок резерва (ФТ-08, строка 58: 24 часа и автоснятие), правило списания сверх остатка (ФТ-09 и раздел 4.2, строки 60 и 105), тип поля quantity (раздел 4.1, строка 97) с единицами веса в ФТ-03 (строка 44) и ссылку на раздел 7.3 (строка 34). Найдены два прямых противоречия по поведению системы, расхождение типа поля и ссылка на отсутствующий раздел. Критерий приёмки 4 и ФТ-09 совпадают."
+    },
+    {
+      "criterion": "SET_COMPREHENSIBLE",
+      "status": "partial",
+      "analysis": "Сравнил состав смежных систем (строка 12: 1С и ТСД) с описанием метода списания, который вызывается из внешних систем (строка 90). Внешние системы, кроме ТСД, в документе не названы и их связь с сервером не описана. Выгрузка в 1С описана (раздел 4.3), роли и их права в документе описаны частично."
+    },
+    {
+      "criterion": "SET_COMPLETE",
+      "status": "fail",
+      "analysis": "Проверены пустые разделы, заглушки, негативные сценарии, журналирование, безопасность и хранение данных. Найден незаполненный срок хранения журнала (TBD, строка 84). Не описаны отказ 1С, ошибки метода списания, одновременные запросы и аутентификация вызывающих систем."
+    },
+    {
+      "criterion": "SET_FEASIBLE",
+      "status": "partial",
+      "analysis": "Документ ссылается на HTTPS с TLS 1.2 или выше (строка 117), REST-метод POST /api/v1/stock/writeoff с JSON-подобным телом и uuid в ответе (строки 88, 101), типы string(8) и integer (строки 94-99) и обмен с 1С (строки 12, 109). Требования с ними не расходятся, но формат и протокол обмена с 1С не заданы, поэтому осуществимость интеграции оценить нельзя."
+    },
+    {
+      "criterion": "SET_VALIDATABLE",
+      "status": "fail",
+      "analysis": "Цель из раздела 1.1 задана частично измеримо: срок инвентаризации один рабочий день, но критерий его достижения не сформулирован. В разделе 6 шесть критериев, которые не покрывают большинство требований: перемещения, интеграцию с 1С, метод списания и нефункциональные требования."
+    },
+    {
+      "criterion": "SET_RANKED",
+      "status": "fail",
+      "analysis": "В документе нет ни одной отметки важности или приоритета у функциональных, интеграционных и нефункциональных требований. Стабильность также не указана."
+    },
+    {
+      "criterion": "SET_MODIFIABLE",
+      "status": "partial",
+      "analysis": "Требования в основном записаны отдельными пунктами с идентификаторами ФТ и НФТ, что облегчает правки. Ссылка на раздел 7.3 не работает, а критерии приёмки в разделе 6 дублируют требования без ссылок на них, поэтому правка одного места может рассогласовать другое."
+    },
+    {
+      "criterion": "SET_TRACEABLE",
+      "status": "partial",
+      "analysis": "Версия зафиксирована в строке 3 (версия 0.9 от 14.10.2026). Требования ФТ и НФТ имеют идентификаторы, но у параметров и метода API в разделе 4.1 их нет, критерии приёмки нумеруются 1-6 без связи с требованиями, источники требований не указаны."
+    }
+  ],
+  "questions": [
+    {
+      "id": "Q-01",
+      "text": "Может ли параметр quantity при списании весового товара принимать дробные значения с точностью 0,001 кг по ФТ-03 (строка 44)?",
+      "addressee": "analyst",
+      "options": [
+        {
+          "answer": "Да, quantity принимает дробные значения с точностью 0,001",
+          "consequence": "Тип quantity меняется, тесты на дробные значения нужны"
+        },
+        {
+          "answer": "Нет, quantity остаётся целым, весовой учёт ведётся отдельно",
+          "consequence": "Весовые товары не списываются через этот метод"
+        }
+      ],
+      "recommended": null,
+      "why_recommended": null,
+      "blocks": "Нельзя реализовать тип поля quantity для весовых товаров",
+      "doc_says": "Тип integer в 4.1 не совместим с дробным весом по ФТ-03",
+      "finding_ids": [
+        "S-21",
+        "D-04"
+      ],
+      "priority": 7.5,
+      "req_ids": [
+        "REQ-08",
+        "REQ-28"
+      ],
+      "quotes": [
+        {
+          "quote": "Для весовых товаров количество учитывается в килограммах с точностью до 0,001 кг.",
+          "line": 44,
+          "status": "exact"
+        },
+        {
+          "quote": "| `quantity` | integer | да | Списываемое количество |",
+          "line": 97,
+          "status": "exact"
+        }
+      ],
+      "source": "model"
+    },
+    {
+      "id": "Q-02",
+      "text": "Какой срок действия резерва верен: 24 часа с создания заказа по ФТ-08 (строка 58) или 72 часа, если заказ не отгружен, по критерию 3 (строка 125)?",
+      "addressee": "business",
+      "options": [
+        {
+          "answer": "24 часа с момента создания заказа, как в ФТ-08",
+          "consequence": "Резерв снимается через 24 часа, критерий 3 нужно переписать"
+        },
+        {
+          "answer": "72 часа, если заказ не отгружен, как в критерии 3",
+          "consequence": "Резерв живёт трое суток, ФТ-08 нужно переписать"
+        }
+      ],
+      "recommended": null,
+      "why_recommended": null,
+      "blocks": "Нельзя реализовать и протестировать снятие резерва",
+      "doc_says": "Строки 58 и 125 задают разные сроки резерва",
+      "finding_ids": [
+        "S-05"
+      ],
+      "priority": 5.5,
+      "req_ids": [
+        "REQ-13",
+        "REQ-40"
+      ],
+      "quotes": [
+        {
+          "quote": "При создании заказа на отгрузку система резервирует товар. Резерв действует 24 часа с момента создания заказа, после чего снимается автоматически.",
+          "line": 58,
+          "status": "exact"
+        },
+        {
+          "quote": "3. Резерв по заказу автоматически снимается через 72 часа, если заказ не отгружен.",
+          "line": 125,
+          "status": "exact"
+        }
+      ],
+      "source": "model"
+    },
+    {
+      "id": "Q-03",
+      "text": "Должен ли метод списания отклонять запрос, если quantity больше доступного остатка (остаток минус резерв), или списывать в минус по разделу 4.2 (строка 105)?",
+      "addressee": "business",
+      "options": [
+        {
+          "answer": "Отклонять с сообщением «Недостаточно товара», как в ФТ-09",
+          "consequence": "Списание сверх доступного остатка не проходит, тест на отказ"
+        },
+        {
+          "answer": "Списывать в минус с флагом negative_balance, как в 4.2",
+          "consequence": "Операция проходит, остаток уходит ниже нуля"
+        }
+      ],
+      "recommended": null,
+      "why_recommended": null,
+      "blocks": "Нельзя реализовать логику списания и тесты на отказ",
+      "doc_says": "ФТ-09 отклоняет списание, раздел 4.2 выполняет его в минус",
+      "finding_ids": [
+        "S-06"
+      ],
+      "priority": 5.5,
+      "req_ids": [
+        "REQ-14",
+        "REQ-32"
+      ],
+      "quotes": [
+        {
+          "quote": "Списание товара, количество которого больше доступного остатка (остаток минус резерв), отклоняется с сообщением «Недостаточно товара».",
+          "line": 60,
+          "status": "exact"
+        },
+        {
+          "quote": "Если на складе меньше товара, чем указано в `quantity`, метод выполняет списание, остаток уходит в минус, а операция помечается флагом `negative_balance` для последующего разбора старшим кладовщиком.",
+          "line": 105,
+          "status": "exact"
+        }
+      ],
+      "source": "model"
+    },
+    {
+      "id": "Q-04",
+      "text": "Что происходит при повторном вызове списания с теми же параметрами, которое уже выполнено?",
+      "addressee": "architect",
+      "options": [
+        {
+          "answer": "Выполняется новое списание при каждом вызове",
+          "consequence": "Повтор с теми же параметрами уменьшает остаток дважды"
+        },
+        {
+          "answer": "Возвращается operation_id первого списания без нового списания",
+          "consequence": "Повтор не меняет остаток, возвращается прежний ответ"
+        }
+      ],
+      "recommended": 2,
+      "why_recommended": "Исключает двойное списание при повторе запроса с ТСД.",
+      "blocks": "Нельзя реализовать обработку повторного вызова метода списания",
+      "doc_says": "Метод списывает товар, повтор с теми же параметрами не описан",
+      "finding_ids": [
+        "S-02"
+      ],
+      "priority": 5.5,
+      "req_ids": [
+        "REQ-24",
+        "REQ-28"
+      ],
+      "quotes": [
+        {
+          "quote": "Метод списывает товар со склада.",
+          "line": 90,
+          "status": "exact"
+        }
+      ],
+      "source": "model"
+    },
+    {
+      "id": "Q-05",
+      "text": "Сколько дней хранится журнал операций по ФТ-18 (строка 84), где срок сейчас TBD?",
+      "addressee": "security",
+      "options": [
+        {
+          "answer": "Задать срок хранения в днях, например 365",
+          "consequence": "Журнал удаляется по истечении срока, нужен тест очистки"
+        },
+        {
+          "answer": "Журнал хранится бессрочно",
+          "consequence": "Записи не удаляются, объём базы растёт без ограничения"
+        }
+      ],
+      "recommended": null,
+      "why_recommended": null,
+      "blocks": "Нельзя реализовать очистку журнала и проверить его хранение",
+      "doc_says": "Срок хранения журнала операций указан как TBD",
+      "finding_ids": [
+        "S-07"
+      ],
+      "priority": 5.25,
+      "req_ids": [
+        "REQ-23"
+      ],
+      "quotes": [
+        {
+          "quote": "ФТ-18. Срок хранения журнала операций: TBD, уточнить у службы безопасности.",
+          "line": 84,
+          "status": "exact"
+        }
+      ],
+      "source": "model"
+    },
+    {
+      "id": "Q-06",
+      "text": "Какое предельное время ответа поиска по артикулу или наименованию задать по ФТ-17 (строка 82), в секундах?",
+      "addressee": "business",
+      "options": [
+        {
+          "answer": "Задать предельное время ответа поиска в секундах, например 2",
+          "consequence": "Тест поиска проверяет время ответа автоматически"
+        },
+        {
+          "answer": "Порог не задаётся, поиск оценивается осмотром",
+          "consequence": "Критерий приёмки нельзя проверить автотестом"
+        }
+      ],
+      "recommended": null,
+      "why_recommended": null,
+      "blocks": "Нельзя проверить требование поиска по критерию",
+      "doc_says": "Слово «быстро» не задаёт порога времени",
+      "finding_ids": [
+        "D-20"
+      ],
+      "priority": 5.25,
+      "req_ids": [
+        "REQ-22"
+      ],
+      "quotes": [
+        {
+          "quote": "должен работать быстро",
+          "line": 82,
+          "status": "exact"
+        }
+      ],
+      "source": "model"
+    },
+    {
+      "id": "Q-07",
+      "text": "Какое предельное время выполнения основной операции на ТСД задать вместо слова «удобным» в НФТ-01 (строка 113), в секундах?",
+      "addressee": "business",
+      "options": [
+        {
+          "answer": "Задать предельное время операции на ТСД в секундах, например 3",
+          "consequence": "Тест измеряет время операции на ТСД"
+        },
+        {
+          "answer": "Требование снимается, удобство оценивается осмотром",
+          "consequence": "Проверка остаётся субъективной, автотест не пишется"
+        }
+      ],
+      "recommended": null,
+      "why_recommended": null,
+      "blocks": "Нельзя проверить требование к интерфейсу ТСД",
+      "doc_says": "Слово «удобным» не задаёт порога и метода проверки",
+      "finding_ids": [
+        "D-31"
+      ],
+      "priority": 5.25,
+      "req_ids": [
+        "REQ-34"
+      ],
+      "quotes": [
+        {
+          "quote": "Интерфейс ТСД должен быть удобным",
+          "line": 113,
+          "status": "exact"
+        },
+        {
+          "quote": "должен быть удобным для кладовщика",
+          "line": 113,
+          "status": "exact"
+        }
+      ],
+      "source": "model"
+    },
+    {
+      "id": "Q-08",
+      "text": "Какую минимальную доступность системы задать вместо слова «круглосуточно» в НФТ-02 (строка 115), в процентах за месяц?",
+      "addressee": "business",
+      "options": [
+        {
+          "answer": "Задать минимальную доступность в процентах за месяц, например 99",
+          "consequence": "Нарушение фиксируется отчётом мониторинга за месяц"
+        },
+        {
+          "answer": "Задать лимит длительности плановых работ в часах",
+          "consequence": "Нарушение определяется по длительности окна работ"
+        }
+      ],
+      "recommended": null,
+      "why_recommended": null,
+      "blocks": "Нельзя проверить требование доступности системы",
+      "doc_says": "Круглосуточная работа не задаёт допустимую долю недоступности",
+      "finding_ids": [
+        "D-33"
+      ],
+      "priority": 5.25,
+      "req_ids": [
+        "REQ-35"
+      ],
+      "quotes": [
+        {
+          "quote": "Система работает круглосуточно",
+          "line": 115,
+          "status": "exact"
+        }
+      ],
+      "source": "model"
+    },
+    {
+      "id": "Q-09",
+      "text": "Когда отправляется накладная в 1С: сразу после проведения по ФТ-05 (строка 50) или пакетно раз в сутки в 23:00 по 4.3 (строка 109)?",
+      "addressee": "business",
+      "options": [
+        {
+          "answer": "Сразу после проведения накладной, как в ФТ-05",
+          "consequence": "Накладная появляется в 1С сразу, нужен тест отправки"
+        },
+        {
+          "answer": "Пакетная выгрузка раз в сутки в 23:00, как в 4.3",
+          "consequence": "Накладные появляются в 1С с задержкой до суток"
+        }
+      ],
+      "recommended": null,
+      "why_recommended": null,
+      "blocks": "Нельзя реализовать и протестировать обмен с 1С",
+      "doc_says": "Строки 50 и 109 задают разный момент отправки накладной",
+      "finding_ids": [
+        "S-01",
+        "S-08"
+      ],
+      "priority": 4.5,
+      "req_ids": [
+        "REQ-10",
+        "REQ-33"
+      ],
+      "quotes": [
+        {
+          "quote": "ФТ-05. Система должна позволять создавать приходную накладную, печатать этикетки на каждую единицу товара и отправлять накладную в бухгалтерию 1С.",
+          "line": 50,
+          "status": "exact"
+        },
+        {
+          "quote": "Проведённые накладные выгружаются в 1С раз в сутки в 23:00 по времени Астаны.",
+          "line": 109,
+          "status": "exact"
+        }
+      ],
+      "source": "model"
+    },
+    {
+      "id": "Q-10",
+      "text": "Чем подтверждается вызывающая сторона метода списания: токеном внешней системы или ТСД, или только user_id из тела запроса?",
+      "addressee": "security",
+      "options": [
+        {
+          "answer": "Токеном внешней системы или ТСД",
+          "consequence": "user_id проверяется по токену вызывающей стороны"
+        },
+        {
+          "answer": "Только user_id из тела запроса, без токена",
+          "consequence": "Любой вызов с верным user_id принимается, риск подмены"
+        }
+      ],
+      "recommended": 1,
+      "why_recommended": "user_id из тела не подтверждает вызывающего, риск подмены.",
+      "blocks": "Нельзя реализовать проверку доступа к методу списания",
+      "doc_says": "Способ аутентификации вызывающих систем не описан",
+      "finding_ids": [
+        "S-10"
+      ],
+      "priority": 2.5,
+      "req_ids": [
+        "REQ-24",
+        "REQ-30"
+      ],
+      "quotes": [
+        {
+          "quote": "| `user_id` | integer | да | Кто списывает |",
+          "line": 99,
+          "status": "exact"
+        }
+      ],
+      "source": "model"
+    },
+    {
+      "id": "Q-11",
+      "text": "Какая роль утверждает акт расхождения по ФТ-15 (строка 76), если её нет в списке ролей раздела 2?",
+      "addressee": "business",
+      "options": [
+        {
+          "answer": "Старший кладовщик, как утверждающий перемещения",
+          "consequence": "Старший кладовщик получает право утверждать акты"
+        },
+        {
+          "answer": "Администратор",
+          "consequence": "Администратор утверждает акты и управляет правами"
+        },
+        {
+          "answer": "Отдельная роль Руководитель, добавить в раздел 2",
+          "consequence": "Нужна новая роль и её права в разделе 2"
+        }
+      ],
+      "recommended": null,
+      "why_recommended": null,
+      "blocks": "Нельзя реализовать утверждение акта расхождения",
+      "doc_says": "Руководитель не указан в списке ролей раздела 2",
+      "finding_ids": [
+        "S-12"
+      ],
+      "priority": 2.25,
+      "req_ids": [
+        "REQ-20"
+      ],
+      "quotes": [
+        {
+          "quote": "ФТ-15. Акт расхождения утверждает руководитель.",
+          "line": 76,
+          "status": "exact"
+        }
+      ],
+      "source": "model"
+    },
+    {
+      "id": "Q-12",
+      "text": "Какой предельный отрицательный остаток допустим при списании в минус по разделу 4.2 (строка 105)?",
+      "addressee": "analyst",
+      "options": [
+        {
+          "answer": "Задать предельный отрицательный остаток в единицах товара, например 0",
+          "consequence": "Списание сверх предела отклоняется с ошибкой"
+        },
+        {
+          "answer": "Ограничения нет, остаток уходит в минус без предела",
+          "consequence": "Любое списание в минус проходит, тест на границу не нужен"
+        }
+      ],
+      "recommended": null,
+      "why_recommended": null,
+      "blocks": "Нельзя реализовать проверку границы отрицательного остатка",
+      "doc_says": "Нижняя граница отрицательного остатка не задана",
+      "finding_ids": [
+        "D-29"
+      ],
+      "priority": 2.25,
+      "req_ids": [
+        "REQ-32"
+      ],
+      "quotes": [
+        {
+          "quote": "остаток уходит в минус, а операция",
+          "line": 105,
+          "status": "exact"
+        }
+      ],
+      "source": "model"
+    },
+    {
+      "id": "Q-13",
+      "text": "От какого остатка считается отклонение 5% при инвентаризации по ФТ-14 (строка 74): от учётного или от фактического?",
+      "addressee": "business",
+      "options": [
+        {
+          "answer": "От учётного остатка, как сейчас в документе",
+          "consequence": "Фактическое отклонение сравнивается с учётным остатком"
+        },
+        {
+          "answer": "От фактического остатка",
+          "consequence": "Порог срабатывает иначе, акты создаются в других случаях"
+        }
+      ],
+      "recommended": null,
+      "why_recommended": null,
+      "blocks": "Нельзя реализовать создание акта расхождения",
+      "doc_says": "В ФТ-14 не указано, от какой базы считаются 5%",
+      "finding_ids": [
+        "D-15"
+      ],
+      "priority": 2.25,
+      "req_ids": [
+        "REQ-19"
+      ],
+      "quotes": [
+        {
+          "quote": "отличается от учётного больше чем на 5%",
+          "line": 74,
+          "status": "exact"
+        }
+      ],
+      "source": "model"
+    },
+    {
+      "id": "Q-14",
+      "text": "Что делает система при создании заказа, если доступного остатка меньше заказанного количества (ФТ-08, строка 58)?",
+      "addressee": "business",
+      "options": [
+        {
+          "answer": "Отклоняет заказ, если доступного остатка не хватает",
+          "consequence": "Заказ не создаётся, резерв не ставится"
+        },
+        {
+          "answer": "Резервирует доступный остаток, заказ создаётся с меньшим количеством",
+          "consequence": "Заказ создаётся с количеством меньше заказанного"
+        }
+      ],
+      "recommended": null,
+      "why_recommended": null,
+      "blocks": "Нельзя реализовать резервирование при нехватке остатка",
+      "doc_says": "Поведение при недостатке остатка для заказа не описано",
+      "finding_ids": [
+        "D-10"
+      ],
+      "priority": 2.25,
+      "req_ids": [
+        "REQ-13"
+      ],
+      "quotes": [
+        {
+          "quote": "система резервирует товар",
+          "line": 58,
+          "status": "exact"
+        }
+      ],
+      "source": "model"
+    }
+  ],
+  "steps": [
+    {
+      "number": "0",
+      "name": "Чтение документа",
+      "status": "ok",
+      "calls": 0,
+      "cache_hits": 0,
+      "retries": 0,
+      "seconds": 0.0,
+      "summary": "строк 128, формат md",
+      "reason": ""
+    },
+    {
+      "number": "1",
+      "name": "Структурные проверки кодом",
+      "status": "skipped",
+      "calls": 0,
+      "cache_hits": 0,
+      "retries": 0,
+      "seconds": 0.0,
+      "summary": "",
+      "reason": "желательная часть; словарь формулировок работает внутри шага 3"
+    },
+    {
+      "number": "2",
+      "name": "Контекст документа",
+      "status": "skipped",
+      "calls": 0,
+      "cache_hits": 0,
+      "retries": 0,
+      "seconds": 0.0,
+      "summary": "",
+      "reason": "желательная часть"
+    },
+    {
+      "number": "3",
+      "name": "Нарезка требований (128 строк)",
+      "status": "ok",
+      "calls": 0,
+      "cache_hits": 1,
+      "retries": 0,
+      "seconds": 0.0,
+      "summary": "требований 43, пропущено фрагментов 25; добавлено кодом по идентификаторам: ФТ-18",
+      "reason": ""
+    },
+    {
+      "number": "4",
+      "name": "Проверка каждого требования",
+      "status": "ok",
+      "calls": 8,
+      "cache_hits": 0,
+      "retries": 0,
+      "seconds": 320.4,
+      "summary": "дефектов 36, без проверки 0",
+      "reason": ""
+    },
+    {
+      "number": "5",
+      "name": "Набор требований целиком (три прохода)",
+      "status": "ok",
+      "calls": 3,
+      "cache_hits": 0,
+      "retries": 0,
+      "seconds": 131.6,
+      "summary": "замечаний 26, из них граничных случаев 10, анализов по критериям 8",
+      "reason": ""
+    },
+    {
+      "number": "5в",
+      "name": "Чек-лист ревью из документа",
+      "status": "skipped",
+      "calls": 0,
+      "cache_hits": 0,
+      "retries": 0,
+      "seconds": 0.0,
+      "summary": "",
+      "reason": "желательная часть"
+    },
+    {
+      "number": "6",
+      "name": "Нумерация и свёртка замечаний, итог сверки цитат",
+      "status": "ok",
+      "calls": 0,
+      "cache_hits": 0,
+      "retries": 0,
+      "seconds": 0.0,
+      "summary": "замечаний 62, свёрнуто в системные 0; сверка цитат на шагах 4 и 5: точных 73, нечётких 0, не найдено 0; в карантине 0, противоречий только с вопросом 0, отброшено без опоры 1",
+      "reason": ""
+    },
+    {
+      "number": "7",
+      "name": "Критик",
+      "status": "ok",
+      "calls": 1,
+      "cache_hits": 0,
+      "retries": 0,
+      "seconds": 41.3,
+      "summary": "проверено 61 (групп кандидатов на слияние 24): оставлено 45, понижено 3, снято 0, слито 13, без решения 0, отклонено кодом 0",
+      "reason": ""
+    },
+    {
+      "number": "8",
+      "name": "Итог и сводные вопросы",
+      "status": "ok",
+      "calls": 1,
+      "cache_hits": 0,
+      "retries": 0,
+      "seconds": 40.4,
+      "summary": "решение: Не рекомендуется начинать; вопросов 14",
+      "reason": ""
+    },
+    {
+      "number": "9",
+      "name": "Отчёт",
+      "status": "ok",
+      "calls": 0,
+      "cache_hits": 0,
+      "retries": 0,
+      "seconds": 0.0,
+      "summary": "записаны: w5-foreign.md, w5-foreign.questions.md, w5-foreign.json",
+      "reason": ""
+    }
+  ],
+  "json_mode": "parse",
+  "fatal": null,
+  "empty_pages": [],
+  "removed_headers": 0,
+  "verdict": {
+    "decision": "Не рекомендуется начинать",
+    "ready_for_development": "Нет",
+    "ready_for_testing": "Нет",
+    "rule": "«Не рекомендуется начинать», если есть хотя бы одно замечание CRITICAL, которое не снято критиком и не ушло в карантин из-за ненайденной цитаты. «Условно допускается», если CRITICAL нет, но есть MAJOR. «Допускается», если есть только MINOR или замечаний нет. Готовность к тестированию считается отдельно: «Нет», если есть CRITICAL по проверяемости, однозначности, полноте, согласованности или валидируемости; «Да, с оговорками», если есть другие CRITICAL или MAJOR; иначе «Да». Если отчёт неполный, а CRITICAL не найден, решение «Не вынесен», готовность «Не определена».",
+    "rationale": "Документ не готов к разработке: решение «Не рекомендуется начинать» основано на 8 CRITICAL замечаниях. Главное из них: противоречия в бизнес-правилах (срок резерва D-... и S-05, списание сверх остатка S-06, тип quantity S-21), не заданные пороги качества (D-20, D-31, D-33) и открытые вопросы контракта метода списания (S-02, S-07). Без их решения нельзя написать код списания, резерва и проверки, а критерии приёмки покрывают малую часть требований (S-26). MAJOR-замечания по справочнику и инвентаризации (D-02, D-03, D-15, S-13) добавляют неоднозначность в правила расчёта.",
+    "top_fixes": [
+      {
+        "finding_ids": [
+          "S-05",
+          "S-06",
+          "S-21",
+          "S-01"
+        ],
+        "action": "Согласовать с заказчиком значения срока резерва, поведения при нехватке остатка и типа quantity, затем убрать противоречия между ФТ-08, ФТ-09, критерием 3 и разделом 4.2."
+      },
+      {
+        "finding_ids": [
+          "D-20",
+          "D-31",
+          "D-33",
+          "D-35"
+        ],
+        "action": "Заменить слова «быстро», «удобным» и «круглосуточно» на числовые пороги времени ответа, доступности и метод проверки для каждого из них."
+      },
+      {
+        "finding_ids": [
+          "S-02",
+          "S-04",
+          "S-09",
+          "S-10",
+          "D-24",
+          "D-26",
+          "S-24",
+          "S-23"
+        ],
+        "action": "Описать контракт POST /api/v1/stock/writeoff: повтор запроса, коды ошибок, аутентификацию вызывающих систем, cell_code, user_id, идентификатор требования и формат обмена с 1С."
+      },
+      {
+        "finding_ids": [
+          "S-07",
+          "D-02",
+          "D-03",
+          "D-04",
+          "D-05"
+        ],
+        "action": "Заполнить TBD по сроку журнала и уточнить правила справочника: обязательность штрихкода, признак весового товара, срок годности, запрет удаления."
+      },
+      {
+        "finding_ids": [
+          "D-10",
+          "D-15",
+          "S-13",
+          "D-18",
+          "S-12",
+          "D-14"
+        ],
+        "action": "Уточнить правила инвентаризации и резервирования: база 5%, граница ровно 5%, эффект утверждения акта, роль утверждающего, нехватка остатка при заказе."
+      },
+      {
+        "finding_ids": [
+          "S-22",
+          "S-17",
+          "D-19",
+          "S-26",
+          "S-25"
+        ],
+        "action": "Описать права ролей в разделе 2 вместо отсылки к несуществующему разделу 7.3 и добавить критерии приёмки для требований без проверки."
+      },
+      {
+        "finding_ids": [
+          "S-03",
+          "S-14",
+          "S-15",
+          "S-08",
+          "S-11"
+        ],
+        "action": "Дописать сценарии отмены накладной, отклонения перемещения, удаления позиции, сбоя выгрузки в 1С и одновременных запросов."
+      }
+    ],
+    "blockers": [
+      "S-02",
+      "S-05",
+      "S-06",
+      "S-07",
+      "S-21",
+      "D-20",
+      "D-31",
+      "D-33"
+    ],
+    "critic_done": true,
+    "generated_by_model": true,
+    "questions_by_model": true,
+    "partial": false,
+    "partial_reason": null
+  },
+  "grounding": {
+    "exact": 73,
+    "fuzzy": 0,
+    "missing": 0,
+    "dropped_findings": 1,
+    "quarantine": 0,
+    "question_only": 0,
+    "folded": 0
+  },
+  "quality": {
+    "content_lines": 56,
+    "in_requirements": 43,
+    "skipped_by_model": 13,
+    "ids_in_document": 22,
+    "ids_missing": [],
+    "ids_added": [
+      "ФТ-18"
+    ],
+    "dropped_defects": 0,
+    "dropped_checks": 0,
+    "checks_missing": 0,
+    "checks_pass_overridden": 0,
+    "defects_without_question": 0,
+    "severity_raised": 1,
+    "questions_dropped": 0,
+    "questions_merged": 0,
+    "questions_added": 0,
+    "placeholder_lines": [
+      84
+    ],
+    "placeholder_lines_cited": [
+      84
+    ]
+  },
+  "critic": {
+    "done": true,
+    "reviewed": 61,
+    "keep": 45,
+    "downgraded": 3,
+    "dropped": 0,
+    "merged": 13,
+    "no_decision": 0,
+    "rejected": 0,
+    "candidate_groups": 24,
+    "retry_calls": 0,
+    "retry_resolved": 0
+  },
+  "llm": {
+    "calls": 13,
+    "cache_hits": 1,
+    "retries": 0,
+    "repairs": 0,
+    "prompt_tokens": 156862,
+    "completion_tokens": 134810,
+    "total_tokens": 291672,
+    "reasoning_tokens": 0,
+    "notes": []
+  }
+}
