@@ -177,6 +177,12 @@ class SetReviewOut(BaseModel):
     findings: list[SetFindingOut]
 
 
+class EdgeReviewOut(BaseModel):
+    """Проход шага 5 по граничным случаям: только замечания, анализов по критериям нет."""
+
+    findings: list[SetFindingOut]
+
+
 class CriticDecisionOut(BaseModel):
     finding_id: str = Field(description="Идентификатор замечания из списка")
     action: str = _enum_str(("keep", "downgrade", "drop", "merge"), "Решение по замечанию")
@@ -296,6 +302,8 @@ class Finding(BaseModel):
     severity_raised_from: Severity | None = None
     # Места системного замечания, свёрнутого кодом из одинаковых (К-07, Р-11).
     places: list[str] = Field(default_factory=list)
+    # Проход шага 5, который дал замечание по набору: consistency, completeness, edge.
+    origin: str | None = None
 
 
 # Замечания с этими статусами не входят в вердикт и сводку (К-06, К-07, К-09).

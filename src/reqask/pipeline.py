@@ -7,7 +7,8 @@
 3. Нарезка: модель размечает границы требований по номерам строк, цитаты вырезает код.
    Требование со своим идентификатором, которое модель пропустила, код добавляет сам.
 4. Проверка каждого требования порциями, с подсказками словаря и контекстом документа.
-5. Набор целиком: два независимых прохода (согласованность, затем полнота и остальное).
+5. Набор целиком: три прохода (согласованность, затем полнота и остальное, затем неописанные
+   граничные случаи по классам). Каждый следующий видит найденное раньше и не повторяет его.
 6. Нумерация и свёртка замечаний. Цитаты модели сверяются с документом раньше, сразу при
    разборе ответов шагов 4 и 5 (_ground); здесь в журнал идут итоговые счётчики сверки.
 7. Критик: второй ревьюер по CRITICAL и MAJOR (оставить, понизить, снять, слить).
@@ -62,6 +63,7 @@ from .schemas import (
     SegItem,
     SegmentationOut,
     SetAnalysis,
+    EdgeReviewOut,
     SetReviewOut,
     SkippedSpan,
     StepStat,
@@ -86,11 +88,12 @@ STEP_STATUS_WORD = {"failed": "не выполнен", "degraded": "частич
 # Названия шагов в журнале и отчёте. Шаг 6 не сверяет цитаты сам: сверка идёт при разборе ответов шагов 4 и 5.
 STEP_NAMES = {
     "4": "Проверка каждого требования",
-    "5": "Набор требований целиком (два прохода)",
+    "5": "Набор требований целиком (три прохода)",
     "6": "Нумерация и свёртка замечаний, итог сверки цитат",
     "7": "Критик",
     "8": "Итог и сводные вопросы",
 }
+EDGE_STEP = "набор: граничные случаи"
 NO_REQUIREMENTS = "В документе не найдено требований: все строки с текстом отмечены как не требования."
 
 # Критерии, без которых нельзя писать тесты: дефект CRITICAL по ним блокирует тестирование.
@@ -273,6 +276,8 @@ class Pipeline:
         self._req_by_number: dict[int, str] = {}
         self.steps: list[StepStat] = []
         self.critic = CriticStats()
+        # Сколько замечаний по набору дал каждый проход шага 5 (consistency, completeness, edge).
+        self.set_pass_counts: dict[str, int] = {}
         # Фатальная ошибка модели (К-10): после неё шаги с моделью пропускаются, отчёт пишется частичным.
         self.fatal: str | None = None
 
@@ -664,26 +669,32 @@ class Pipeline:
         marks = placeholders(doc.lines)
         self._placeholder_marks = dict(marks)
         self.quality.placeholder_lines = [no for no, _ in marks]
-        passes: list[tuple[str, Callable[[list[Finding]], str], tuple[str, ...]]] = [
-            ("набор: согласованность", lambda _found: prompts.consistency_prompt(requirements, numbered),
-             ("SET_CONSISTENT", "SET_COMPREHENSIBLE")),
+        Pass = tuple[str, str, Callable[[list[Finding]], str], tuple[str, ...], type[BaseModel]]
+        passes: list[Pass] = [
+            ("набор: согласованность", "consistency", lambda _found: prompts.consistency_prompt(requirements, numbered),
+             ("SET_CONSISTENT", "SET_COMPREHENSIBLE"), SetReviewOut),
             # Второй проход видит, что нашёл первый, и не повторяет это (К-05).
-            ("набор: полнота и остальные критерии",
+            ("набор: полнота и остальные критерии", "completeness",
              lambda found: prompts.completeness_prompt(requirements, numbered, found, marks),
-             tuple(c for c in SET_CODES if c not in ("SET_CONSISTENT", "SET_COMPREHENSIBLE"))),
+             tuple(c for c in SET_CODES if c not in ("SET_CONSISTENT", "SET_COMPREHENSIBLE")), SetReviewOut),
         ]
+        if self.s.edge:
+            # Третий проход: неописанные граничные случаи по классам, без повторов первых двух.
+            passes.append((EDGE_STEP, "edge", lambda found: prompts.edge_prompt(requirements, numbered, found),
+                           (), EdgeReviewOut))
         known = {r.id: r for r in requirements}
         findings: list[Finding] = []
-        for step, build, own in passes:
+        for step, origin, build, own, schema in passes:
             if self._blocked(step):
                 continue
             user = build(findings)
             self.log(f"  {step}")
-            out = self._set_call(step, user)
+            out = self._set_call(step, user, schema)
             if out is None:
                 continue
+            before = len(findings)
             seen_analyses = {a.criterion for a in self.set_analyses}
-            for analysis in out.analyses:
+            for analysis in getattr(out, "analyses", []):
                 if analysis.criterion in own and analysis.criterion not in seen_analyses \
                         and analysis.status in ("ok", "partial", "fail", "unknown"):
                     seen_analyses.add(analysis.criterion)
@@ -738,20 +749,24 @@ class Pipeline:
                         recommendation=item.recommendation.strip(),
                         question=question,
                         addressee=(item.addressee or _ADDRESSEE_DEFAULT) if question else None,
+                        origin=origin,
                     )
                 )
                 if kind == "contradiction" and len({e.line for e in found}) < 2:
                     # Противоречие без двух подтверждённых цитат из разных строк: только вопрос (К-06).
                     findings[-1].status = "question_only"
                     self.grounding.question_only += 1
+            self.set_pass_counts[origin] = len(findings) - before
+            if origin == "edge":
+                self.log(f"  {step}: замечаний {len(findings) - before}")
         return findings
 
-    def _set_call(self, step: str, user: str) -> SetReviewOut | None:
+    def _set_call(self, step: str, user: str, schema: type[BaseModel] = SetReviewOut) -> BaseModel | None:
         """Один проход по набору. Обрезанный ответ: один повтор с reasoning_effort=low (М-07)."""
         effort = None
         for attempt in (1, 2):
             try:
-                return self.llm.complete_json(step, prompts.SYSTEM, user, SetReviewOut, kind="set",
+                return self.llm.complete_json(step, prompts.SYSTEM, user, schema, kind="set",
                                               **({"effort": effort} if effort else {}))
             except LLMFatal as exc:
                 self._on_fatal(exc, step)
@@ -1334,6 +1349,11 @@ class Pipeline:
         self.steps.append(step)
         return step
 
+    def _step_name(self, number: str) -> str:
+        if number == "5" and not self.s.edge:
+            return "Набор требований целиком (два прохода, граничные случаи выключены)"
+        return STEP_NAMES[number]
+
     def _skip(self, number: str, name: str, reason: str) -> None:
         self.log(f"Шаг {number}. {name}: не включён")
         self.steps.append(StepStat(number=number, name=name, status="skipped", reason=reason))
@@ -1371,9 +1391,10 @@ class Pipeline:
             failed=len(self.unreviewed) == len(requirements),
         )
 
-        mark = self._begin("5", STEP_NAMES["5"])
+        mark = self._begin("5", self._step_name("5"))
         set_findings = self.review_set(doc, requirements, index)
-        self._end(mark, f"замечаний {len(set_findings)}, анализов по критериям {len(self.set_analyses)}")
+        edge = f", из них граничных случаев {self.set_pass_counts.get('edge', 0)}" if self.s.edge else ""
+        self._end(mark, f"замечаний {len(set_findings)}{edge}, анализов по критериям {len(self.set_analyses)}")
         self._skip("5в", "Чек-лист ревью из документа", "желательная часть")
 
         mark = self._begin("6", STEP_NAMES["6"])
@@ -1432,10 +1453,10 @@ class Pipeline:
                 self.steps.append(StepStat(number="7", name=STEP_NAMES["7"], status="skipped",
                                            reason="выключен (--no-critic или REQASK_CRITIC=0)"))
             elif model_failed:
-                self.steps.append(StepStat(number=number, name=STEP_NAMES[number], status="failed",
+                self.steps.append(StepStat(number=number, name=self._step_name(number), status="failed",
                                            reason="нет требований после нарезки"))
             else:
-                self.steps.append(StepStat(number=number, name=STEP_NAMES[number], status="skipped",
+                self.steps.append(StepStat(number=number, name=self._step_name(number), status="skipped",
                                            reason="в документе не найдено требований"))
         if model_failed:
             verdict = self._verdict(

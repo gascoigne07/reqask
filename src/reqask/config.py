@@ -30,8 +30,9 @@ STEP_PARAMS: dict[str, tuple[str, int]] = {
     "review": ("medium", 24_000),
     "set": ("medium", 24_000),
     "verdict": ("medium", 24_000),
-    # 16 000 не хватило 26.11 на PURE: 77 решений, ответ обрезан.
-    "critic": ("medium", 24_000),
+    # 16 000 не хватило 26.11 на PURE: 77 решений, ответ обрезан. 32 000 с запасом под замечания
+    # прохода граничных случаев шага 5 (до 12 замечаний сверху).
+    "critic": ("medium", 32_000),
     "check": ("low", 4_000),
 }
 DEFAULT_STEP_PARAMS = ("medium", 16_000)
@@ -62,6 +63,8 @@ class Settings:
     cache_dir: str | None = DEFAULT_CACHE_DIR
     # Шаг 7, критик (К-07). REQASK_CRITIC=0 или --no-critic выключает.
     critic: bool = True
+    # Третий проход шага 5, граничные случаи. REQASK_EDGE=0 или --no-edge выключает.
+    edge: bool = True
 
     def step_params(self, kind: str) -> tuple[str, int]:
         """Уровень рассуждения и лимит вывода для шага. LLM_REASONING_EFFORT перекрывает уровень для всех шагов."""
@@ -165,4 +168,5 @@ def load_settings(env_file: str | None = None) -> Settings:
         fallback_models=_fallbacks(provider),
         cache_dir=cache_dir,
         critic=(_env("REQASK_CRITIC", "1") or "1").lower() not in ("0", "false", "no", "off"),
+        edge=(_env("REQASK_EDGE", "1") or "1").lower() not in ("0", "false", "no", "off"),
     )

@@ -25,6 +25,7 @@ from reqask.schemas import (
     CriticOut,
     LLMStats,
     SegmentationOut,
+    EdgeReviewOut,
     SetReviewOut,
     FinalOut,
     TopFix,
@@ -145,6 +146,9 @@ class FakeLLM:
                                  question="Кто может менять лимит книг?", section="Требования", addressee="security"),
                     _set_finding("gap", "SET_COMPLETE", "MAJOR", "Пробел без места", [], question="Вопрос?"),
                 ]})
+        if schema is EdgeReviewOut:
+            # По умолчанию граничных случаев нет: остальные тесты считают замечания первых двух проходов.
+            return EdgeReviewOut.model_validate({"findings": []})
         if schema is CriticOut:
             # По умолчанию критик оставляет все замечания из списка как есть.
             ids = re.findall(r"^([DS]-\d+) \|", user, re.MULTILINE)
