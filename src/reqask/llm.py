@@ -52,6 +52,17 @@ class LLMTruncated(LLMError):
     """Ответ обрезан по лимиту длины. Вызывающий код может уменьшить порцию."""
 
 
+class LLMSchemaError(LLMError):
+    """Ответ не прошёл проверку схемы и после исправлений. Меньшая порция может помочь."""
+
+
+class LLMNetworkError(LLMError):
+    """Сеть или сервер провайдера: нет соединения, таймаут, 5xx после всех повторов.
+
+    Меньшая порция тут не поможет, поэтому вызывающий код порцию не делит.
+    """
+
+
 class LLMFatal(LLMError):
     """Ошибка, которую повтор не исправит.
 
@@ -80,6 +91,9 @@ AUTH_WORDS = ("api key", "api_key", "apikey", "invalid x-api-key", "authenticati
 # Пока есть запасная модель, на сбои сервера и таймауты текущей тратим не больше стольких повторов (М-10):
 # перегруженная модель держит 503 часами, а каждый повтор идёт в счёт суточной квоты.
 FALLBACK_AFTER_RETRIES = 2
+# Столько вызовов подряд, кончившихся сетевым сбоем после всех повторов, и прогон останавливается
+# (LLMFatal rate): без сети иначе каждая порция ждёт свои повторы, и шаг идёт часами.
+NET_FAILS_FATAL = 3
 
 
 def _retry_after(error: Exception) -> float | None:
@@ -169,6 +183,9 @@ class LLMClient:
         # Цепочка моделей: основная и запасные (М-10). Переход вперёд один на весь прогон, назад не возвращаемся.
         self._models = [settings.model, *[m for m in settings.fallback_models if m != settings.model]]
         self._model_i = 0
+        # Сетевые сбои подряд (после всех повторов вызова) и был ли хоть один ответ: свой или из кэша.
+        self._net_fails = 0
+        self._answered = False
 
     @property
     def model(self) -> str:
@@ -266,6 +283,7 @@ class LLMClient:
         if cached is not None:
             with self._lock:
                 self.stats.cache_hits += 1
+                self._answered = True
             return cached
 
         # Схема текстом добавляется в _kwargs и только в режимах object и none (П-04).
@@ -298,7 +316,7 @@ class LLMClient:
                 # Модель могла смениться внутри вызова (переход на запасную): ключ по той, что ответила.
                 self._cache_put(self._cache_key(system, user, schema, kind, effort), obj)
             return obj
-        raise LLMError(f"[{step}] модель не вернула валидный JSON: {last_error}")
+        raise LLMSchemaError(f"[{step}] модель не вернула валидный JSON: {last_error}")
 
     def check(self) -> dict:
         """Проверка ключа одним коротким вызовом без кэша (М-14). Бросает LLMError, как обычный вызов."""
@@ -459,6 +477,32 @@ class LLMClient:
             kind="quota",
         )
 
+    def _got_answer(self) -> None:
+        """Провайдер ответил: счётчик сетевых сбоев подряд обнуляется."""
+        with self._lock:
+            self._net_fails = 0
+            self._answered = True
+
+    def _net_failure(self, step: str, model: str, limit: int, reason: str) -> LLMError:
+        """Вызов кончился сетевым сбоем после всех повторов.
+
+        Обычно это ошибка шага (LLMNetworkError). Фатальной она становится, если сбоев подряд
+        NET_FAILS_FATAL или если провайдер не ответил ещё ни разу: тогда ждать дальше бессмысленно.
+        """
+        with self._lock:
+            self._net_fails += 1
+            fails, answered = self._net_fails, self._answered
+        if fails >= NET_FAILS_FATAL or not answered:
+            why = (f"{fails} вызова подряд кончились сбоем сети или сервера" if answered
+                   else "провайдер не ответил ни разу")
+            return LLMFatal(
+                f"Модель {model} недоступна: {why} (повторов на вызов {limit}). Проверьте интернет, "
+                f"адрес LLM_BASE_URL и состояние провайдера и запустите снова: готовые шаги возьмутся из кэша. "
+                f"Последняя ошибка: {reason}",
+                kind="rate",
+            )
+        return LLMNetworkError(f"[{step}] модель {model} не ответила за {limit} повторов: {reason}")
+
     def _chat(self, step: str, messages: list[dict], schema: type[BaseModel], kind: str = "",
               effort: str | None = None) -> str:
         """Один ответ модели с разбором ошибок по таблице М-08."""
@@ -477,8 +521,10 @@ class LLMClient:
                 response = self._request(self._kwargs(messages, schema, kind, effort, model))
             except LengthFinishReasonError as exc:
                 self._count(exc.completion)
+                self._got_answer()
                 raise LLMTruncated(f"[{step}] ответ обрезан по лимиту длины") from exc
             except ContentFilterFinishReasonError as exc:
+                self._got_answer()
                 raise LLMError(f"[{step}] ответ закрыт фильтром содержания провайдера") from exc
             except BadRequestError as exc:
                 text = error_text(exc)
@@ -525,6 +571,7 @@ class LLMClient:
                 error = exc
             else:
                 self._count(response)
+                self._got_answer()
                 choice = response.choices[0] if response.choices else None
                 content = (choice.message.content or "") if choice else ""
                 finish = choice.finish_reason if choice is not None else None
@@ -561,7 +608,7 @@ class LLMClient:
                     )
                 # У ошибки сервера причина лежит в теле ответа («high demand» у перегруженной модели Gemini).
                 reason = error_text(error)[:400] if isinstance(error, APIStatusError) else str(error)
-                raise LLMError(f"[{step}] модель {model} не ответила за {limit} повторов: {reason}")
+                raise self._net_failure(step, model, limit, reason)
             if wait is None:
                 # Сбой сервера, таймаут, обрыв связи: 2-60 секунд с удвоением.
                 wait = min(delay + random.uniform(0, 1), MAX_BACKOFF_SEC)

@@ -39,7 +39,7 @@ from .config import Settings
 from .criteria import REQ_CODES, SET_CODES, SEVERITY_ORDER
 from .grounding import TextIndex, clean_quote, distinct_quotes, normalize
 from .lint import lint, placeholders
-from .llm import LLMError, LLMFatal, LLMTruncated
+from .llm import LLMError, LLMFatal, LLMNetworkError, LLMSchemaError, LLMTruncated
 from .loader import Document
 from .schemas import (
     DIVERGENCE_RAISE,
@@ -226,8 +226,10 @@ def error_reason(exc: Exception, limit: int = 200) -> str:
     text = _STEP_PREFIX_RE.sub("", " ".join(str(exc).split()))
     if isinstance(exc, LLMTruncated):
         kind = "обрезка"
-    elif "валидный JSON" in text:
+    elif isinstance(exc, LLMSchemaError) or "валидный JSON" in text:
         kind = "схема"
+    elif isinstance(exc, LLMNetworkError):
+        kind = "сеть"
     else:
         kind = "другое"
     if len(text) > limit:
@@ -523,9 +525,9 @@ class Pipeline:
         except LLMFatal as exc:
             self._on_fatal(exc, f"проверка {label}")
             return {}
-        except LLMError as exc:
+        except (LLMTruncated, LLMSchemaError) as exc:
             if len(batch) > 1:
-                # Порция не прошла (обрезан ответ, битый JSON): делим пополам и пробуем снова.
+                # Ответ обрезан или не прошёл схему: меньшая порция может пройти, делим пополам.
                 self.log(f"  проверка {label}: сбой, делю порцию пополам ({error_reason(exc)})")
                 mid = len(batch) // 2
                 result = self._review_batch(doc, batch[:mid], label + "a", depth + 1)
@@ -533,6 +535,13 @@ class Pipeline:
                 return result
             self.failed_steps.append(f"проверка {batch[0].id}: {exc}")
             self.log(f"  проверка {label}: сбой, {batch[0].id} не проверено ({error_reason(exc)})")
+            return {}
+        except LLMError as exc:
+            # Сеть, сервер, отказ провайдера: деление порции тут не поможет, а каждая половина ждала бы
+            # свои повторы. Порция остаётся без проверки, остальные идут дальше.
+            ids = ", ".join(r.id for r in batch)
+            self.failed_steps.append(f"проверка {label} ({ids}): {exc}")
+            self.log(f"  проверка {label}: сбой, не проверено {ids} ({error_reason(exc)})")
             return {}
 
         wanted = {r.id: r for r in batch}

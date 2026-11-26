@@ -40,3 +40,100 @@ def test_fatal_after_segmentation_still_gives_partial_report(workdir, monkeypatc
     use(monkeypatch, FatalAt(BatchReviewOut, "quota"))
     assert run() == cli.EXIT_PARTIAL
     assert "Отчёт неполный" in (workdir / "out" / "report.md").read_text(encoding="utf-8")
+
+
+# ---------- 2. сетевые сбои: порция не делится, три подряд останавливают прогон ----------
+
+
+import httpx2  # noqa: E402  транспорт SDK openai 3.x
+from openai import APIConnectionError  # noqa: E402
+from openai.types.chat import ChatCompletion  # noqa: E402
+
+from reqask.llm import LLMClient, LLMError, LLMFatal, LLMNetworkError, LLMTruncated  # noqa: E402
+from reqask.pipeline import Pipeline  # noqa: E402
+
+from test_core import SETTINGS  # noqa: E402
+from test_llm import ONE, OneOut, client_with, completion, error  # noqa: E402,F401
+
+
+class _Batches(FakeLLM):
+    """Первая порция проверки падает заданной ошибкой, остальные вызовы отвечают как обычно."""
+
+    def __init__(self, exc):
+        super().__init__()
+        self.exc, self.review_calls = exc, 0
+
+    def complete_json(self, step, system, user, schema, kind="", **opts):
+        if schema is BatchReviewOut:
+            self.review_calls += 1
+            if self.review_calls == 1:
+                self.steps.append(step)
+                raise self.exc
+        return super().complete_json(step, system, user, schema, kind)
+
+
+def test_truncated_batch_is_split(doc):
+    llm = _Batches(LLMTruncated("[проверка] ответ обрезан по лимиту длины"))
+    result = Pipeline(llm, SETTINGS).run(doc, "test")
+    assert llm.review_calls == 3  # порция из трёх требований, затем две половины
+    assert result.unreviewed == []
+
+
+def test_network_failure_does_not_split_batch(doc):
+    llm = _Batches(LLMNetworkError("[проверка] модель не ответила за 5 повторов: Connection error"))
+    result = Pipeline(llm, SETTINGS).run(doc, "test")
+    assert llm.review_calls == 1  # порция не делилась
+    assert result.unreviewed == ["REQ-01", "REQ-02", "REQ-03"]
+    assert result.fatal is None and any(s.startswith("набор") for s in llm.steps)  # прогон идёт дальше
+
+
+def _content_for(schema, fake=FakeLLM()):
+    return fake.complete_json("нарезка", "", "", schema).model_dump_json()
+
+
+def test_three_network_failures_in_a_row_stop_model_steps(doc):
+    """Настоящий клиент: нарезка отвечает, каждая порция проверки кончается обрывом связи."""
+    settings = SETTINGS.with_overrides(batch_size=1)
+    client = LLMClient(settings)
+    client._sleep = lambda _wait: None
+    sent: list[str] = []
+
+    def request(kwargs):
+        if not sent:  # первый вызов прогона это нарезка
+            sent.append("нарезка")
+            return ChatCompletion.model_validate(completion(_content_for(SegmentationOut)))
+        sent.append("проверка")
+        raise APIConnectionError(request=httpx2.Request("POST", "http://127.0.0.1:9/v1/chat/completions"))
+
+    client._request = request
+    result = Pipeline(client, settings).run(doc, "test")
+    assert sent == ["нарезка", "проверка", "проверка", "проверка"]  # max_retries=0: один запрос на порцию
+    assert result.fatal and "3 вызова подряд" in result.fatal
+    assert result.unreviewed == ["REQ-01", "REQ-02", "REQ-03"]
+    assert any("пропущено после фатальной ошибки" in s for s in result.failed_steps)
+
+
+def test_network_counter_resets_on_answer_and_is_fatal_before_first_answer(client_with):
+    # Провайдер не ответил ни разу: первый же сетевой сбой фатальный.
+    client, sent, _ = client_with(lambda b, n: (503, error(503, "overloaded")), max_retries=1)
+    with pytest.raises(LLMFatal) as info:
+        client.complete_json("шаг", "s", "u", OneOut, kind="review")
+    assert info.value.kind == "rate" and "ни разу" in str(info.value) and len(sent) == 2
+
+    # Ответ был: два сбоя подряд это ошибки шага, удачный ответ обнуляет счётчик, третий подряд фатальный.
+    plan = iter(["ok", "down", "down", "ok", "down", "down", "down"])
+    client, sent, _ = client_with(
+        lambda b, n: (200, completion(ONE)) if next(plan) == "ok" else (503, error(503, "overloaded")), max_retries=0)
+    got = []
+    for _ in range(6):
+        try:
+            client.complete_json("шаг", "s", "u", OneOut, kind="review", use_cache=False)
+            got.append("ok")
+        except LLMFatal:
+            got.append("fatal")
+        except LLMNetworkError:
+            got.append("net")
+    assert got == ["ok", "net", "net", "ok", "net", "net"]
+    with pytest.raises(LLMFatal):
+        client.complete_json("шаг", "s", "u", OneOut, kind="review", use_cache=False)
+    assert issubclass(LLMNetworkError, LLMError)

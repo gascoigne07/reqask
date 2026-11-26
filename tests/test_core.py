@@ -13,7 +13,7 @@ from pydantic import BaseModel
 from reqask.config import Settings
 from reqask.grounding import TextIndex, normalize
 from reqask.lint import lint
-from reqask.llm import LLMClient, LLMError, LLMFatal, LLMTruncated, extract_json
+from reqask.llm import LLMClient, LLMError, LLMFatal, LLMSchemaError, LLMTruncated, extract_json
 from reqask.loader import LoadError, load_document
 from reqask.pipeline import Pipeline, make_id
 from reqask import prompts
@@ -421,7 +421,8 @@ def test_pipeline_survives_failed_steps(doc):
 
     result = Pipeline(Flaky(), SETTINGS).run(doc, "test")
     assert result.unreviewed == ["REQ-01", "REQ-02", "REQ-03"]
-    assert len(result.failed_steps) == 5  # три требования, проход по набору, итог
+    # Порция из трёх требований (сбой не про длину и не про схему, порция не делится), проход по набору, итог.
+    assert len(result.failed_steps) == 3
     assert [f.id for f in result.findings] == ["S-01"]
     assert result.verdict.generated_by_model is False and result.verdict.top_fixes
     # Запасной путь вопросов: из поля question замечания, без вариантов (К-08).
@@ -707,7 +708,7 @@ def test_failed_batch_logs_reason_kind_and_text(doc):
             if schema is BatchReviewOut:
                 Broken.calls += 1
                 if Broken.calls == 1:
-                    raise LLMError(f"[{step}] модель не вернула валидный JSON: reviews.0.checks: field required")
+                    raise LLMSchemaError(f"[{step}] модель не вернула валидный JSON: reviews.0.checks: field required")
                 if Broken.calls == 2:
                     raise LLMTruncated(f"[{step}] ответ обрезан по лимиту длины")
             return super().complete_json(step, system, user, schema, kind)
