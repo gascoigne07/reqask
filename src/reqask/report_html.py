@@ -197,8 +197,9 @@ class _Html(md._Report):
                 f'<span class="et">{title}</span></{tag}>')
 
     def where(self, f: Finding) -> str:
-        if f.req_ids:
-            return ", ".join(self.link(i) for i in f.req_ids if i in self.reqs)
+        links = [self.link(i) for i in f.req_ids if i in self.reqs]
+        if links:
+            return ", ".join(links)
         if f.section:
             return f"раздел «{esc(f.section)}»"
         return "набор в целом"

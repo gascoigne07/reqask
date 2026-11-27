@@ -144,7 +144,7 @@ def _first_sentence(text: str, limit: int) -> str:
         following = text[end + 2: end + 3]
         # Однобуквенное слово перед точкой: инициал, «т. е.», «т. д.», «г.». Строчная буква или цифра дальше: фраза продолжается.
         # Точка внутри незакрытой кавычки («12. Общие сведения») или номер в начале текста («12. Ответ») не конец фразы.
-        quoted = head.count("«") > head.count("»")
+        quoted = head.count("«") > head.count("»") and "»" in text[end:]
         number_first = word.isdigit() and len(head.split()) == 1
         if ((len(word) == 1 and word.isalpha()) or word in _ABBREVIATIONS or following.islower() or following.isdigit()
                 or quoted or number_first):
