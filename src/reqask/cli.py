@@ -12,6 +12,7 @@ from pathlib import Path
 
 from .compare import compare, render_compare, summary_lines
 from .config import ConfigError, load_settings
+from .export import write_csv
 from .llm import LLMClient, LLMError, LLMFatal, redact
 from .loader import LoadError, load_document
 from .pipeline import DECISIONS, Pipeline
@@ -46,6 +47,9 @@ def build_parser() -> argparse.ArgumentParser:
                         help="сравнить два report.json без модели и без ключа; с --output сравнение пишется в .md")
     parser.add_argument("--render", metavar="REPORT.json",
                         help="перерисовать отчёт (.md, .html, вопросы) из готового report.json без модели и ключа; нужен --output")
+    parser.add_argument("--export-csv", metavar="REPORT.json",
+                        help="выгрузить действующие замечания из report.json в CSV для трекера задач, "
+                             "без модели и ключа; нужен --output с файлом .csv")
     parser.add_argument("--dry-run", action="store_true",
                         help="с --input: прочитать документ и оценить число обращений к модели, без ключа и без вызовов")
     parser.add_argument("--model", help="модель, если нужно переопределить значение из .env")
@@ -231,6 +235,45 @@ def run_render(source: str, output: str | None, *, no_json: bool, no_html: bool)
     return EXIT_OK
 
 
+def run_export_csv(source: str, output: str | None) -> int:
+    """--export-csv: замечания из готового report.json в CSV, без модели и ключа."""
+    from pydantic import ValidationError
+
+    from .schemas import RunResult
+
+    if not output:
+        _error("--export-csv нужен вместе с --output: куда записать CSV, например tickets.csv")
+        return EXIT_INPUT
+    target = Path(output)
+    if target.is_dir() or target.suffix.lower() != ".csv":
+        _error(f"выгрузка пишется в файл .csv, а указано «{target}». Например: --output tickets.csv")
+        return EXIT_INPUT
+    try:
+        text = Path(source).read_text(encoding="utf-8")
+    except OSError as exc:
+        _error(f"не удалось прочитать «{source}»: {exc.strerror or exc}")
+        return EXIT_INPUT
+    except ValueError:
+        _error(f"«{source}» не похож на report.json прогона reqask: это не текст в UTF-8")
+        return EXIT_INPUT
+    try:
+        result = RunResult.model_validate_json(text)
+    except (ValidationError, ValueError):
+        _error(f"«{source}» не похож на report.json прогона reqask: файл повреждён или это другой JSON")
+        return EXIT_INPUT
+    if _same_file(Path(source), target):
+        _error("CSV записался бы поверх report.json, укажите другой --output")
+        return EXIT_INPUT
+    try:
+        target.parent.mkdir(parents=True, exist_ok=True)
+        count = write_csv(result, target)
+    except OSError as exc:
+        _error(f"не удалось записать CSV: {exc.strerror or exc}")
+        return EXIT_INPUT
+    print(f"Замечаний в выгрузке: {count}\nCSV: {target}")
+    return EXIT_OK
+
+
 def run_dry(source: str, batch_size: int | None, *, critic: bool, edge: bool) -> int:
     """--dry-run: сколько строк, кусков нарезки и обращений к модели ждать. Модель и ключ не нужны."""
     try:
@@ -405,6 +448,11 @@ def _main(argv: list[str] | None = None) -> int:
 
     try:
         settings = None
+        if args.export_csv:
+            if args.input or args.check or args.compare or args.render or args.dry_run:
+                _error("--export-csv работает без --input, --check, --compare, --render и --dry-run: нужны report.json и --output")
+                return EXIT_INPUT
+            return run_export_csv(args.export_csv, args.output)
         if args.render:
             if args.input or args.check or args.compare or args.dry_run:
                 _error("--render работает без --input, --check, --compare и --dry-run: нужны report.json и --output")

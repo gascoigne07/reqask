@@ -37,8 +37,8 @@ reqask читает документ с требованиями (PDF, DOCX, Mar
 - Вердикт считает код по правилу, которое напечатано в разделе 6 отчёта. Модель пишет только обоснование.
 - Второй ревьюер (критик) перепроверяет замечания уровня CRITICAL и MAJOR: понижает уровень и сливает повторы. Повысить уровень он не может.
 - Агент работает с любой моделью через OpenAI-совместимый API: Gemini, Claude, OpenAI или локальная модель в Ollama.
-- Готовый отчёт перерисовывается из `report.json` и сравнивается с прошлым без модели и ключа: `--render`, `--compare`.
-- 303 теста идут без сети и ключа, CI на Python 3.10 и 3.12.
+- Готовый отчёт перерисовывается из `report.json` и сравнивается с прошлым без модели и ключа: `--render`, `--compare`. Замечания выгружаются в CSV для трекера задач: `--export-csv`.
+- 317 тестов идут без сети и ключа, CI на Python 3.10 и 3.12.
 
 Решение для BCC-HUB x MNU FinTech Hackathon, задание: [ai-requirements-validator-task](https://github.com/BCC-HUB/ai-requirements-validator-task).
 
@@ -73,7 +73,7 @@ reqask читает документ с требованиями (PDF, DOCX, Mar
 
 ### Файлы отчёта
 
-Все четыре файла записал агент, руками их не правили. Прогон сделан кодом коммита `f8a03ce`, он стоит в паспорте. Промпты, критерии и словари после него не менялись (команда для проверки стоит в начале [docs/eval/scores.md](docs/eval/scores.md)). Менялись вид отчёта, чтение PDF и DOCX и обработка сбоев, добавилось сравнение отчётов. Файлы `.md` и `.html` перерисованы из того же `report.json` командой `--render`, без модели. Формат `report.json` описан схемой [docs/report.schema.json](docs/report.schema.json).
+Четыре файла отчёта записал агент, руками их не правили. Прогон сделан кодом коммита `f8a03ce`, он стоит в паспорте. Промпты, критерии и словари после него не менялись (команда для проверки стоит в начале [docs/eval/scores.md](docs/eval/scores.md)). Менялись вид отчёта, чтение PDF и DOCX и обработка сбоев, добавилось сравнение отчётов. Файлы `.md` и `.html` перерисованы из того же `report.json` командой `--render`, без модели. Формат `report.json` описан схемой [docs/report.schema.json](docs/report.schema.json).
 
 | Файл | Что в нём |
 | :--- | :--- |
@@ -81,6 +81,7 @@ reqask читает документ с требованиями (PDF, DOCX, Mar
 | [reports/report.html](reports/report.html) | тот же отчёт одной страницей без внешних ссылок, открывается в браузере после скачивания |
 | [reports/report.questions.md](reports/report.questions.md) | вопросы автору, их можно отправить как есть |
 | [reports/report.json](reports/report.json) | те же данные для машинной обработки |
+| [reports/report.tickets.csv](reports/report.tickets.csv) | 67 замечаний строками для трекера задач: заголовок, приоритет, описание с цитатами, требования и строки документа. Файл выгружен из `report.json` командой `--export-csv`, без модели |
 
 Прогон шёл на `claude-opus-5-5`: 15 обращений к модели, 13,5 минуты, 203 тысячи токенов входа и 95 тысяч выхода, около 2,7 доллара. Из 15 вопросов этого прогона 14 годятся без правки по оценке отдельного оценщика ([docs/eval/scores.md](docs/eval/scores.md)). Это лучший из пяти прогонов на этой модели, обычный прогон даёт 10-13 годных вопросов.
 
@@ -295,7 +296,7 @@ flowchart TD
 
 | Утверждение | Где смотреть |
 | :--- | :--- |
-| Отчёт в `reports/` сделал агент, известно каким кодом и моделью | паспорт в начале [reports/report.md](reports/report.md): модель, версия агента с коммитом, SHA-256 документа, число обращений и токенов; коммит пишет [src/reqask/version.py](src/reqask/version.py) |
+| Отчёт в `reports/` сделал агент, известно каким кодом и моделью | паспорт в начале [reports/report.md](reports/report.md): модель, версия агента с коммитом, SHA-256 документа, число обращений и токенов; коммит пишет [src/reqask/version.py](src/reqask/version.py). Файлы в `reports/` побайтно равны тому, что код рисует из `report.json`, а SHA-256 документа сходится с паспортом: [tests/test_committed_reports.py](tests/test_committed_reports.py) |
 | Каждая цитата дословная, её проверяет код, а не модель | [src/reqask/grounding.py](src/reqask/grounding.py); тест `test_grounding` в [tests/test_core.py](tests/test_core.py); в паспорте отчёта: точных 125, нечётких 0, не найдено 1 |
 | Ответ модели проходит JSON-схему, невалидный ответ уходит модели на исправление | схемы ответов (классы `*Out`) в [src/reqask/schemas.py](src/reqask/schemas.py); `complete_json` и `_downgrade` в [src/reqask/llm.py](src/reqask/llm.py); тесты `test_llm_repairs_invalid_json` в [tests/test_core.py](tests/test_core.py) и `test_json_downgrade_is_per_schema` в [tests/test_llm.py](tests/test_llm.py) |
 | Вердикт считает код по правилу, модель пишет только обоснование | `DECISION_RULE` и `decide` в [src/reqask/pipeline.py](src/reqask/pipeline.py); то же правило напечатано в разделе 6 отчёта; тест `test_incomplete_report_has_no_positive_verdict` в [tests/test_core.py](tests/test_core.py) |
@@ -306,7 +307,7 @@ flowchart TD
 | В коде агента нет идентификаторов, путей, имён полей и чисел из выданного документа | [tests/test_no_overfit.py](tests/test_no_overfit.py) |
 | На документе из другой области (написали сами, подсадили 12 дефектов) агент нашёл все 12 | [examples/README.md](examples/README.md): таблица дефект и замечание со ссылками. Оговорка там же: на двух из трёх чистых требований (C-01, C-02) агент поставил лишние замечания уровня MAJOR |
 | На спецификации из открытого набора PURE агент нашёл 5-7 из 9 дефектов, которые вслепую выписал человек | [examples/README.md](examples/README.md), список человека [examples/pure-puget-sound.human-list.txt](examples/pure-puget-sound.human-list.txt) |
-| Тесты не ходят в сеть и не требуют ключа | `uv run pytest -q`: 303 теста; CI на Python 3.10 и 3.12 в [.github/workflows/tests.yml](.github/workflows/tests.yml) |
+| Тесты не ходят в сеть и не требуют ключа | `uv run pytest -q`: 317 тестов; CI на Python 3.10 и 3.12 в [.github/workflows/tests.yml](.github/workflows/tests.yml) |
 
 <details>
 <summary>Ещё пять проверок: перерисовка отчёта, сравнение, строка-приказ, путь отчёта, оценки моделей</summary>
@@ -393,6 +394,12 @@ uv run main.py --input input/requirements.md --dry-run
 uv run main.py --render reports/report.json --output out/report.md
 ```
 
+Замечания из готового отчёта выгружаются в CSV для трекера задач, по строке на замечание. Столбцы названы так, как их ждёт импорт Jira (`Summary`, `Priority`, `Description`, `Labels`); сам импорт в Jira мы не пробовали, проверено только чтение файла обратно.
+
+```bash
+uv run main.py --export-csv reports/report.json --output out/tickets.csv
+```
+
 ### Тесты
 
 ```bash
@@ -428,6 +435,7 @@ uv run pytest -q
 | `--check` | проверить ключ и модель одним коротким вызовом, без документа |
 | `--compare OLD.json NEW.json` | сравнить два `report.json` без модели и ключа; с `--output` сравнение пишется в `.md` |
 | `--render REPORT.json` | перерисовать отчёт (`.md`, `.html`, вопросы) из готового `report.json` без модели и ключа; нужен `--output`. Рядом с отчётом ложится и копия `report.json`, её отключает `--no-json` |
+| `--export-csv REPORT.json` | выгрузить действующие замечания из `report.json` в CSV для трекера задач, без модели и ключа; нужен `--output` с файлом `.csv` |
 | `--dry-run` | вместе с `--input`: прочитать документ и оценить число обращений к модели, без ключа и вызовов |
 | `--model` | модель вместо значения из `.env` |
 | `--env-file` | другой файл с ключом (по умолчанию `.env` в текущей папке) |
@@ -497,6 +505,7 @@ src/reqask/
   report.py              отчёт в Markdown
   report_html.py         тот же отчёт в HTML, один файл без внешних ссылок
   compare.py             сравнение двух report.json без модели
+  export.py              выгрузка замечаний в CSV для трекера задач
   version.py             версия агента и коммит для паспорта
 tests/                   тесты без сети, модель подменена заглушкой (общие заглушки в helpers.py, фикстуры в conftest.py)
 .github/workflows/       CI: тесты на Python 3.10 и 3.12

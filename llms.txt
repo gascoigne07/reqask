@@ -22,6 +22,7 @@
 - `uv sync --locked && uv run pytest -q`: тесты без сети
 - `uv run main.py --render reports/report.json --output out/report.md`, затем `cmp out/report.md reports/report.md`: отчёт перерисовывается из JSON в те же файлы
 - `uv run main.py --input docs/requirements.md --dry-run`: чтение документа и оценка числа обращений к модели
+- `uv run main.py --export-csv reports/report.json --output out/tickets.csv`: замечания строками для трекера задач
 - `uv run main.py --compare reports/report.json examples/answered/report.json --output out/compare.md`: сравнение двух отчётов
 
 ## Код

@@ -25,6 +25,8 @@ COMMON = {
     "api", "http", "https", "json", "id", "url", "pdf", "rest", "get", "post", "put", "delete",
     "curl", "data", "integer", "string", "boolean", "result", "text", "type", "error", "true", "false",
     "path", "message", "body", "field",
+    # Заголовки столбцов CSV для импорта в трекер задач (export.py).
+    "description",
 }
 UNITS = r"(?:₸|KZT|тенге|руб\w*|сек\w*|мин\w*|мс|час\w*|дн\w*|%|МБ|КБ|ГБ)"
 
