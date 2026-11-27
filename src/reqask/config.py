@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import os
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -47,7 +47,7 @@ class ConfigError(Exception):
 class Settings:
     provider: str
     base_url: str | None
-    api_key: str
+    api_key: str = field(repr=False)
     model: str
     temperature: float | None = None
     reasoning_effort: str | None = None
@@ -85,14 +85,22 @@ def _env(name: str, default: str | None = None) -> str | None:
     return value
 
 
-def _num(name: str, default, cast):
+def _num(name: str, default, cast, minimum=None, above=None):
+    """Число из переменной окружения. minimum: допустимо это значение и больше, above: только строго больше."""
     raw = _env(name)
     if raw is None:
         return default
     try:
-        return cast(raw)
+        value = cast(raw)
     except ValueError as exc:
         raise ConfigError(f"Переменная {name} должна быть числом, получено: {raw!r}") from exc
+    if value != value:  # nan
+        raise ConfigError(f"Переменная {name} должна быть числом, получено: {raw!r}")
+    if minimum is not None and value < minimum:
+        raise ConfigError(f"Переменная {name} должна быть {minimum} или больше, получено: {raw!r}")
+    if above is not None and value <= above:
+        raise ConfigError(f"Переменная {name} должна быть больше {above}, получено: {raw!r}")
+    return value
 
 
 def _provider() -> tuple[str, str | None, str, str]:
@@ -159,10 +167,11 @@ def load_settings(env_file: str | None = None) -> Settings:
         temperature=_num("LLM_TEMPERATURE", None, float),
         reasoning_effort=_env("LLM_REASONING_EFFORT"),
         json_mode=json_mode,
-        max_retries=_num("LLM_MAX_RETRIES", 5, int),
-        max_repairs=_num("LLM_MAX_REPAIRS", 2, int),
-        timeout_sec=_num("LLM_TIMEOUT_SEC", 240.0, float),
-        min_interval_sec=_num("LLM_MIN_INTERVAL_SEC", GEMINI_MIN_INTERVAL_SEC if provider == "gemini" else 0.0, float),
+        max_retries=_num("LLM_MAX_RETRIES", 5, int, minimum=0),
+        max_repairs=_num("LLM_MAX_REPAIRS", 2, int, minimum=0),
+        timeout_sec=_num("LLM_TIMEOUT_SEC", 240.0, float, above=0),
+        min_interval_sec=_num("LLM_MIN_INTERVAL_SEC", GEMINI_MIN_INTERVAL_SEC if provider == "gemini" else 0.0, float,
+                              minimum=0),
         concurrency=max(1, _num("LLM_CONCURRENCY", 1, int)),
         batch_size=max(1, _num("REQASK_BATCH_SIZE", 6, int)),
         fallback_models=_fallbacks(provider),
