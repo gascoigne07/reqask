@@ -7,9 +7,7 @@
 
 <h3>Находит в ТЗ противоречия и пробелы.<br>Задаёт автору вопросы с вариантами ответа.</h3>
 
-<a href="https://github.com/gascoigne07/reqask/actions/workflows/tests.yml"><img alt="tests" src="https://github.com/gascoigne07/reqask/actions/workflows/tests.yml/badge.svg"></a>
-<img alt="Python 3.10+" src="https://img.shields.io/badge/python-3.10%2B-blue">
-<a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-green"></a>
+<p><a href="https://github.com/gascoigne07/reqask/actions/workflows/tests.yml"><img alt="tests" src="https://github.com/gascoigne07/reqask/actions/workflows/tests.yml/badge.svg"></a> <img alt="Python 3.10+" src="https://img.shields.io/badge/python-3.10%2B-blue"> <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-green"></a></p>
 
 <p>
   <a href="reports/report.md">Отчёт</a> ·
