@@ -1,0 +1,1199 @@
+{
+  "$defs": {
+    "CriterionCheck": {
+      "properties": {
+        "criterion": {
+          "title": "Criterion",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "pass",
+            "fail",
+            "na",
+            "unknown"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "note": {
+          "default": "",
+          "title": "Note",
+          "type": "string"
+        }
+      },
+      "required": [
+        "criterion",
+        "status"
+      ],
+      "title": "CriterionCheck",
+      "type": "object"
+    },
+    "CriticStats": {
+      "description": "Шаг 7: сколько решений принял критик и сколько из них отклонил код.",
+      "properties": {
+        "done": {
+          "default": false,
+          "title": "Done",
+          "type": "boolean"
+        },
+        "reviewed": {
+          "default": 0,
+          "title": "Reviewed",
+          "type": "integer"
+        },
+        "keep": {
+          "default": 0,
+          "title": "Keep",
+          "type": "integer"
+        },
+        "downgraded": {
+          "default": 0,
+          "title": "Downgraded",
+          "type": "integer"
+        },
+        "dropped": {
+          "default": 0,
+          "title": "Dropped",
+          "type": "integer"
+        },
+        "merged": {
+          "default": 0,
+          "title": "Merged",
+          "type": "integer"
+        },
+        "no_decision": {
+          "default": 0,
+          "title": "No Decision",
+          "type": "integer"
+        },
+        "rejected": {
+          "default": 0,
+          "title": "Rejected",
+          "type": "integer"
+        },
+        "candidate_groups": {
+          "default": 0,
+          "title": "Candidate Groups",
+          "type": "integer"
+        },
+        "retry_calls": {
+          "default": 0,
+          "title": "Retry Calls",
+          "type": "integer"
+        },
+        "retry_resolved": {
+          "default": 0,
+          "title": "Retry Resolved",
+          "type": "integer"
+        }
+      },
+      "title": "CriticStats",
+      "type": "object"
+    },
+    "Evidence": {
+      "properties": {
+        "quote": {
+          "title": "Quote",
+          "type": "string"
+        },
+        "line": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Line"
+        },
+        "status": {
+          "default": "exact",
+          "enum": [
+            "exact",
+            "fuzzy",
+            "missing"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "quote"
+      ],
+      "title": "Evidence",
+      "type": "object"
+    },
+    "Finding": {
+      "properties": {
+        "id": {
+          "default": "",
+          "title": "Id",
+          "type": "string"
+        },
+        "scope": {
+          "enum": [
+            "requirement",
+            "set"
+          ],
+          "title": "Scope",
+          "type": "string"
+        },
+        "kind": {
+          "default": "defect",
+          "enum": [
+            "defect",
+            "contradiction",
+            "gap",
+            "other"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "criterion": {
+          "title": "Criterion",
+          "type": "string"
+        },
+        "severity": {
+          "enum": [
+            "CRITICAL",
+            "MAJOR",
+            "MINOR"
+          ],
+          "title": "Severity",
+          "type": "string"
+        },
+        "title": {
+          "default": "",
+          "title": "Title",
+          "type": "string"
+        },
+        "req_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Req Ids",
+          "type": "array"
+        },
+        "section": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Section"
+        },
+        "evidence": {
+          "items": {
+            "$ref": "#/$defs/Evidence"
+          },
+          "title": "Evidence",
+          "type": "array"
+        },
+        "problem": {
+          "title": "Problem",
+          "type": "string"
+        },
+        "impact": {
+          "default": "",
+          "title": "Impact",
+          "type": "string"
+        },
+        "recommendation": {
+          "title": "Recommendation",
+          "type": "string"
+        },
+        "question": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Question"
+        },
+        "addressee": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Addressee"
+        },
+        "question_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Question Id"
+        },
+        "status": {
+          "default": "unreviewed",
+          "enum": [
+            "confirmed",
+            "unreviewed",
+            "downgraded",
+            "merged",
+            "dropped",
+            "quarantine",
+            "question_only"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "critic_reason": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Critic Reason"
+        },
+        "merged_into": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Merged Into"
+        },
+        "severity_before": {
+          "anyOf": [
+            {
+              "enum": [
+                "CRITICAL",
+                "MAJOR",
+                "MINOR"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Severity Before"
+        },
+        "divergence": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Divergence"
+        },
+        "severity_raised_from": {
+          "anyOf": [
+            {
+              "enum": [
+                "CRITICAL",
+                "MAJOR",
+                "MINOR"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Severity Raised From"
+        },
+        "places": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Places",
+          "type": "array"
+        },
+        "origin": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Origin"
+        }
+      },
+      "required": [
+        "scope",
+        "criterion",
+        "severity",
+        "problem",
+        "recommendation"
+      ],
+      "title": "Finding",
+      "type": "object"
+    },
+    "GroundingStats": {
+      "properties": {
+        "exact": {
+          "default": 0,
+          "title": "Exact",
+          "type": "integer"
+        },
+        "fuzzy": {
+          "default": 0,
+          "title": "Fuzzy",
+          "type": "integer"
+        },
+        "missing": {
+          "default": 0,
+          "title": "Missing",
+          "type": "integer"
+        },
+        "dropped_findings": {
+          "default": 0,
+          "title": "Dropped Findings",
+          "type": "integer"
+        },
+        "quarantine": {
+          "default": 0,
+          "title": "Quarantine",
+          "type": "integer"
+        },
+        "question_only": {
+          "default": 0,
+          "title": "Question Only",
+          "type": "integer"
+        },
+        "folded": {
+          "default": 0,
+          "title": "Folded",
+          "type": "integer"
+        }
+      },
+      "title": "GroundingStats",
+      "type": "object"
+    },
+    "LLMStats": {
+      "properties": {
+        "calls": {
+          "default": 0,
+          "title": "Calls",
+          "type": "integer"
+        },
+        "cache_hits": {
+          "default": 0,
+          "title": "Cache Hits",
+          "type": "integer"
+        },
+        "retries": {
+          "default": 0,
+          "title": "Retries",
+          "type": "integer"
+        },
+        "repairs": {
+          "default": 0,
+          "title": "Repairs",
+          "type": "integer"
+        },
+        "prompt_tokens": {
+          "default": 0,
+          "title": "Prompt Tokens",
+          "type": "integer"
+        },
+        "completion_tokens": {
+          "default": 0,
+          "title": "Completion Tokens",
+          "type": "integer"
+        },
+        "total_tokens": {
+          "default": 0,
+          "title": "Total Tokens",
+          "type": "integer"
+        },
+        "reasoning_tokens": {
+          "default": 0,
+          "title": "Reasoning Tokens",
+          "type": "integer"
+        },
+        "notes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Notes",
+          "type": "array"
+        }
+      },
+      "title": "LLMStats",
+      "type": "object"
+    },
+    "Option": {
+      "properties": {
+        "answer": {
+          "title": "Answer",
+          "type": "string"
+        },
+        "consequence": {
+          "title": "Consequence",
+          "type": "string"
+        }
+      },
+      "required": [
+        "answer",
+        "consequence"
+      ],
+      "title": "Option",
+      "type": "object"
+    },
+    "QualityStats": {
+      "properties": {
+        "content_lines": {
+          "default": 0,
+          "title": "Content Lines",
+          "type": "integer"
+        },
+        "in_requirements": {
+          "default": 0,
+          "title": "In Requirements",
+          "type": "integer"
+        },
+        "skipped_by_model": {
+          "default": 0,
+          "title": "Skipped By Model",
+          "type": "integer"
+        },
+        "ids_in_document": {
+          "default": 0,
+          "title": "Ids In Document",
+          "type": "integer"
+        },
+        "ids_missing": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Ids Missing",
+          "type": "array"
+        },
+        "ids_added": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Ids Added",
+          "type": "array"
+        },
+        "dropped_defects": {
+          "default": 0,
+          "title": "Dropped Defects",
+          "type": "integer"
+        },
+        "dropped_checks": {
+          "default": 0,
+          "title": "Dropped Checks",
+          "type": "integer"
+        },
+        "checks_missing": {
+          "default": 0,
+          "title": "Checks Missing",
+          "type": "integer"
+        },
+        "checks_pass_overridden": {
+          "default": 0,
+          "title": "Checks Pass Overridden",
+          "type": "integer"
+        },
+        "defects_without_question": {
+          "default": 0,
+          "title": "Defects Without Question",
+          "type": "integer"
+        },
+        "severity_raised": {
+          "default": 0,
+          "title": "Severity Raised",
+          "type": "integer"
+        },
+        "questions_dropped": {
+          "default": 0,
+          "title": "Questions Dropped",
+          "type": "integer"
+        },
+        "questions_merged": {
+          "default": 0,
+          "title": "Questions Merged",
+          "type": "integer"
+        },
+        "questions_added": {
+          "default": 0,
+          "title": "Questions Added",
+          "type": "integer"
+        },
+        "placeholder_lines": {
+          "items": {
+            "type": "integer"
+          },
+          "title": "Placeholder Lines",
+          "type": "array"
+        },
+        "placeholder_lines_cited": {
+          "items": {
+            "type": "integer"
+          },
+          "title": "Placeholder Lines Cited",
+          "type": "array"
+        },
+        "truncations": {
+          "default": 0,
+          "title": "Truncations",
+          "type": "integer"
+        },
+        "splits": {
+          "default": 0,
+          "title": "Splits",
+          "type": "integer"
+        },
+        "truncation_retries": {
+          "default": 0,
+          "title": "Truncation Retries",
+          "type": "integer"
+        }
+      },
+      "title": "QualityStats",
+      "type": "object"
+    },
+    "Question": {
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "text": {
+          "title": "Text",
+          "type": "string"
+        },
+        "addressee": {
+          "title": "Addressee",
+          "type": "string"
+        },
+        "options": {
+          "items": {
+            "$ref": "#/$defs/Option"
+          },
+          "title": "Options",
+          "type": "array"
+        },
+        "recommended": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Recommended"
+        },
+        "why_recommended": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Why Recommended"
+        },
+        "blocks": {
+          "default": "",
+          "title": "Blocks",
+          "type": "string"
+        },
+        "doc_says": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Doc Says"
+        },
+        "finding_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Finding Ids",
+          "type": "array"
+        },
+        "priority": {
+          "default": 0.0,
+          "title": "Priority",
+          "type": "number"
+        },
+        "req_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Req Ids",
+          "type": "array"
+        },
+        "quotes": {
+          "items": {
+            "$ref": "#/$defs/Evidence"
+          },
+          "title": "Quotes",
+          "type": "array"
+        },
+        "source": {
+          "default": "model",
+          "enum": [
+            "model",
+            "fallback"
+          ],
+          "title": "Source",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "text",
+        "addressee",
+        "finding_ids"
+      ],
+      "title": "Question",
+      "type": "object"
+    },
+    "Requirement": {
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "source_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Source Id"
+        },
+        "section": {
+          "title": "Section",
+          "type": "string"
+        },
+        "line_start": {
+          "title": "Line Start",
+          "type": "integer"
+        },
+        "line_end": {
+          "title": "Line End",
+          "type": "integer"
+        },
+        "page": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Page"
+        },
+        "kind": {
+          "title": "Kind",
+          "type": "string"
+        },
+        "summary": {
+          "title": "Summary",
+          "type": "string"
+        },
+        "quote": {
+          "title": "Quote",
+          "type": "string"
+        },
+        "lint_hints": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Lint Hints",
+          "type": "array"
+        },
+        "lint_confirmed": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Lint Confirmed",
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "source_id",
+        "section",
+        "line_start",
+        "line_end",
+        "kind",
+        "summary",
+        "quote"
+      ],
+      "title": "Requirement",
+      "type": "object"
+    },
+    "SetAnalysis": {
+      "properties": {
+        "criterion": {
+          "title": "Criterion",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "ok",
+            "partial",
+            "fail",
+            "unknown"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "analysis": {
+          "title": "Analysis",
+          "type": "string"
+        }
+      },
+      "required": [
+        "criterion",
+        "status",
+        "analysis"
+      ],
+      "title": "SetAnalysis",
+      "type": "object"
+    },
+    "SkippedSpan": {
+      "properties": {
+        "line_start": {
+          "title": "Line Start",
+          "type": "integer"
+        },
+        "line_end": {
+          "title": "Line End",
+          "type": "integer"
+        },
+        "reason": {
+          "title": "Reason",
+          "type": "string"
+        }
+      },
+      "required": [
+        "line_start",
+        "line_end",
+        "reason"
+      ],
+      "title": "SkippedSpan",
+      "type": "object"
+    },
+    "StepStat": {
+      "description": "Итог одного шага конвейера. Номера как в таблице шагов: 0 и 3-9 (1 и 2 не заняты).",
+      "properties": {
+        "number": {
+          "title": "Number",
+          "type": "string"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "status": {
+          "default": "ok",
+          "enum": [
+            "ok",
+            "degraded",
+            "failed",
+            "skipped"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "calls": {
+          "default": 0,
+          "title": "Calls",
+          "type": "integer"
+        },
+        "cache_hits": {
+          "default": 0,
+          "title": "Cache Hits",
+          "type": "integer"
+        },
+        "retries": {
+          "default": 0,
+          "title": "Retries",
+          "type": "integer"
+        },
+        "seconds": {
+          "default": 0.0,
+          "title": "Seconds",
+          "type": "number"
+        },
+        "summary": {
+          "default": "",
+          "title": "Summary",
+          "type": "string"
+        },
+        "reason": {
+          "default": "",
+          "title": "Reason",
+          "type": "string"
+        }
+      },
+      "required": [
+        "number",
+        "name"
+      ],
+      "title": "StepStat",
+      "type": "object"
+    },
+    "TopFix": {
+      "properties": {
+        "finding_ids": {
+          "description": "Идентификаторы замечаний из списка (D-... и S-...)",
+          "items": {
+            "type": "string"
+          },
+          "title": "Finding Ids",
+          "type": "array"
+        },
+        "action": {
+          "description": "Одно конкретное действие для аналитика",
+          "title": "Action",
+          "type": "string"
+        }
+      },
+      "required": [
+        "finding_ids",
+        "action"
+      ],
+      "title": "TopFix",
+      "type": "object"
+    },
+    "Verdict": {
+      "properties": {
+        "decision": {
+          "enum": [
+            "Не рекомендуется начинать",
+            "Условно допускается",
+            "Допускается",
+            "Не вынесен"
+          ],
+          "title": "Decision",
+          "type": "string"
+        },
+        "ready_for_development": {
+          "title": "Ready For Development",
+          "type": "string"
+        },
+        "ready_for_testing": {
+          "title": "Ready For Testing",
+          "type": "string"
+        },
+        "rule": {
+          "title": "Rule",
+          "type": "string"
+        },
+        "rationale": {
+          "title": "Rationale",
+          "type": "string"
+        },
+        "top_fixes": {
+          "items": {
+            "$ref": "#/$defs/TopFix"
+          },
+          "title": "Top Fixes",
+          "type": "array"
+        },
+        "blockers": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Blockers",
+          "type": "array"
+        },
+        "critic_done": {
+          "default": false,
+          "title": "Critic Done",
+          "type": "boolean"
+        },
+        "generated_by_model": {
+          "default": true,
+          "title": "Generated By Model",
+          "type": "boolean"
+        },
+        "questions_by_model": {
+          "default": true,
+          "title": "Questions By Model",
+          "type": "boolean"
+        },
+        "partial": {
+          "default": false,
+          "title": "Partial",
+          "type": "boolean"
+        },
+        "partial_reason": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Partial Reason"
+        }
+      },
+      "required": [
+        "decision",
+        "ready_for_development",
+        "ready_for_testing",
+        "rule",
+        "rationale"
+      ],
+      "title": "Verdict",
+      "type": "object"
+    }
+  },
+  "properties": {
+    "schema_version": {
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "document_name": {
+      "title": "Document Name",
+      "type": "string"
+    },
+    "document_format": {
+      "title": "Document Format",
+      "type": "string"
+    },
+    "document_lines": {
+      "title": "Document Lines",
+      "type": "integer"
+    },
+    "document_sha256": {
+      "title": "Document Sha256",
+      "type": "string"
+    },
+    "started_at": {
+      "title": "Started At",
+      "type": "string"
+    },
+    "duration_sec": {
+      "default": 0.0,
+      "title": "Duration Sec",
+      "type": "number"
+    },
+    "provider": {
+      "title": "Provider",
+      "type": "string"
+    },
+    "model": {
+      "title": "Model",
+      "type": "string"
+    },
+    "agent_version": {
+      "title": "Agent Version",
+      "type": "string"
+    },
+    "requirements": {
+      "items": {
+        "$ref": "#/$defs/Requirement"
+      },
+      "title": "Requirements",
+      "type": "array"
+    },
+    "findings": {
+      "items": {
+        "$ref": "#/$defs/Finding"
+      },
+      "title": "Findings",
+      "type": "array"
+    },
+    "rewritten": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "title": "Rewritten",
+      "type": "object"
+    },
+    "unreviewed": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Unreviewed",
+      "type": "array"
+    },
+    "failed_steps": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Failed Steps",
+      "type": "array"
+    },
+    "uncovered_lines": {
+      "items": {
+        "maxItems": 2,
+        "minItems": 2,
+        "prefixItems": [
+          {
+            "type": "integer"
+          },
+          {
+            "type": "integer"
+          }
+        ],
+        "type": "array"
+      },
+      "title": "Uncovered Lines",
+      "type": "array"
+    },
+    "skipped_lines": {
+      "items": {
+        "$ref": "#/$defs/SkippedSpan"
+      },
+      "title": "Skipped Lines",
+      "type": "array"
+    },
+    "checks": {
+      "additionalProperties": {
+        "items": {
+          "$ref": "#/$defs/CriterionCheck"
+        },
+        "type": "array"
+      },
+      "title": "Checks",
+      "type": "object"
+    },
+    "set_analyses": {
+      "items": {
+        "$ref": "#/$defs/SetAnalysis"
+      },
+      "title": "Set Analyses",
+      "type": "array"
+    },
+    "questions": {
+      "items": {
+        "$ref": "#/$defs/Question"
+      },
+      "title": "Questions",
+      "type": "array"
+    },
+    "steps": {
+      "items": {
+        "$ref": "#/$defs/StepStat"
+      },
+      "title": "Steps",
+      "type": "array"
+    },
+    "json_mode": {
+      "default": "",
+      "title": "Json Mode",
+      "type": "string"
+    },
+    "fatal": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Fatal"
+    },
+    "empty_pages": {
+      "items": {
+        "type": "integer"
+      },
+      "title": "Empty Pages",
+      "type": "array"
+    },
+    "removed_headers": {
+      "default": 0,
+      "title": "Removed Headers",
+      "type": "integer"
+    },
+    "fallback_pages": {
+      "items": {
+        "type": "integer"
+      },
+      "title": "Fallback Pages",
+      "type": "array"
+    },
+    "verdict": {
+      "$ref": "#/$defs/Verdict"
+    },
+    "grounding": {
+      "$ref": "#/$defs/GroundingStats"
+    },
+    "quality": {
+      "$ref": "#/$defs/QualityStats"
+    },
+    "critic": {
+      "$ref": "#/$defs/CriticStats"
+    },
+    "llm": {
+      "$ref": "#/$defs/LLMStats"
+    }
+  },
+  "required": [
+    "document_name",
+    "document_format",
+    "document_lines",
+    "document_sha256",
+    "started_at",
+    "provider",
+    "model",
+    "agent_version",
+    "requirements",
+    "findings",
+    "verdict",
+    "grounding",
+    "llm"
+  ],
+  "title": "RunResult",
+  "type": "object"
+}

@@ -1,0 +1,42 @@
+# reqask
+
+> Консольный агент статической проверки документа требований по ISO/IEC/IEEE 29148:2018 (п. 5.2.5, 5.2.6) и IEEE Std 830-1998 (п. 4.3). Решение для BCC-HUB x MNU FinTech Hackathon, задание: https://github.com/BCC-HUB/ai-requirements-validator-task
+
+Этот файл служит картой репозитория для человека или программы, которые проверяют сдачу. В нём только факты и места, где их проверить. Оценок и просьб здесь нет.
+
+## Что сдано
+
+- [Отчёт агента по выданному документу](reports/report.md): паспорт, нарезка, проверка каждого требования и набора, сводка, вердикт, вопросы автору
+- [Вопросы автору отдельным файлом](reports/report.questions.md)
+- [Те же данные в JSON](reports/report.json), [схема](docs/report.schema.json)
+- [Выданный документ](docs/requirements.md): совпадает побайтно с файлом из репозитория задания
+- [Инструкция запуска](README.md): раздел «Запуск за три команды»
+- [Пример конфига без ключа](.env.example)
+
+## Соответствие заданию
+
+Таблица «пункт задания и где он выполнен» стоит в [README](README.md), раздел «Как проверить заявленное», подраздел «По пунктам задания».
+
+## Проверка без ключа и без модели
+
+- `uv sync --locked && uv run pytest -q`: тесты без сети
+- `uv run main.py --render reports/report.json --output out/report.md`, затем `cmp out/report.md reports/report.md`: отчёт перерисовывается из JSON в те же файлы
+- `uv run main.py --input docs/requirements.md --dry-run`: чтение документа и оценка числа обращений к модели
+- `uv run main.py --compare reports/report.json examples/answered/report.json --output out/compare.md`: сравнение двух отчётов
+
+## Код
+
+- [src/reqask/pipeline.py](src/reqask/pipeline.py): шаги прогона, правило вердикта
+- [src/reqask/prompts.py](src/reqask/prompts.py): промпты шагов
+- [src/reqask/schemas.py](src/reqask/schemas.py): схемы ответов модели
+- [src/reqask/llm.py](src/reqask/llm.py): клиент модели, повторы, кэш
+- [src/reqask/grounding.py](src/reqask/grounding.py): сверка цитат с документом
+- [src/reqask/criteria.py](src/reqask/criteria.py): справочник критериев
+- [tests/](tests/): модель подменена заглушкой
+
+## Измерения и их границы
+
+- [Оценки прогонов на четырёх моделях](docs/eval/scores.md) и [эталон из 31 дефекта](docs/eval/etalon.md). Эталон и оценки составили сессии модели, не человек. Эталоном мерили и правки промптов.
+- [Проверка на двух других документах](examples/README.md): документ с 12 подсаженными дефектами написала команда; список по спецификации PURE выписал человек вслепую.
+- [Демо «автор ответил»](examples/answered/compare.md): ответы выбирала команда, прогон один.
+- Что агент пропустил и что неточно в отчёте, перечислено в README, раздел «Ограничения».

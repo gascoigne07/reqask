@@ -1,0 +1,17 @@
+.git
+.venv
+.env
+.env.*
+!.env.example
+.reqask_cache
+.claude
+CLAUDE.md
+RESEARCH.md
+TZ.md
+out
+reports
+examples
+docs
+tests
+__pycache__
+*.pyc

@@ -1,0 +1,24 @@
+# Пример для своего репозитория: положите файл в .github/workflows/ и добавьте ключ в секреты.
+# Документ проверяется при каждом push. Если агент нашёл блокеры, шаг завершается кодом 10
+# и сборка падает; отчёт сохраняется артефактом в любом случае.
+name: requirements
+
+on: push
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - name: Проверка требований
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: >
+          uvx --from git+https://github.com/gascoigne07/reqask reqask
+          --input docs/requirements.md --output out/report.md --fail-on-critical
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: requirements-report
+          path: out/
