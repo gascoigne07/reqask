@@ -21,7 +21,7 @@ from .report_html import render_html
 from .version import agent_version
 
 
-# Коды возврата (К-11).
+# Коды возврата.
 EXIT_OK = 0          # отчёт записан полностью
 EXIT_NO_MODEL = 1    # модель недоступна или внутренняя ошибка агента, отчёта нет
 EXIT_INPUT = 2       # ошибка входа или настроек
@@ -68,7 +68,7 @@ def _error(text: str) -> None:
 
 
 def _check_output(path: str) -> Path:
-    """Отчёт пишется только в Markdown (Ч-11). Проверка идёт до чтения входа и до вызовов модели."""
+    """Отчёт пишется только в Markdown. Проверка идёт до чтения входа и до вызовов модели."""
     output = Path(path)
     if output.is_dir():
         raise ConfigError(f"«{output}» это папка, укажите файл, например {output / 'report.md'}")
@@ -337,9 +337,9 @@ def run_compare(paths: list[str], output: str | None) -> int:
 
 
 def run_check(settings, log) -> int:
-    """--check: ключ, модель, режим JSON и уровень рассуждения одним вызовом (М-14).
+    """--check: ключ, модель, режим JSON и уровень рассуждения одним вызовом.
 
-    Идёт по той же цепочке моделей, что и прогон (М-10): основная не ответила, пробуется запасная.
+    Идёт по той же цепочке моделей, что и прогон: основная не ответила, пробуется запасная.
     """
     # Проверка короткая: ждать ответ дольше минуты нет смысла, зависшая модель должна быть видна сразу.
     chain = [settings.model, *[m for m in settings.fallback_models if m != settings.model]]
@@ -460,7 +460,7 @@ def _main(argv: list[str] | None = None) -> int:
         return EXIT_INPUT
     except LLMFatal as exc:
         # Модель не ответила ни разу (ключ, модель, квота, лимит, сеть): файлы отчёта не пишутся
-        # и не трогаются, прежний отчёт остаётся на месте (К-10).
+        # и не трогаются, прежний отчёт остаётся на месте.
         print(f"Модель недоступна, отчёт не записан, прежние файлы отчёта не тронуты. {exc}", file=sys.stderr)
         return EXIT_NO_MODEL
     except LLMError as exc:

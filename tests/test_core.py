@@ -194,7 +194,7 @@ def test_grounding(doc):
     assert index.find("Читатель может взять на руки не больше 5 книг", 9, 11) is None  # вне диапазона
     assert index.find("этого нет") is None
     assert index.fuzzy("Система должна быстро показывать результаты поиска книжки", 4, 4) == 4
-    # Порог 0,8: общий кусок меньше 80% цитаты не засчитывается (К-06).
+    # Порог 0,8: общий кусок меньше 80% цитаты не засчитывается.
     assert index.fuzzy("Система обязана быстро показывать результаты поиска книги", 4, 4) is None
     # Короткая цитата сверяется по номеру строки с допуском в две строки.
     assert index.is_short("5") and index.find_short("5", 6) == 5 and index.find_short("5", 9) is None
@@ -268,7 +268,7 @@ def test_pipeline_end_to_end(doc):
     assert d1.evidence[0].status == "exact" and d1.evidence[0].line == 4
     assert d1.question == "Какое время ответа, в секундах?" and d1.addressee == "business" and d1.impact == "и"
     assert by_id["D-02"].req_ids == ["REQ-02"]  # дефект с неверным критерием отброшен, порция цела
-    d2 = by_id["D-02"]  # выдуманная цитата: не найдена, замечание в карантине (К-06)
+    d2 = by_id["D-02"]  # выдуманная цитата: не найдена, замечание в карантине
     assert d2.evidence[0].status == "missing" and d2.status == "quarantine" and result.grounding.quarantine == 1
     assert by_id["D-02"].question is None and by_id["D-02"].addressee is None
     assert result.quality.dropped_defects == 1 and result.quality.dropped_checks == 1
@@ -304,7 +304,7 @@ def test_pipeline_end_to_end(doc):
     assert v.ready_for_development == "Нет" and v.ready_for_testing == "Нет"
     assert [fix.finding_ids for fix in v.top_fixes] == [["S-01"]]
 
-    # Сводные вопросы: проверки кодом, приоритет, запасной вопрос для непокрытого CRITICAL (К-08).
+    # Сводные вопросы: проверки кодом, приоритет, запасной вопрос для непокрытого CRITICAL.
     qs = result.questions
     assert [(q.id, q.finding_ids, q.source) for q in qs] == [
         ("Q-01", ["S-01"], "model"), ("Q-02", ["D-01"], "fallback"), ("Q-03", ["S-02"], "model"),
@@ -334,7 +334,7 @@ SECTIONS = (
 
 
 def _check_report(result):
-    """Т-05: порядок разделов, вердикт до паспорта, вопросы, формат идентификаторов, нет тире."""
+    """Порядок разделов, вердикт до паспорта, вопросы, формат идентификаторов, нет тире."""
     report = render(result)
     positions = [report.index(h) for h in SECTIONS]
     assert positions == sorted(positions)
@@ -424,7 +424,7 @@ def test_pipeline_survives_failed_steps(doc):
     assert len(result.failed_steps) == 5  # три требования, проход по набору, итог
     assert [f.id for f in result.findings] == ["S-01"]
     assert result.verdict.generated_by_model is False and result.verdict.top_fixes
-    # Запасной путь вопросов: из поля question замечания, без вариантов (К-08).
+    # Запасной путь вопросов: из поля question замечания, без вариантов.
     assert not result.verdict.questions_by_model
     assert [(q.id, q.finding_ids, q.source, q.options) for q in result.questions] == [("Q-01", ["S-01"], "fallback", [])]
     report = render(result)
@@ -597,7 +597,7 @@ def test_decision_rule_ignores_inactive_findings():
     assert decide([f("CRITICAL", "NECESSARY")])[2] == "Да, с оговорками"  # не блокер тестирования
     assert decide([f("MAJOR")])[:3] == ("Условно допускается", "Да, с оговорками", "Да, с оговорками")
     assert decide([f("MINOR")])[0] == "Допускается" and decide([])[0] == "Допускается"
-    # Снятое критиком и ушедшее в карантин CRITICAL на решение не влияет (К-09).
+    # Снятое критиком и ушедшее в карантин CRITICAL на решение не влияет.
     gone = [f("CRITICAL", status="quarantine"), f("CRITICAL", status="dropped", fid="D-02"), f("MAJOR", fid="D-03")]
     assert decide(gone) == ("Условно допускается", "Да, с оговорками", "Да, с оговорками", [])
 
@@ -662,7 +662,7 @@ def test_same_problem_in_three_requirements_is_folded():
 
 
 def test_truncated_set_pass_retries_once_with_low_effort(doc):
-    """М-07: проход по набору после обрезки повторяется один раз с reasoning_effort=low."""
+    """Проход по набору после обрезки повторяется один раз с reasoning_effort=low."""
     class Cut(FakeLLM):
         efforts: list = []
 
@@ -723,7 +723,7 @@ def test_failed_batch_logs_reason_kind_and_text(doc):
 
 
 def test_truncated_segmentation_chunk_is_split(tmp_path):
-    """М-07: обрезанный ответ нарезки делит кусок пополам."""
+    """Обрезанный ответ нарезки делит кусок пополам."""
     path = tmp_path / "long.md"
     path.write_text("\n".join(f"* Правило {i}: система хранит запись {i}." for i in range(1, 61)), encoding="utf-8")
     long_doc = load_document(path)
@@ -745,7 +745,7 @@ def test_truncated_segmentation_chunk_is_split(tmp_path):
 
 
 def test_critic_decisions_and_limits(doc):
-    """К-07: решения критика применяются, ограничения держит код."""
+    """Решения критика применяются, ограничения держит код."""
     from reqask.schemas import Evidence, Finding
 
     def f(fid, severity, req="REQ-01", scope="requirement", line=4):
@@ -850,7 +850,7 @@ def test_question_text_helpers():
 
 
 def test_priority_caps_requirement_bonus():
-    """Вопрос по таблице, порезанной на много требований, не обгоняет вопрос того же уровня (К-08)."""
+    """Вопрос по таблице, порезанной на много требований, не обгоняет вопрос того же уровня."""
     from reqask.schemas import Finding
 
     def finding(fid: str, reqs: list[str]) -> Finding:
@@ -863,7 +863,7 @@ def test_priority_caps_requirement_bonus():
 
 
 def test_equal_priority_puts_set_findings_first():
-    """При равном весе вопрос по замечанию набора идёт раньше вопроса по одному требованию (К-08)."""
+    """При равном весе вопрос по замечанию набора идёт раньше вопроса по одному требованию."""
     from reqask.schemas import Finding
 
     d = Finding(id="D-01", scope="requirement", criterion="COMPLETE", severity="CRITICAL", problem="п",
@@ -1179,7 +1179,7 @@ def test_check_walks_fallback_chain(client_with, capsys):
 
 
 def test_incomplete_report_has_no_positive_verdict(doc):
-    """К-10: неполный отчёт без CRITICAL даёт «Не вынесен» с причиной; найденный CRITICAL решение оставляет."""
+    """Неполный отчёт без CRITICAL даёт «Не вынесен» с причиной; найденный CRITICAL решение оставляет."""
 
     class FatalReview(FakeLLM):
         def __init__(self, set_answer=True):

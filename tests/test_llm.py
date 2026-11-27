@@ -1,4 +1,4 @@
-"""Т-01. Клиент модели против локального HTTP-сервера: ошибки, повторы, понижение режима, обрезка."""
+"""Клиент модели против локального HTTP-сервера: ошибки, повторы, понижение режима, обрезка."""
 
 import json
 import threading
@@ -91,7 +91,7 @@ def test_temperature_goes_only_to_non_gemini(client_with):
 
 
 def test_json_downgrade_is_per_schema(client_with):
-    """М-04: 400 про формат понижает режим только у этой схемы, остальные остаются на parse."""
+    """400 про формат понижает режим только у этой схемы, остальные остаются на parse."""
     def handler(body, n):
         fmt = body.get("response_format") or {}
         if fmt.get("json_schema", {}).get("name") == "OneOut":
@@ -153,7 +153,7 @@ def test_daily_quota_is_fatal_without_waiting(client_with):
 
 
 def test_daily_quota_switches_to_fallback_model(client_with):
-    """М-10: квота считается по моделям, поэтому при суточной квоте клиент идёт на запасную без ожидания."""
+    """Квота считается по моделям, поэтому при суточной квоте клиент идёт на запасную без ожидания."""
     body = [error(429, "Generate content requests per day limit exceeded on Free Tier", status="RESOURCE_EXHAUSTED")]
     client, sent, waits = client_with(
         lambda b, n: (429, body) if b["model"] == "m" else (200, completion(ONE)), fallback_models=("m", "b"))
@@ -164,7 +164,7 @@ def test_daily_quota_switches_to_fallback_model(client_with):
 
 
 def test_overloaded_model_switches_after_two_retries(client_with):
-    """М-10: при запасной модели на 503 тратится два повтора, а не все пять."""
+    """При запасной модели на 503 тратится два повтора, а не все пять."""
     client, sent, waits = client_with(
         lambda b, n: (503, error(503, "high demand")) if b["model"] == "m" else (200, completion(ONE)),
         fallback_models=("b",))
@@ -268,4 +268,4 @@ def test_effort_override_and_check(client_with):
 
     client, sent, _ = client_with(lambda b, n: (200, completion(ONE)))
     ask(client, effort="low")
-    assert sent[0]["reasoning_effort"] == "low"  # повтор прохода по набору после обрезки (М-07)
+    assert sent[0]["reasoning_effort"] == "low"  # повтор прохода по набору после обрезки

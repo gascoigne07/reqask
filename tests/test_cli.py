@@ -1,4 +1,4 @@
-"""Т-06. Командная строка: коды возврата, частичный отчёт, вывод не в Markdown, ошибка записи."""
+"""Командная строка: коды возврата, частичный отчёт, вывод не в Markdown, ошибка записи."""
 
 from pathlib import Path
 
@@ -77,7 +77,7 @@ def test_fatal_in_review_skips_remaining_model_steps(workdir, monkeypatch):
 
 
 def test_fatal_segmentation_before_any_answer_is_code_1_without_report(workdir, monkeypatch, capsys):
-    """Лимит на первом же вызове: модель не ответила ни разу, отчёт не пишется (ревью кода, пункт 1)."""
+    """Лимит на первом же вызове: модель не ответила ни разу, отчёт не пишется."""
     use(monkeypatch, FatalAt(SegmentationOut, "rate"))
     assert run() == cli.EXIT_NO_MODEL
     assert not (workdir / "out" / "report.md").exists()

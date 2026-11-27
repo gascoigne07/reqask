@@ -48,7 +48,7 @@ def _enum_str(values, description: str):
     """Строка с перечнем допустимых значений в схеме, но без отказа при проверке.
 
     Модель видит enum и почти всегда попадает в него. Если промахнулась, код
-    отбросит один этот элемент, а не весь ответ (К-04).
+    отбросит один этот элемент, а не весь ответ.
     """
     return Field(description=description, json_schema_extra={"enum": list(values)})
 
@@ -241,7 +241,7 @@ class Requirement(BaseModel):
     summary: str
     quote: str
     lint_hints: list[str] = Field(default_factory=list)
-    # Подсказки линтера, слово из которых есть в цитате хотя бы одного дефекта (К-04).
+    # Подсказки линтера, слово из которых есть в цитате хотя бы одного дефекта.
     lint_confirmed: list[str] = Field(default_factory=list)
 
 
@@ -269,7 +269,7 @@ class Evidence(BaseModel):
     quote: str
     line: int | None = None
     # exact: цитата найдена в документе; fuzzy: восстановлена по близкому совпадению;
-    # missing: в документе не найдена, приведена цитата модели (К-06).
+    # missing: в документе не найдена, приведена цитата модели.
     status: Literal["exact", "fuzzy", "missing"] = "exact"
 
 
@@ -288,9 +288,9 @@ class Finding(BaseModel):
     recommendation: str
     question: str | None = None
     addressee: str | None = None
-    # Сводный вопрос раздела 7, который закрывает это замечание (К-08).
+    # Сводный вопрос раздела 7, который закрывает это замечание.
     question_id: str | None = None
-    # unreviewed: критик не смотрел. Остальные статусы ставят критик и сверка цитат (4.6).
+    # unreviewed: критик не смотрел. Остальные статусы ставят критик и сверка цитат.
     status: FindingStatus = "unreviewed"
     # Решение критика (шаг 7): причина и цель слияния.
     critic_reason: str | None = None
@@ -300,13 +300,13 @@ class Finding(BaseModel):
     # Вид расхождения у замечания по набору (DIVERGENCES) и уровень до подъёма кодом.
     divergence: str | None = None
     severity_raised_from: Severity | None = None
-    # Места системного замечания, свёрнутого кодом из одинаковых (К-07, Р-11).
+    # Места системного замечания, свёрнутого кодом из одинаковых.
     places: list[str] = Field(default_factory=list)
     # Проход шага 5, который дал замечание по набору: consistency, completeness, edge.
     origin: str | None = None
 
 
-# Замечания с этими статусами не входят в вердикт и сводку (К-06, К-07, К-09).
+# Замечания с этими статусами не входят в вердикт и сводку.
 INACTIVE_STATUSES = {"dropped", "merged", "quarantine", "question_only"}
 
 
@@ -325,7 +325,7 @@ class Question(BaseModel):
     blocks: str = ""
     doc_says: str | None = None
     finding_ids: list[str]
-    # Считает код: вес уровня связанных замечаний плюс 0,25 за каждое затронутое требование (К-08).
+    # Считает код: вес уровня связанных замечаний плюс 0,25 за каждое затронутое требование.
     priority: float = 0.0
     req_ids: list[str] = Field(default_factory=list)
     # Цитаты со строками из связанных замечаний, подставляет код.
@@ -334,12 +334,12 @@ class Question(BaseModel):
     source: Literal["model", "fallback"] = "model"
 
 
-# «Не вынесен»: отчёт неполный и CRITICAL не найден (К-10).
+# «Не вынесен»: отчёт неполный и CRITICAL не найден.
 Decision = Literal["Не рекомендуется начинать", "Условно допускается", "Допускается", "Не вынесен"]
 
 
 class Verdict(BaseModel):
-    # Решение по правилу К-09, его считает код.
+    # Решение по правилу вердикта, его считает код.
     decision: Decision
     ready_for_development: str
     ready_for_testing: str
@@ -353,7 +353,7 @@ class Verdict(BaseModel):
     generated_by_model: bool = True
     # Сводные вопросы сформированы моделью; False значит запасной путь из полей question.
     questions_by_model: bool = True
-    # Решение принято по неполным данным: часть шагов с моделью не выполнена (К-10).
+    # Решение принято по неполным данным: часть шагов с моделью не выполнена.
     partial: bool = False
     # Сколько требований проверено из скольких и какие шаги не выполнены; есть только при partial.
     partial_reason: str | None = None
@@ -365,16 +365,16 @@ class GroundingStats(BaseModel):
     missing: int = 0
     # Замечание без опоры на текст: ни цитаты, ни требования, ни раздела. В отчёт не попадает.
     dropped_findings: int = 0
-    # Замечание по требованию без единой найденной цитаты (К-06).
+    # Замечание по требованию без единой найденной цитаты.
     quarantine: int = 0
-    # Противоречие, подтверждённое меньше чем двумя цитатами из разных строк (К-06).
+    # Противоречие, подтверждённое меньше чем двумя цитатами из разных строк.
     question_only: int = 0
-    # Одинаковые замечания в трёх и более местах свёрнуты в системные (К-07, Р-11).
+    # Одинаковые замечания в трёх и более местах свёрнуты в системные.
     folded: int = 0
 
 
 class CriticStats(BaseModel):
-    """Шаг 7 (К-07): сколько решений принял критик и сколько из них отклонил код."""
+    """Шаг 7: сколько решений принял критик и сколько из них отклонил код."""
 
     done: bool = False
     reviewed: int = 0
@@ -384,7 +384,7 @@ class CriticStats(BaseModel):
     merged: int = 0
     # Решения нет: замечание остаётся как есть.
     no_decision: int = 0
-    # Решение нарушает ограничения К-07 (повышение уровня, слияние с неизвестным, без причины и т. п.).
+    # Решение нарушает ограничения критика (повышение уровня, слияние с неизвестным, без причины и т. п.).
     rejected: int = 0
     # Группы замечаний с подтверждёнными цитатами на одной строке: кандидаты на слияние для критика.
     candidate_groups: int = 0
@@ -398,7 +398,7 @@ class QualityStats(BaseModel):
     content_lines: int = 0
     in_requirements: int = 0
     skipped_by_model: int = 0
-    # Сверка нарезки с идентификаторами, которые код нашёл в документе (К-03).
+    # Сверка нарезки с идентификаторами, которые код нашёл в документе.
     ids_in_document: int = 0
     ids_missing: list[str] = Field(default_factory=list)
     # Требования со своим идентификатором, которые нарезка пропустила и добавил код.
@@ -438,12 +438,12 @@ class LLMStats(BaseModel):
     completion_tokens: int = 0
     total_tokens: int = 0
     reasoning_tokens: int = 0
-    # Отказы провайдера в параметрах и понижения режима JSON (М-04, М-05): что и почему сделано.
+    # Отказы провайдера в параметрах и понижения режима JSON: что и почему сделано.
     notes: list[str] = Field(default_factory=list)
 
 
 class StepStat(BaseModel):
-    """Итог одного шага конвейера (К-01, 4.6). Номера как в таблице шагов: 0 и 3-9 (1 и 2 не заняты)."""
+    """Итог одного шага конвейера. Номера как в таблице шагов: 0 и 3-9 (1 и 2 не заняты)."""
 
     number: str
     name: str
@@ -482,9 +482,9 @@ class RunResult(BaseModel):
     steps: list[StepStat] = Field(default_factory=list)
     # Режим ответа JSON, на котором закончился прогон: parse, schema, object, none.
     json_mode: str = ""
-    # Фатальная ошибка модели, после которой шаги с моделью пропущены (К-10). None, если её не было.
+    # Фатальная ошибка модели, после которой шаги с моделью пропущены. None, если её не было.
     fatal: str | None = None
-    # PDF: страницы без текста (Ч-07) и удалённые строки колонтитулов (Ч-04).
+    # PDF: страницы без текста и удалённые строки колонтитулов.
     empty_pages: list[int] = Field(default_factory=list)
     removed_headers: int = 0
     # PDF: страницы, прочитанные запасным способом (pypdf, без разбора таблиц).

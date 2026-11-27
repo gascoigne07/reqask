@@ -26,7 +26,7 @@ class LoadError(Exception):
 
 @dataclass(frozen=True)
 class Line:
-    """Строка документа после очистки (Ч-01). Номер строки видят модель и отчёт."""
+    """Строка документа после очистки. Номер строки видят модель и отчёт."""
 
     no: int
     text: str
@@ -42,7 +42,7 @@ class Document:
     fmt: str
     lines: list[Line]
     sha256: str
-    # PDF: страницы без текста (Ч-07) и число удалённых строк колонтитулов (Ч-04).
+    # PDF: страницы без текста и число удалённых строк колонтитулов.
     empty_pages: list[int] = field(default_factory=list)
     removed_headers: int = 0
     # PDF: страницы, прочитанные запасным способом (pypdf без таблиц), потому что pdfplumber на них упал.

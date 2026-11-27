@@ -10,8 +10,8 @@
 6. Нумерация и свёртка замечаний. Цитаты модели сверяются с документом раньше, сразу при
    разборе ответов шагов 4 и 5 (_ground); здесь в журнал идут итоговые счётчики сверки.
 7. Критик: второй ревьюер по CRITICAL и MAJOR (оставить, понизить, снять, слить).
-8. Итог: решение считает правило (К-09), модель пишет обоснование, порядок исправлений
-   и сводные вопросы автору; ссылки, варианты, приоритет и цитаты вопросов проверяет код (К-08).
+8. Итог: решение считает правило, модель пишет обоснование, порядок исправлений
+   и сводные вопросы автору; ссылки, варианты, приоритет и цитаты вопросов проверяет код.
 9. Запись отчёта: делает командная строка (cli).
 
 Номера 1 и 2 в нумерации не заняты, номера остальных шагов от этого не меняются. Словарь
@@ -20,7 +20,7 @@
 Сбой одного шага не роняет прогон: порция шага 4 со сбоем делится пополам (кроме сбоя сети
 и сервера, там деление не поможет), обрезанный кусок нарезки тоже, непроверенное
 перечисляется в отчёте. Фатальная ошибка модели (квота, лимит, сеть) ловится на шаге:
-оставшиеся шаги с моделью пропускаются, отчёт пишется частичным (К-10). Без отчёта
+оставшиеся шаги с моделью пропускаются, отчёт пишется частичным. Без отчёта
 прогон останавливает только фатальная ошибка до первого ответа модели: тогда прежний
 отчёт остаётся на месте.
 """
@@ -103,9 +103,9 @@ NO_REQUIREMENTS = "В документе не найдено требовани�
 # Критерии, без которых нельзя писать тесты: дефект CRITICAL по ним блокирует тестирование.
 TESTING_BLOCKERS = {"VERIFIABLE", "UNAMBIGUOUS", "COMPLETE", "SET_CONSISTENT", "SET_COMPLETE", "SET_VALIDATABLE"}
 DECISIONS = ("Не рекомендуется начинать", "Условно допускается", "Допускается")
-# Отчёт неполный и CRITICAL не найден: положительного решения быть не может (К-10).
+# Отчёт неполный и CRITICAL не найден: положительного решения быть не может.
 NO_DECISION, NOT_DEFINED = "Не вынесен", "Не определена"
-# Правило вердикта К-09. Печатается в отчёте как есть.
+# Правило вердикта. Печатается в отчёте как есть.
 DECISION_RULE = (
     "«Не рекомендуется начинать», если есть хотя бы одно замечание CRITICAL, которое не снято критиком "
     "и не ушло в карантин из-за ненайденной цитаты. «Условно допускается», если CRITICAL нет, но есть MAJOR. "
@@ -116,11 +116,11 @@ DECISION_RULE = (
 )
 # Потолок сводных вопросов в одном ответе модели: больше не влезает в лимит длины (живой прогон 26.11).
 MAX_QUESTIONS = 15
-# Сводный вопрос с двумя знаками вопроса или с «и/или» склеивает два решения (К-08).
+# Сводный вопрос с двумя знаками вопроса или с «и/или» склеивает два решения.
 _DOUBLE_QUESTION = re.compile(r"\?.*\?|\bи\s*/\s*или\b", re.S)
-# Свёртка: одинаковое замечание минимум в стольких требованиях становится системным (К-07).
+# Свёртка: одинаковое замечание минимум в стольких требованиях становится системным.
 FOLD_MIN_PLACES = 3
-# Вес уровня в приоритете сводного вопроса (К-08).
+# Вес уровня в приоритете сводного вопроса.
 SEVERITY_WEIGHT = {"CRITICAL": 5.0, "MAJOR": 2.0, "MINOR": 0.5}
 # Сколько требований учитывается в весе сводного вопроса (по 0,25 за каждое).
 REQ_BONUS_MAX = 2
@@ -243,7 +243,7 @@ def error_reason(exc: Exception, limit: int = 200) -> str:
 
 
 def make_id(prefix: str, number: int, total: int) -> str:
-    """REQ-01, D-01: две цифры, три при числе больше 99 (К-03, О-03)."""
+    """REQ-01, D-01: две цифры, три при числе больше 99."""
     return f"{prefix}-{number:0{3 if total > 99 else 2}d}"
 
 
@@ -295,7 +295,7 @@ class Pipeline:
         self.critic = CriticStats()
         # Сколько замечаний по набору дал каждый проход шага 5 (consistency, completeness, edge).
         self.set_pass_counts: dict[str, int] = {}
-        # Фатальная ошибка модели (К-10): после неё шаги с моделью пропускаются, отчёт пишется частичным.
+        # Фатальная ошибка модели: после неё шаги с моделью пропускаются, отчёт пишется частичным.
         self.fatal: str | None = None
 
     def _tally(self, truncated: bool = False, split: bool = False, retry: bool = False) -> None:
@@ -308,7 +308,7 @@ class Pipeline:
     # ---------- фатальные ошибки ----------
 
     def _on_fatal(self, exc: LLMFatal, step: str) -> None:
-        """Фатальная ошибка ловится на шаге, а не на прогоне (К-10).
+        """Фатальная ошибка ловится на шаге, а не на прогоне.
 
         Исключение одно: модель ещё ни разу не ответила (ключ, модель, квота, лимит, сеть на первой
         же нарезке). Отчёта по документу тогда нет, а прежний отчёт затирать нельзя: ошибка уходит
@@ -347,7 +347,7 @@ class Pipeline:
         return bounds
 
     def _segment_part(self, doc: Document, start: int, end: int, step: str, whole: bool, depth: int = 0) -> list[SegItem]:
-        """Нарезка одного куска. Обрезанный ответ: кусок делится пополам (М-07)."""
+        """Нарезка одного куска. Обрезанный ответ: кусок делится пополам."""
         if self._blocked(step):
             return []
         part = None if whole and depth == 0 else (start, end)
@@ -394,7 +394,7 @@ class Pipeline:
         return requirements
 
     def _recover_ids(self, doc: Document, requirements: list[Requirement]) -> list[SegItem]:
-        """Требование со своим идентификатором, которое нарезка пропустила, добавляет код (К-03).
+        """Требование со своим идентификатором, которое нарезка пропустила, добавляет код.
 
         Добирается только идентификатор с префиксом, который уже есть у принятых требований.
         Берётся первая строка с этим идентификатором, если она не заголовок, не входит в другое
@@ -451,7 +451,7 @@ class Pipeline:
         self.skipped = kept
 
     def _check_ids(self, doc: Document, requirements: list[Requirement]) -> None:
-        """Сверка нарезки с идентификаторами, найденными в документе кодом (К-03)."""
+        """Сверка нарезки с идентификаторами, найденными в документе кодом."""
         in_doc: list[str] = []
         seen: set[str] = set()
         for line in doc.lines:
@@ -629,7 +629,7 @@ class Pipeline:
             req_findings: list[Finding] = []
             for defect in review.defects:
                 if defect.criterion not in REQ_CODES or defect.severity not in SEVERITY_SET:
-                    # Неверный код критерия или уровня: отбрасываем один дефект, не всю порцию (К-04).
+                    # Неверный код критерия или уровня: отбрасываем один дефект, не всю порцию.
                     self.quality.dropped_defects += 1
                     continue
                 question = (defect.question or "").strip() or None
@@ -651,7 +651,7 @@ class Pipeline:
                 )
             for f in req_findings:
                 if all(e.status == "missing" for e in f.evidence):
-                    # Ни одна цитата не найдена в документе: в сводку и вердикт не входит (К-06).
+                    # Ни одна цитата не найдена в документе: в сводку и вердикт не входит.
                     f.status = "quarantine"
                     self.grounding.quarantine += 1
             self.checks[req.id] = self._reconcile_checks(review, req_findings)
@@ -662,7 +662,7 @@ class Pipeline:
         return findings, rewritten
 
     def _reconcile_checks(self, review: ReqReviewOut, findings: list[Finding]) -> list[CriterionCheck]:
-        """Оценки по всем девяти критериям от модели, сверенные с дефектами кодом (К-04).
+        """Оценки по всем девяти критериям от модели, сверенные с дефектами кодом.
 
         Дефект важнее оценки: есть дефект, значит fail. fail без дефекта становится unknown.
         Критерий без оценки считается pass, пропуски идут в паспорт.
@@ -719,7 +719,7 @@ class Pipeline:
         passes: list[Pass] = [
             ("набор: согласованность", "consistency", lambda _found: prompts.consistency_prompt(requirements, numbered),
              ("SET_CONSISTENT", "SET_COMPREHENSIBLE"), SetReviewOut),
-            # Второй проход видит, что нашёл первый, и не повторяет это (К-05).
+            # Второй проход видит, что нашёл первый, и не повторяет это.
             ("набор: полнота и остальные критерии", "completeness",
              lambda found: prompts.completeness_prompt(requirements, numbered, found, marks),
              tuple(c for c in SET_CODES if c not in ("SET_CONSISTENT", "SET_COMPREHENSIBLE")), SetReviewOut),
@@ -763,7 +763,7 @@ class Pipeline:
                 found = [e for e in evidence if e.status != "missing"]
                 question = (item.question or "").strip() or None
                 section = (item.section or "").strip() or None
-                # Пробелу цитата не обязательна, но нужны вопрос и место, где сведений нет (К-05).
+                # Пробелу цитата не обязательна, но нужны вопрос и место, где сведений нет.
                 anchored = bool(found or req_ids) or (kind == "gap" and question and section)
                 if not anchored:
                     # Ни подтверждённой цитаты, ни ссылки на требование или раздел: замечание без опоры на текст.
@@ -799,7 +799,7 @@ class Pipeline:
                     )
                 )
                 if kind == "contradiction" and len({e.line for e in found}) < 2:
-                    # Противоречие без двух подтверждённых цитат из разных строк: только вопрос (К-06).
+                    # Противоречие без двух подтверждённых цитат из разных строк: только вопрос.
                     findings[-1].status = "question_only"
                     self.grounding.question_only += 1
             self.set_pass_counts[origin] = len(findings) - before
@@ -808,7 +808,7 @@ class Pipeline:
         return findings
 
     def _set_call(self, step: str, user: str, schema: type[BaseModel] = SetReviewOut) -> BaseModel | None:
-        """Один проход по набору. Обрезанный ответ: один повтор с reasoning_effort=low (М-07)."""
+        """Один проход по набору. Обрезанный ответ: один повтор с reasoning_effort=low."""
         effort = None
         for attempt in (1, 2):
             try:
@@ -841,7 +841,7 @@ class Pipeline:
         return (raw or "").strip()
 
     def _ground(self, quote: str, line: int | None, reqs: list[Requirement], index: TextIndex, doc: Document) -> Evidence:
-        """Сверка одной цитаты модели с документом (К-06).
+        """Сверка одной цитаты модели с документом.
 
         Порядок: короткая цитата по номеру строки с допуском; точное вхождение в тексте требований,
         затем во всём документе (поиск идёт по склейке строк, так находится и цитата через перенос);
@@ -890,7 +890,7 @@ class Pipeline:
 
     def fold(self, findings: list[Finding], requirements: list[Requirement]) -> list[tuple[Finding, list[Finding]]]:
         """Один критерий с одинаковым текстом проблемы в трёх и более требованиях даёт одно
-        системное замечание со списком мест (К-07, Р-11). Исходные получают статус merged."""
+        системное замечание со списком мест. Исходные получают статус merged."""
         by_req = {r.id: r for r in requirements}
         groups: dict[tuple[str, str], list[Finding]] = {}
         for f in findings:
@@ -948,7 +948,7 @@ class Pipeline:
         return text[:FULL_CONTEXT_CHARS], False
 
     def critique(self, doc: Document, findings: list[Finding]) -> None:
-        """Шаг 7 (К-07): второй ревьюер решает по каждому CRITICAL и MAJOR: keep, downgrade, drop, merge.
+        """Шаг 7: второй ревьюер решает по каждому CRITICAL и MAJOR: keep, downgrade, drop, merge.
 
         Ограничения держит код: нет решения, значит замечание остаётся; уровень не повышается;
         новых замечаний нет; снять или понизить можно только с причиной; merge только в известное
@@ -1035,7 +1035,7 @@ class Pipeline:
         st.done = True
 
     def _critic_call(self, user: str) -> CriticOut | None:
-        """Обрезанный ответ: один повтор с reasoning_effort=low, как у прохода по набору (М-07)."""
+        """Обрезанный ответ: один повтор с reasoning_effort=low, как у прохода по набору."""
         effort = None
         for attempt in (1, 2):
             try:
@@ -1101,7 +1101,7 @@ class Pipeline:
 
     @staticmethod
     def decide(findings: list[Finding]) -> tuple[str, str, str, list[str]]:
-        """Решение по правилу К-09, готовность к разработке и тестированию, блокеры.
+        """Решение по правилу вердикта, готовность к разработке и тестированию, блокеры.
 
         Снятые критиком, слитые, ушедшие в карантин и пониженные до вопроса замечания не считаются.
         """
@@ -1156,12 +1156,12 @@ class Pipeline:
         return " ".join(parts)
 
     def _incomplete(self) -> bool:
-        """Часть работы модели не выполнена: решение принято по неполным данным (К-10)."""
+        """Часть работы модели не выполнена: решение принято по неполным данным."""
         return bool(self.fatal or self.unreviewed or any(
             s.startswith(("нарезка", "проверка", "набор")) for s in self.failed_steps))
 
     def conclude(self, doc: Document, requirements: list[Requirement], findings: list[Finding]) -> tuple[Verdict, list[Question]]:
-        """Шаг 8: один вызов даёт обоснование, первоочередные действия и сводные вопросы (К-08)."""
+        """Шаг 8: один вызов даёт обоснование, первоочередные действия и сводные вопросы."""
         self.n_requirements = len(requirements)
         active = [f for f in findings if f.status not in INACTIVE_STATUSES]
         if not active:
@@ -1173,7 +1173,7 @@ class Pipeline:
             else:
                 rationale = "Агент не нашёл нарушений критериев качества."
             verdict = self._verdict(findings, rationale=rationale, generated_by_model=False)
-            # Противоречие с одной цитатой остаётся вопросом и здесь (К-06, О-09).
+            # Противоречие с одной цитатой остаётся вопросом и здесь.
             questions = [self._fallback_question(f) for f in findings if f.status == "question_only" and f.question]
             return verdict, self._number_questions(questions, findings)
         ranked = sorted(active, key=lambda f: (SEVERITY_ORDER[f.severity], f.id))
@@ -1225,7 +1225,7 @@ class Pipeline:
             questions = self._fallback_questions(ranked)
         else:
             questions = self._add_uncovered_critical(questions, ranked)
-        # Противоречие с одной цитатой остаётся вопросом в группе «требует проверки» (К-06, О-09).
+        # Противоречие с одной цитатой остаётся вопросом в группе «требует проверки».
         questions += [self._fallback_question(f) for f in findings if f.status == "question_only" and f.question]
         questions = self._number_questions(questions, findings)
         # Итоговый счётчик: CRITICAL и MAJOR, у которых нет ни своего вопроса, ни сводного.
@@ -1250,7 +1250,7 @@ class Pipeline:
 
     @staticmethod
     def _priority(linked: list[Finding]) -> tuple[float, list[str]]:
-        """Вес уровня связанных замечаний плюс 0,25 за каждое затронутое требование, не больше чем за два (К-08).
+        """Вес уровня связанных замечаний плюс 0,25 за каждое затронутое требование, не больше чем за два.
 
         Потолок нужен, чтобы таблица, порезанная на много требований, не поднимала свой вопрос выше
         бизнес-правила того же уровня. При равном весе остаётся порядок модели (сортировка устойчивая).
@@ -1274,7 +1274,7 @@ class Pipeline:
         return counts.most_common(1)[0][0] if counts else _ADDRESSEE_DEFAULT
 
     def _questions(self, out: FinalOut, ranked: list[Finding]) -> list[Question]:
-        """Проверки сводных вопросов кодом: ссылки, число вариантов, дубли (К-08)."""
+        """Проверки сводных вопросов кодом: ссылки, число вариантов, дубли."""
         by_id = {f.id: f for f in ranked}
         questions: list[Question] = []
         by_key: dict[frozenset[str], Question] = {}
@@ -1320,7 +1320,7 @@ class Pipeline:
         )
 
     def _fallback_questions(self, ranked: list[Finding]) -> list[Question]:
-        """Запасной путь: вопросы из полей question замечаний по убыванию уровня, без вариантов (К-08)."""
+        """Запасной путь: вопросы из полей question замечаний по убыванию уровня, без вариантов."""
         questions: list[Question] = []
         by_text: dict[str, Question] = {}
         for f in ranked:
@@ -1492,7 +1492,7 @@ class Pipeline:
 
     def _partial_without_requirements(self, doc: Document, agent_version: str, started: datetime, t0: float,
                                       model_failed: bool = True) -> RunResult:
-        """Нарезка не дала требований: отчёт из паспорта и причины (К-03, К-10).
+        """Нарезка не дала требований: отчёт из паспорта и причины.
 
         Сбой модели на нарезке: шаги 4-8 не выполнены. Модель ответила, но требований нет:
         шаги 4-8 пропущены, причина в вердикте говорит про документ, а не про агента (С-4).

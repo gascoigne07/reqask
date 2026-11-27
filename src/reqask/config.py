@@ -16,10 +16,10 @@ DEFAULT_ANTHROPIC_MODEL = "claude-haiku-5-5"
 # Модель OpenAI по умолчанию: «сбалансированная по цене» со страницы моделей OpenAI на 26.11.2026.
 # Живым вызовом не проверена: ключа OpenAI нет.
 DEFAULT_OPENAI_MODEL = "gpt-6.2-sol"
-# Пауза между запросами к Gemini по умолчанию: бесплатный уровень держит малый RPM (М-09).
+# Пауза между запросами к Gemini по умолчанию: бесплатный уровень держит малый RPM.
 GEMINI_MIN_INTERVAL_SEC = 4.0
 DEFAULT_CACHE_DIR = ".reqask_cache"
-# Запасные модели Gemini (М-10): квота бесплатного уровня считается отдельно по каждой модели,
+# Запасные модели Gemini: квота бесплатного уровня считается отдельно по каждой модели,
 # а перегруженная модель отвечает 503. 26.11.2026 рабочие схемы приняты на gemini-3.6-flash.
 DEFAULT_GEMINI_FALLBACKS = ("gemini-3.6-flash", "gemini-3.7-flash", "gemini-3.5-flash")
 
@@ -58,10 +58,10 @@ class Settings:
     min_interval_sec: float = 0.0
     concurrency: int = 1
     batch_size: int = 6
-    # Модели, на которые клиент переходит по порядку, если текущая исчерпала квоту или не отвечает (М-10).
+    # Модели, на которые клиент переходит по порядку, если текущая исчерпала квоту или не отвечает.
     fallback_models: tuple[str, ...] = ()
     cache_dir: str | None = DEFAULT_CACHE_DIR
-    # Шаг 7, критик (К-07). REQASK_CRITIC=0 или --no-critic выключает.
+    # Шаг 7, критик. REQASK_CRITIC=0 или --no-critic выключает.
     critic: bool = True
     # Третий проход шага 5, граничные случаи. REQASK_EDGE=0 или --no-edge выключает.
     edge: bool = True

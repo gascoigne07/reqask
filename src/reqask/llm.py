@@ -73,7 +73,7 @@ class LLMFatal(LLMError):
 
     kind: auth (ключ не принят), model (модель не найдена), quota (суточная квота или баланс),
     rate (лимит запросов не отпустил за все повторы). По kind командная строка решает,
-    писать ли частичный отчёт (К-10).
+    писать ли частичный отчёт.
     """
 
     def __init__(self, message: str, kind: str = "other"):
@@ -81,10 +81,10 @@ class LLMFatal(LLMError):
         self.kind = kind
 
 
-# Паузы при минутном лимите (429), если провайдер не сказал, сколько ждать (М-08).
+# Паузы при минутном лимите (429), если провайдер не сказал, сколько ждать.
 RATE_WAITS_SEC = (15.0, 30.0, 60.0, 65.0, 65.0)
 MAX_RATE_WAIT_SEC = 120.0
-# Слова в тексте ошибки 400, по которым понятно, что провайдер не принял формат ответа (М-04).
+# Слова в тексте ошибки 400, по которым понятно, что провайдер не принял формат ответа.
 # Только тогда режим JSON понижается, и только для этой схемы.
 JSON_ERROR_WORDS = ("response_format", "json_schema", "json_object", "schema", "structured", "output_format", "strict")
 # Суточная квота и баланс: ждать бесполезно, каждый повтор тратит запрос.
@@ -100,7 +100,7 @@ CONTEXT_WORDS = ("context_length_exceeded", "maximum context length", "context l
 # Тот же текст OpenAI бывает из-за слишком большого max_tokens: тогда это не длина документа.
 OUTPUT_LIMIT_WORDS = ("max_tokens", "max_completion_tokens", "in the completion", "completion tokens")
 AUTH_WORDS = ("api key", "api_key", "apikey", "invalid x-api-key", "authentication")
-# Пока есть запасная модель, на сбои сервера и таймауты текущей тратим не больше стольких повторов (М-10):
+# Пока есть запасная модель, на сбои сервера и таймауты текущей тратим не больше стольких повторов:
 # перегруженная модель держит 503 часами, а каждый повтор идёт в счёт суточной квоты.
 FALLBACK_AFTER_RETRIES = 2
 # Столько вызовов подряд, кончившихся сетевым сбоем после всех повторов, и прогон останавливается
@@ -169,7 +169,7 @@ def schema_instruction(schema: type[BaseModel]) -> str:
 
 
 class _Ping(BaseModel):
-    """Схема из двух полей для проверки ключа (М-14)."""
+    """Схема из двух полей для проверки ключа."""
 
     ok: bool
     reply: str
@@ -193,7 +193,7 @@ class LLMClient:
         # Порядок понижения режима JSON, если провайдер отклоняет формат ответа.
         # parse: схема pydantic через помощник SDK; schema: ручной json_schema;
         # object: просто JSON, схема только в тексте промпта; none: без формата.
-        # Понижение идёт отдельно по каждой схеме (М-04): одна неудачная схема не снимает режим с остальных.
+        # Понижение идёт отдельно по каждой схеме: одна неудачная схема не снимает режим с остальных.
         self._ladder = ["parse", "schema", "object", "none"] if settings.json_mode == "auto" else [settings.json_mode]
         self._modes: dict[str, list[str]] = {}
         # Gemini 3.6+ игнорирует temperature и обещает ошибку 400, поэтому ему параметр не шлём.
@@ -204,7 +204,7 @@ class LLMClient:
         self._reasoning = "param"
         self._send_max_tokens = True
         self._cache_dir = Path(settings.cache_dir) if settings.cache_dir else None
-        # Цепочка моделей: основная и запасные (М-10). Переход вперёд один на весь прогон, назад не возвращаемся.
+        # Цепочка моделей: основная и запасные. Переход вперёд один на весь прогон, назад не возвращаемся.
         self._models = [settings.model, *[m for m in settings.fallback_models if m != settings.model]]
         self._model_i = 0
         # Сетевые сбои подряд (после всех повторов вызова) и был ли хоть один ответ: свой или из кэша.
@@ -254,7 +254,7 @@ class LLMClient:
         return {"param": "reasoning_effort", "extra": "thinking_level в extra_body", "off": "не передаётся"}[self._reasoning]
 
     def _note(self, text: str) -> None:
-        """Отказ провайдера или понижение режима: в лог и в паспорт отчёта (М-05)."""
+        """Отказ провайдера или понижение режима: в лог и в паспорт отчёта."""
         self.log("  " + text)
         if text not in self.stats.notes:
             self.stats.notes.append(text)
@@ -307,7 +307,7 @@ class LLMClient:
         """Возвращает ответ модели, проверенный по схеме. Бросает LLMError, если не вышло.
 
         step: подпись для лога. kind: вид шага, по нему берутся уровень рассуждения и лимит вывода.
-        effort: уровень рассуждения вместо уровня шага (повтор после обрезки, М-07).
+        effort: уровень рассуждения вместо уровня шага (повтор после обрезки).
         Все ошибки модели выходят наружу только отсюда: здесь из их текста убирается ключ.
         """
         try:
@@ -359,7 +359,7 @@ class LLMClient:
         raise LLMSchemaError(f"[{step}] модель не вернула валидный JSON: {last_error}")
 
     def check(self) -> dict:
-        """Проверка ключа одним коротким вызовом без кэша (М-14). Бросает LLMError, как обычный вызов."""
+        """Проверка ключа одним коротким вызовом без кэша. Бросает LLMError, как обычный вызов."""
         t0 = time.monotonic()
         out = self.complete_json(
             "проверка ключа", "Ты отвечаешь одним JSON-объектом.",
@@ -410,7 +410,7 @@ class LLMClient:
         if self._reasoning == "param":
             kwargs["reasoning_effort"] = effort
         elif self._reasoning == "extra":
-            # Запасной способ Gemini из страницы совместимости: thinking_level через extra_body (М-05).
+            # Запасной способ Gemini из страницы совместимости: thinking_level через extra_body.
             kwargs["extra_body"] = {"extra_body": {"google": {"thinking_config": {"thinking_level": effort}}}}
         if self._send_max_tokens:
             kwargs["max_tokens"] = max_tokens
@@ -453,7 +453,7 @@ class LLMClient:
         return response
 
     def _downgrade(self, error: BadRequestError, schema: type[BaseModel]) -> bool:
-        """Убирает одну возможность, которую провайдер назвал в ошибке. False, если ошибка про другое (М-04, М-05)."""
+        """Убирает одну возможность, которую провайдер назвал в ошибке. False, если ошибка про другое."""
         text = error_text(error).lower()
         if self._send_temperature and "temperature" in text:
             self._send_temperature = False
@@ -545,7 +545,7 @@ class LLMClient:
 
     def _chat(self, step: str, messages: list[dict], schema: type[BaseModel], kind: str = "",
               effort: str | None = None) -> str:
-        """Один ответ модели с разбором ошибок по таблице М-08."""
+        """Один ответ модели с разбором ошибок по видам: auth, model, quota, rate."""
         delay = 2.0
         transient = 0
         rate_hits = 0
@@ -583,7 +583,7 @@ class LLMClient:
                     raise self._quota_fatal(text, model) from exc
                 if self._downgrade(exc, schema):
                     continue
-                # Остальные 400 режим не трогают: ошибка шага с текстом провайдера (М-04).
+                # Остальные 400 режим не трогают: ошибка шага с текстом провайдера.
                 raise LLMError(f"[{step}] провайдер отклонил запрос: {text[:1500]}") from exc
             except (AuthenticationError, PermissionDeniedError) as exc:
                 raise self._auth_fatal(exc) from exc
@@ -603,7 +603,7 @@ class LLMClient:
                         continue
                     raise self._quota_fatal(text, model) from exc
                 error: Exception = exc
-                # Минутный лимит: пауза от провайдера, иначе 15, 30, 60, 65, 65 секунд (М-08).
+                # Минутный лимит: пауза от провайдера, иначе 15, 30, 60, 65, 65 секунд.
                 wait = _retry_after(exc) or RATE_WAITS_SEC[min(rate_hits, len(RATE_WAITS_SEC) - 1)]
                 wait = min(wait, MAX_RATE_WAIT_SEC)
                 rate_hits += 1
@@ -625,7 +625,7 @@ class LLMClient:
                     raise LLMError(f"[{step}] ответ закрыт фильтром содержания провайдера")
                 if content.strip():
                     return content
-                # Пустой ответ: один повтор, дальше ошибка шага (М-08).
+                # Пустой ответ: один повтор, дальше ошибка шага.
                 if empty_retried:
                     raise LLMError(f"[{step}] модель дважды вернула пустой ответ")
                 empty_retried = True
