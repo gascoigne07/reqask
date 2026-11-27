@@ -51,6 +51,26 @@ BLOCKER_GROUPS = (
 )
 # Подраздел раздела 4 для системного замечания, свёрнутого из критерия отдельного требования.
 SYSTEM_GROUP = {"CONSISTENT": "consistency", "FEASIBLE": "feasibility", "CORRECT": "feasibility", "APPROPRIATE": "feasibility"}
+# Пояснение под списком блокеров на первом экране: читатель видит S-01, S-02, S-04 и ищет пропущенный номер.
+BLOCKERS_NOTE = (
+    "Номера замечаний сквозные по всему отчёту, а в этом списке только уровень CRITICAL, поэтому они идут не подряд. "
+    "S это замечание по набору требований, D по отдельному требованию. Уровни описаны в приложении А."
+)
+
+
+def when(started_at: str) -> str:
+    """Дата прогона для читателя: «2026-11-27 05:32:41 +0500» становится «2026-11-27 05:32:41 (UTC+5)».
+
+    В report.json строка остаётся как записана. Незнакомый вид строки не трогаем.
+    """
+    m = re.fullmatch(r"(.+) ([+-])(\d{2})(\d{2})", started_at.strip())
+    if not m:
+        return started_at
+    body, sign, hours, minutes = m.groups()
+    zone = f"UTC{sign}{int(hours)}" + (f":{minutes}" if minutes != "00" else "")
+    return f"{body} ({zone})"
+
+
 # Блокеры на первом экране: все, если их не больше FIRST_SCREEN_BLOCKERS_ALL, иначе первые FIRST_SCREEN_BLOCKERS.
 FIRST_SCREEN_BLOCKERS = 8
 FIRST_SCREEN_BLOCKERS_ALL = 10
@@ -415,7 +435,7 @@ class _Report:
         self.add(f"# Отчёт о проверке требований: {r.document_name}\n")
         self.add(
             f"Отчёт сформирован агентом reqask автоматически по ISO/IEC/IEEE 29148:2018 и IEEE 830. "
-            f"Модель: {r.model}. Дата: {r.started_at}.\n"
+            f"Модель: {r.model}. Дата: {when(r.started_at)}.\n"
         )
         self.incomplete_block()
         self.add(f"**Вердикт: {v.decision}.**")
@@ -447,6 +467,8 @@ class _Report:
             rest = len(rows) - shown
             if rest > 0:
                 self.add(f"- и ещё {rest}, полный список в [разделе 5](#summary)")
+            self.add("")
+            self.add(BLOCKERS_NOTE)
             self.add("")
         if r.questions:
             self.add("**Главные вопросы автору ТЗ:**\n")
@@ -484,7 +506,7 @@ class _Report:
                         if r.fallback_pages else "")
             self.add(f"| Чтение PDF | страницы без текста: {empty}; удалено строк колонтитулов: {r.removed_headers}{fallback} |")
         self.add(f"| SHA-256 документа | `{r.document_sha256}` |")
-        self.add(f"| Дата и время | {r.started_at} |")
+        self.add(f"| Дата и время | {when(r.started_at)} |")
         self.add(f"| Длительность | {r.duration_sec} с |")
         self.add(f"| Модель | {_cell(r.model)} (провайдер: {r.provider}) |")
         self.add(f"| Версия агента | {_cell(r.agent_version)} |")

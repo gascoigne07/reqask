@@ -9,7 +9,10 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai/"
-DEFAULT_GEMINI_MODEL = "gemini-3.8-flash"
+# По умолчанию стоит модель, на которой полный прогон на бесплатном ключе подтверждён дважды (27.11.2026).
+# gemini-3.8-flash стояла первой до 27.11: за три дня она не ответила ни на один полный прогон
+# (таймауты, 500, 503), каждый запуск терял на ней около двух с половиной минут.
+DEFAULT_GEMINI_MODEL = "gemini-3.6-flash"
 # Совместимый с OpenAI адрес Anthropic (живой прогон 26.11.2026 на claude-haiku-5-5 через LLM_*).
 ANTHROPIC_BASE_URL = "https://api.anthropic.com/v1/"
 DEFAULT_ANTHROPIC_MODEL = "claude-haiku-5-5"
@@ -19,9 +22,10 @@ DEFAULT_OPENAI_MODEL = "gpt-6.2-sol"
 # Пауза между запросами к Gemini по умолчанию: бесплатный уровень держит малый RPM.
 GEMINI_MIN_INTERVAL_SEC = 4.0
 DEFAULT_CACHE_DIR = ".reqask_cache"
-# Запасные модели Gemini: квота бесплатного уровня считается отдельно по каждой модели,
-# а перегруженная модель отвечает 503. 26.11.2026 рабочие схемы приняты на gemini-3.6-flash.
-DEFAULT_GEMINI_FALLBACKS = ("gemini-3.6-flash", "gemini-3.7-flash", "gemini-3.5-flash")
+# Запасные модели Gemini: перегруженная модель отвечает 503 или молчит. Первой идёт gemini-3.5-flash:
+# 26.11.2026 она отвечала, когда остальные были перегружены. Суточный лимит у неё, похоже, общий
+# с gemini-3.6-flash, тогда отказ по квоте приходит сразу и агент идёт дальше по списку.
+DEFAULT_GEMINI_FALLBACKS = ("gemini-3.5-flash", "gemini-3.8-flash", "gemini-3.7-flash")
 
 # Уровень рассуждения и лимит вывода по видам шагов. Лимит взят с запасом:
 # у Gemini токены рассуждения входят в лимит вывода. Числа начальные, уточняются по живым прогонам.

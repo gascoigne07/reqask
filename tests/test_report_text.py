@@ -178,3 +178,20 @@ def test_quote_with_code_fence_uses_tildes():
     report = render(_result([_f("D-01", "requirement", [10], ["REQ-01"], status="confirmed")],
                             requirements=[req]))
     assert '~~~text\n**404**\n```json\n{"message":"нет"}\n~~~' in report and "````" not in report
+
+
+def test_run_date_shows_zone_in_words():
+    from reqask.report import when
+
+    assert when("2026-11-27 05:32:41 +0500") == "2026-11-27 05:32:41 (UTC+5)"
+    assert when("2026-11-27 05:32:41 -0330") == "2026-11-27 05:32:41 (UTC-3:30)"
+    assert when("2026-11-27 05:32:41 +0000") == "2026-11-27 05:32:41 (UTC+0)"
+    # Незнакомый вид строки остаётся как есть: старые report.json перерисовываются без ошибок.
+    assert when("27.11.2026") == "27.11.2026"
+
+
+def test_gemini_default_model_is_not_among_its_fallbacks():
+    from reqask import config
+
+    assert config.DEFAULT_GEMINI_MODEL not in config.DEFAULT_GEMINI_FALLBACKS
+    assert len(set(config.DEFAULT_GEMINI_FALLBACKS)) == len(config.DEFAULT_GEMINI_FALLBACKS)

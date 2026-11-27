@@ -20,7 +20,7 @@ from dataclasses import dataclass, field
 
 from .criteria import SEVERITIES
 from .grounding import normalize
-from .report import _gist, _one_line
+from .report import _gist, _one_line, when
 from .schemas import INACTIVE_STATUSES, Finding, RunResult
 
 # Короче этого цитата не считается общей при частичном совпадении: «GET» или «200» есть в десятке мест.
@@ -256,7 +256,7 @@ def render_compare(c: Comparison, old_name: str = "старый", new_name: str 
         ("Документ", o.document_name, n.document_name),
         ("SHA-256 документа", f"`{o.document_sha256[:16]}...`", f"`{n.document_sha256[:16]}...`"),
         ("Модель", o.model, n.model),
-        ("Дата прогона", o.started_at, n.started_at),
+        ("Дата прогона", when(o.started_at), when(n.started_at)),
         ("Вердикт", o.verdict.decision, n.verdict.decision),
         ("Требований", len(o.requirements), len(n.requirements)),
         *((s, so.get(s, 0), sn.get(s, 0)) for s in SEVERITIES),

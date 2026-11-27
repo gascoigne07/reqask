@@ -254,7 +254,7 @@ class _Html(md._Report):
                  f'<span class="h1-doc">{esc(r.document_name)}</span></h1>')
         self.add(
             '<p class="sub">Отчёт сформирован агентом reqask автоматически по ISO/IEC/IEEE 29148:2018 и IEEE 830. '
-            f"Модель: {esc(r.model)}. Дата: {esc(r.started_at)}.</p>"
+            f"Модель: {esc(r.model)}. Дата: {esc(md.when(r.started_at))}.</p>"
         )
         self.add("</header>")
         self.toc()
@@ -304,6 +304,7 @@ class _Html(md._Report):
             if rest > 0:
                 self.add(f'<li>и ещё {rest}, полный список в <a href="#summary">разделе 5</a></li>')
             self.add("</ul>")
+            self.add(f'<p class="note">{esc(md.BLOCKERS_NOTE)}</p>')
         if r.questions:
             self.add("<h2>Главные вопросы автору ТЗ</h2>")
             self.add('<ul class="topq idlist">')
