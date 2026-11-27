@@ -1,0 +1,5344 @@
+{
+  "schema_version": 1,
+  "document_name": "requirements.md",
+  "document_format": "md",
+  "document_lines": 198,
+  "document_sha256": "e7dae55e5453a250d93e335f5ff9c7f775f4457ccddd333f4a67e47b20d74381",
+  "started_at": "2026-11-27 13:08:47 +0500",
+  "duration_sec": 674.4,
+  "provider": "gemini",
+  "model": "gemini-3.6-flash (запасная: основная gemini-3.8-flash не ответила)",
+  "agent_version": "0.1.0, коммит 492e9ea",
+  "requirements": [
+    {
+      "id": "REQ-01",
+      "source_id": null,
+      "section": "Часть A. Новый функционал / Цели",
+      "line_start": 23,
+      "line_end": 23,
+      "page": null,
+      "kind": "functional",
+      "summary": "Дать клиенту возможность узнать о достижении порога расходов в момент покупки",
+      "quote": "Дать клиенту возможность узнать о достижении личного бюджета в момент покупки.",
+      "lint_hints": [],
+      "lint_confirmed": []
+    },
+    {
+      "id": "REQ-02",
+      "source_id": null,
+      "section": "Часть A. Новый функционал / Архитектура решения",
+      "line_start": 26,
+      "line_end": 26,
+      "page": null,
+      "kind": "process",
+      "summary": "Архитектурная схема взаимодействия компонентов при установке порога и отправке push",
+      "quote": "Мобильное приложение → сервис настроек. Карточный процессинг → учёт расходов → сервис push.",
+      "lint_hints": [],
+      "lint_confirmed": []
+    },
+    {
+      "id": "REQ-03",
+      "source_id": null,
+      "section": "Часть A. Новый функционал / Дизайн процесса UI",
+      "line_start": 29,
+      "line_end": 29,
+      "page": null,
+      "kind": "ui",
+      "summary": "Элементы экрана настройки уведомлений и отображение ошибок",
+      "quote": "Карты → Расходы → Уведомления. На экране видны переключатель, поле «Порог, ₸», сумма за месяц и кнопка «Сохранить». При ошибке ввода сообщение появляется под полем.",
+      "lint_hints": [],
+      "lint_confirmed": []
+    },
+    {
+      "id": "REQ-04",
+      "source_id": null,
+      "section": "Часть A. Новый функционал / Требования к изменениям / BPMN схема процесса",
+      "line_start": 34,
+      "line_end": 34,
+      "page": null,
+      "kind": "process",
+      "summary": "Шаги процесса обработки покупки и проверки порога расходов",
+      "quote": "Проведение покупки → пересчёт расходов → проверка порога → при достижении отправка push → завершение.",
+      "lint_hints": [],
+      "lint_confirmed": []
+    },
+    {
+      "id": "REQ-05",
+      "source_id": "Ф-1",
+      "section": "Часть A. Новый функционал / Требования к изменениям / Функциональные требования",
+      "line_start": 37,
+      "line_end": 37,
+      "page": null,
+      "kind": "functional",
+      "summary": "Установка порога расходов по карте KZT и значение по умолчанию",
+      "quote": "* **Ф-1.** Держатель активной карты KZT задаёт целый порог от 1 000 до 1 000 000 ₸ включительно. По умолчанию уведомление выключено.",
+      "lint_hints": [],
+      "lint_confirmed": []
+    },
+    {
+      "id": "REQ-06",
+      "source_id": "Ф-2",
+      "section": "Часть A. Новый функционал / Требования к изменениям / Функциональные требования",
+      "line_start": 38,
+      "line_end": 38,
+      "page": null,
+      "kind": "functional",
+      "summary": "Правила расчёта месячного расхода по операциям карты",
+      "quote": "* **Ф-2.** Месяц определяется по дате совершения покупки в Алматы. В расходы входят проведённые покупки. Возврат уменьшает расходы месяца исходной покупки. Переводы и снятие наличных исключаются.",
+      "lint_hints": [],
+      "lint_confirmed": []
+    },
+    {
+      "id": "REQ-07",
+      "source_id": "Ф-3",
+      "section": "Часть A. Новый функционал / Требования к изменениям / Функциональные требования",
+      "line_start": 39,
+      "line_end": 39,
+      "page": null,
+      "kind": "functional",
+      "summary": "Условия и лимит отправки push-уведомления при достижении порога",
+      "quote": "* **Ф-3.** Когда расходы переходят от суммы ниже порога к сумме, равной порогу или выше, клиент получает push. На карту приходится максимум один такой push за календарный месяц.",
+      "lint_hints": [],
+      "lint_confirmed": []
+    },
+    {
+      "id": "REQ-08",
+      "source_id": "Ф-4",
+      "section": "Часть A. Новый функционал / Требования к изменениям / Функциональные требования",
+      "line_start": 40,
+      "line_end": 40,
+      "page": null,
+      "kind": "functional",
+      "summary": "Сохранение накопленной суммы и повторная отправка push при изменении порога",
+      "quote": "* **Ф-4.** При изменении порога накопленная сумма сохраняется. Если она ниже нового порога, следующее достижение вызывает push независимо от истории предыдущей настройки.",
+      "lint_hints": [],
+      "lint_confirmed": []
+    },
+    {
+      "id": "REQ-09",
+      "source_id": null,
+      "section": "Часть A. Новый функционал / Sequence Diagram",
+      "line_start": 43,
+      "line_end": 43,
+      "page": null,
+      "kind": "process",
+      "summary": "Последовательность взаимодействия систем при совершении покупки",
+      "quote": "Процессинг → сервис расходов: проведена покупка. Сервис расходов → настройки: получить порог карты. Сервис расходов → push: передать последние четыре цифры карты и сумму при достижении порога.",
+      "lint_hints": [],
+      "lint_confirmed": []
+    },
+    {
+      "id": "REQ-10",
+      "source_id": null,
+      "section": "Часть A. Новый функционал / Нефункциональные требования",
+      "line_start": 46,
+      "line_end": 46,
+      "page": null,
+      "kind": "nonfunctional",
+      "summary": "Максимальное время передачи push на отправку после события",
+      "quote": "Сервис передаёт push на отправку в течение минуты после получения события.",
+      "lint_hints": [],
+      "lint_confirmed": []
+    },
+    {
+      "id": "REQ-11",
+      "source_id": null,
+      "section": "Часть A. Новый функционал / Требования к данным",
+      "line_start": 49,
+      "line_end": 49,
+      "page": null,
+      "kind": "data",
+      "summary": "Состав сохраняемых данных по карте и операциям",
+      "quote": "Хранить идентификатор карты, месяц, идентификатор операции, сумму покупки в тиынах, признак отправки и порог в тенге.",
+      "lint_hints": [],
+      "lint_confirmed": []
+    },
+    {
+      "id": "REQ-12",
+      "source_id": null,
+      "section": "Часть A. Новый функционал / Требования к интеграции",
+      "line_start": 52,
+      "line_end": 52,
+      "page": null,
+      "kind": "interface",
+      "summary": "Интеграция с API настроек и идемпотентность событий процессинга",
+      "quote": "Приложение читает и сохраняет настройки через дочерний документ «Уведомление о расходах по карте — REST API». Повторная доставка одного события процессинга сохраняет исходный итог.",
+      "lint_hints": [],
+      "lint_confirmed": []
+    },
+    {
+      "id": "REQ-13",
+      "source_id": null,
+      "section": "Часть A. Новый функционал / Критерии приемки",
+      "line_start": 63,
+      "line_end": 63,
+      "page": null,
+      "kind": "acceptance",
+      "summary": "Приёмка: покупка 1500 тенге при расходе 48500 вызывает push",
+      "quote": "| Расходы 48 500 ₸, порог 50 000 ₸ | Провести покупку на 1 500 ₸ | Итог 50 000 ₸ и один push |",
+      "lint_hints": [],
+      "lint_confirmed": []
+    },
+    {
+      "id": "REQ-14",
+      "source_id": null,
+      "section": "Часть A. Новый функционал / Критерии приемки",
+      "line_start": 64,
+      "line_end": 64,
+      "page": null,
+      "kind": "acceptance",
+      "summary": "Приёмка: операция в 00:03 1 февраля относит расходы к февралю",
+      "quote": "| Покупка 31 января в 23:58 на 4 000 ₸ | Провести 1 февраля в 00:03 по Алматы | Февральский счётчик вырос на 4 000 ₸ |",
+      "lint_hints": [],
+      "lint_confirmed": []
+    },
+    {
+      "id": "REQ-15",
+      "source_id": null,
+      "section": "Часть A. Новый функционал / Критерии приемки",
+      "line_start": 65,
+      "line_end": 65,
+      "page": null,
+      "kind": "acceptance",
+      "summary": "Приёмка: перевод средств не увеличивает счётчик расходов",
+      "quote": "| Расходы 19 900 ₸, порог 20 000 ₸ | Перевести 500 ₸ | Счётчик показывает 19 900 ₸ |",
+      "lint_hints": [],
+      "lint_confirmed": []
+    },
+    {
+      "id": "REQ-16",
+      "source_id": null,
+      "section": "Часть B. REST API / Общие параметры",
+      "line_start": 103,
+      "line_end": 103,
+      "page": null,
+      "kind": "interface",
+      "summary": "Назначение метода saveLimit",
+      "quote": "| **Description** | Сохранение порога. Функциональные требования: чтение порога |",
+      "lint_hints": [],
+      "lint_confirmed": []
+    },
+    {
+      "id": "REQ-17",
+      "source_id": null,
+      "section": "Часть B. REST API / Общие параметры",
+      "line_start": 104,
+      "line_end": 104,
+      "page": null,
+      "kind": "interface",
+      "summary": "HTTP-метод запроса GET",
+      "quote": "| **REST type** | GET |",
+      "lint_hints": [],
+      "lint_confirmed": []
+    },
+    {
+      "id": "REQ-18",
+      "source_id": null,
+      "section": "Часть B. REST API / Общие параметры",
+      "line_start": 105,
+      "line_end": 105,
+      "page": null,
+      "kind": "interface",
+      "summary": "Требования авторизации Bearer",
+      "quote": "| **Authorization** | Bearer, сессия владельца карты |",
+      "lint_hints": [],
+      "lint_confirmed": []
+    },
+    {
+      "id": "REQ-19",
+      "source_id": null,
+      "section": "Часть B. REST API / Общие параметры",
+      "line_start": 106,
+      "line_end": 106,
+      "page": null,
+      "kind": "interface",
+      "summary": "Контроллер метода AlertsController",
+      "quote": "| **Controller** | AlertsController |",
+      "lint_hints": [],
+      "lint_confirmed": []
+    },
+    {
+      "id": "REQ-20",
+      "source_id": null,
+      "section": "Часть B. REST API / Общие параметры",
+      "line_start": 107,
+      "line_end": 108,
+      "page": null,
+      "kind": "interface",
+      "summary": "URL запроса для среды разработки",
+      "quote": "| **URL type** | Dev / Prod |\n| **Request URL** | Dev: `/alerts/saveLimit` . Prod: — |",
+      "lint_hints": [],
+      "lint_confirmed": []
+    },
+    {
+      "id": "REQ-21",
+      "source_id": null,
+      "section": "Часть B. REST API / Общие параметры",
+      "line_start": 109,
+      "line_end": 109,
+      "page": null,
+      "kind": "interface",
+      "summary": "Пример вызова API через cURL",
+      "quote": "| **CURL** | `curl -G \"$BASE/alerts/saveLimit\" -H \"Authorization: Bearer $TOKEN\" --data 'cardId=demo-42&amount=50000&enabled=1'` |",
+      "lint_hints": [],
+      "lint_confirmed": []
+    },
+    {
+      "id": "REQ-22",
+      "source_id": "1",
+      "section": "Часть B. REST API / Логика работы метода",
+      "line_start": 117,
+      "line_end": 117,
+      "page": null,
+      "kind": "process",
+      "summary": "Проверка пользовательской сессии",
+      "quote": "1. Проверить пользовательскую сессию.",
+      "lint_hints": [],
+      "lint_confirmed": []
+    },
+    {
+      "id": "REQ-23",
+      "source_id": "2",
+      "section": "Часть B. REST API / Логика работы метода",
+      "line_start": 118,
+      "line_end": 118,
+      "page": null,
+      "kind": "process",
+      "summary": "Проверка принадлежности карты клиенту",
+      "quote": "2. Проверить принадлежность карты клиенту.",
+      "lint_hints": [],
+      "lint_confirmed": []
+    },
+    {
+      "id": "REQ-24",
+      "source_id": "3",
+      "section": "Часть B. REST API / Логика работы метода",
+      "line_start": 119,
+      "line_end": 119,
+      "page": null,
+      "kind": "process",
+      "summary": "Проверка параметров суммы и переключателя",
+      "quote": "3. Проверить сумму и переключатель.",
+      "lint_hints": [],
+      "lint_confirmed": []
+    },
+    {
+      "id": "REQ-25",
+      "source_id": "4",
+      "section": "Часть B. REST API / Логика работы метода",
+      "line_start": 120,
+      "line_end": 120,
+      "page": null,
+      "kind": "process",
+      "summary": "Сохранение новой настройки и возврат результата",
+      "quote": "4. Заменить настройку и вернуть результат сохранения.",
+      "lint_hints": [],
+      "lint_confirmed": []
+    },
+    {
+      "id": "REQ-26",
+      "source_id": "5",
+      "section": "Часть B. REST API / Логика работы метода",
+      "line_start": 121,
+      "line_end": 121,
+      "page": null,
+      "kind": "process",
+      "summary": "Возврат ошибки и сохранение прежнего состояния при невалидной сумме",
+      "quote": "5. При отклонении суммы вернуть прежнее состояние и результат ERROR.",
+      "lint_hints": [],
+      "lint_confirmed": []
+    },
+    {
+      "id": "REQ-27",
+      "source_id": "1",
+      "section": "Часть B. REST API / Особые правила",
+      "line_start": 124,
+      "line_end": 124,
+      "page": null,
+      "kind": "constraint",
+      "summary": "Допустимые границы суммы порога в тенге",
+      "quote": "1. Целое число тенге, обе границы включены.",
+      "lint_hints": [],
+      "lint_confirmed": []
+    },
+    {
+      "id": "REQ-28",
+      "source_id": "2",
+      "section": "Часть B. REST API / Особые правила",
+      "line_start": 125,
+      "line_end": 125,
+      "page": null,
+      "kind": "functional",
+      "summary": "Перезапись действующей настройки при повторном сохранении",
+      "quote": "2. Повторное сохранение заменяет действующую настройку.",
+      "lint_hints": [],
+      "lint_confirmed": []
+    },
+    {
+      "id": "REQ-29",
+      "source_id": "3",
+      "section": "Часть B. REST API / Особые правила",
+      "line_start": 126,
+      "line_end": 126,
+      "page": null,
+      "kind": "functional",
+      "summary": "Сохранение истории накопленных расходов при изменении порога",
+      "quote": "3. Изменение порога сохраняет накопленные расходы.",
+      "lint_hints": [],
+      "lint_confirmed": []
+    },
+    {
+      "id": "REQ-30",
+      "source_id": null,
+      "section": "Часть B. REST API / Схема",
+      "line_start": 130,
+      "line_end": 130,
+      "page": null,
+      "kind": "process",
+      "summary": "Схема потока данных между приложением и контроллером",
+      "quote": "Приложение → AlertsController → хранилище настроек → AlertsController → приложение.",
+      "lint_hints": [],
+      "lint_confirmed": []
+    },
+    {
+      "id": "REQ-31",
+      "source_id": null,
+      "section": "Часть B. REST API / Параметры запроса / Query-параметры",
+      "line_start": 142,
+      "line_end": 142,
+      "page": null,
+      "kind": "interface",
+      "summary": "Параметр cardId: обязательный идентификатор карты",
+      "quote": "| `cardId` | string | 1–64 | Да | Карта клиента | Идентификатор карты | `card_id` |",
+      "lint_hints": [],
+      "lint_confirmed": []
+    },
+    {
+      "id": "REQ-32",
+      "source_id": null,
+      "section": "Часть B. REST API / Параметры запроса / Query-параметры",
+      "line_start": 143,
+      "line_end": 143,
+      "page": null,
+      "kind": "interface",
+      "summary": "Параметр amount: обязательный порог в тенге",
+      "quote": "| `amount` | integer | 32 bit | Да | 1 000–1 000 000 | Порог в тенге | `limit_kzt` |",
+      "lint_hints": [],
+      "lint_confirmed": []
+    },
+    {
+      "id": "REQ-33",
+      "source_id": null,
+      "section": "Часть B. REST API / Параметры запроса / Query-параметры",
+      "line_start": 144,
+      "line_end": 144,
+      "page": null,
+      "kind": "interface",
+      "summary": "Параметр enabled: обязательный признак включения",
+      "quote": "| `enabled` | integer | 1 знак | Да | 0 или 1 | Признак включения | `enabled` |",
+      "lint_hints": [],
+      "lint_confirmed": []
+    },
+    {
+      "id": "REQ-34",
+      "source_id": null,
+      "section": "Часть B. REST API / Параметры запроса / Request body",
+      "line_start": 147,
+      "line_end": 147,
+      "page": null,
+      "kind": "interface",
+      "summary": "Заголовок Content-Type запроса",
+      "quote": "* **Content-Type:** `application/json` .",
+      "lint_hints": [],
+      "lint_confirmed": []
+    },
+    {
+      "id": "REQ-35",
+      "source_id": null,
+      "section": "Часть B. REST API / Ответ",
+      "line_start": 151,
+      "line_end": 151,
+      "page": null,
+      "kind": "interface",
+      "summary": "Классификация кодов ответа на успешные и неуспешные",
+      "quote": "Если результат 200 или 201 — успешный. Если результат 400, 401 и далее — неуспешный.",
+      "lint_hints": [
+        "«и далее»: открытый перечень"
+      ],
+      "lint_confirmed": [
+        "«и далее»: открытый перечень"
+      ]
+    },
+    {
+      "id": "REQ-36",
+      "source_id": null,
+      "section": "Часть B. REST API / Ответ",
+      "line_start": 155,
+      "line_end": 155,
+      "page": null,
+      "kind": "interface",
+      "summary": "Поле ответа result",
+      "quote": "| `result` | string | OK / ERROR | Исход сохранения | — |",
+      "lint_hints": [],
+      "lint_confirmed": []
+    },
+    {
+      "id": "REQ-37",
+      "source_id": null,
+      "section": "Часть B. REST API / Ответ",
+      "line_start": 156,
+      "line_end": 156,
+      "page": null,
+      "kind": "interface",
+      "summary": "Поле ответа amount",
+      "quote": "| `amount` | string | При успехе | Порог в тенге | `limit_kzt` |",
+      "lint_hints": [],
+      "lint_confirmed": []
+    },
+    {
+      "id": "REQ-38",
+      "source_id": null,
+      "section": "Часть B. REST API / Ответ",
+      "line_start": 157,
+      "line_end": 157,
+      "page": null,
+      "kind": "interface",
+      "summary": "Поле ответа enabled",
+      "quote": "| `enabled` | string | «0» или «1» | Признак включения | `enabled` |",
+      "lint_hints": [],
+      "lint_confirmed": []
+    },
+    {
+      "id": "REQ-39",
+      "source_id": null,
+      "section": "Часть B. REST API / Ответ",
+      "line_start": 158,
+      "line_end": 158,
+      "page": null,
+      "kind": "interface",
+      "summary": "Поле ответа message",
+      "quote": "| `message` | string | При ошибке | Описание ошибки | — |",
+      "lint_hints": [],
+      "lint_confirmed": []
+    },
+    {
+      "id": "REQ-40",
+      "source_id": "200",
+      "section": "Часть B. REST API / Статусы",
+      "line_start": 162,
+      "line_end": 162,
+      "page": null,
+      "kind": "interface",
+      "summary": "Описание статуса 200 OK",
+      "quote": "**200.** Ответ в случае успешного выполнения метода.",
+      "lint_hints": [],
+      "lint_confirmed": []
+    },
+    {
+      "id": "REQ-41",
+      "source_id": "400",
+      "section": "Часть B. REST API / Статусы",
+      "line_start": 163,
+      "line_end": 163,
+      "page": null,
+      "kind": "interface",
+      "summary": "Описание статуса 400 Bad Request",
+      "quote": "**400.** Ответ в случае, если параметры запроса заполнены неверно.",
+      "lint_hints": [],
+      "lint_confirmed": []
+    },
+    {
+      "id": "REQ-42",
+      "source_id": null,
+      "section": "Часть B. REST API / Статусы / 200. Successful — Created",
+      "line_start": 167,
+      "line_end": 171,
+      "page": null,
+      "kind": "interface",
+      "summary": "Схемы JSON-ответа для успешного выполнения и бизнес-ошибки",
+      "quote": "{\"result\":\"OK\",\"amount\":\"50000\",\"enabled\":\"1\"}\n```\nили\n```json\n{\"result\":\"ERROR\",\"message\":\"Проверьте сумму\"}",
+      "lint_hints": [],
+      "lint_confirmed": []
+    },
+    {
+      "id": "REQ-43",
+      "source_id": "401",
+      "section": "Часть B. REST API / Статусы / 200. Successful — Created",
+      "line_start": 174,
+      "line_end": 174,
+      "page": null,
+      "kind": "interface",
+      "summary": "Описание статуса 401 Unauthorized",
+      "quote": "**401.** Ответ в случае, если запрос выполнен без необходимой авторизации.",
+      "lint_hints": [],
+      "lint_confirmed": []
+    },
+    {
+      "id": "REQ-44",
+      "source_id": "403",
+      "section": "Часть B. REST API / Статусы / 200. Successful — Created",
+      "line_start": 175,
+      "line_end": 175,
+      "page": null,
+      "kind": "interface",
+      "summary": "Описание статуса 403 Forbidden",
+      "quote": "**403.** Ответ в случае, если на указанный ресурс доступ запрещен.",
+      "lint_hints": [],
+      "lint_confirmed": []
+    },
+    {
+      "id": "REQ-45",
+      "source_id": "500",
+      "section": "Часть B. REST API / Статусы / 200. Successful — Created",
+      "line_start": 176,
+      "line_end": 176,
+      "page": null,
+      "kind": "interface",
+      "summary": "Описание статуса 500 Internal Server Error",
+      "quote": "**500.** Ответ в случае, если произошла внутренняя ошибка сервера.",
+      "lint_hints": [],
+      "lint_confirmed": []
+    },
+    {
+      "id": "REQ-46",
+      "source_id": null,
+      "section": "Часть B. REST API / Статусы / 400. Unsuccessful — Bad request",
+      "line_start": 180,
+      "line_end": 180,
+      "page": null,
+      "kind": "interface",
+      "summary": "Схема ответа при ошибке 400 Bad Request",
+      "quote": "{\"message\":\"Некорректный запрос\"}",
+      "lint_hints": [],
+      "lint_confirmed": []
+    },
+    {
+      "id": "REQ-47",
+      "source_id": null,
+      "section": "Часть B. REST API / Статусы / 401. Unsuccessful — Unauthorized",
+      "line_start": 185,
+      "line_end": 185,
+      "page": null,
+      "kind": "interface",
+      "summary": "Схема ответа при ошибке 401 Unauthorized",
+      "quote": "{\"message\":\"Требуется вход\"}",
+      "lint_hints": [],
+      "lint_confirmed": []
+    },
+    {
+      "id": "REQ-48",
+      "source_id": null,
+      "section": "Часть B. REST API / Статусы / 403. Unsuccessful — Forbidden",
+      "line_start": 189,
+      "line_end": 192,
+      "page": null,
+      "kind": "interface",
+      "summary": "Возврат ошибки 404 при доступе к чужой карте и пример JSON",
+      "quote": "Для чужой карты возвращается 404, как и для отсутствующей карты.\n**404**\n```json\n{\"message\":\"Карта не найдена\"}",
+      "lint_hints": [],
+      "lint_confirmed": []
+    },
+    {
+      "id": "REQ-49",
+      "source_id": null,
+      "section": "Часть B. REST API / Статусы / 500. Unsuccessful — Internal server error",
+      "line_start": 197,
+      "line_end": 197,
+      "page": null,
+      "kind": "interface",
+      "summary": "Схема ответа при ошибке 500 Internal Server Error",
+      "quote": "{\"message\":\"Ошибка сервиса\"}",
+      "lint_hints": [],
+      "lint_confirmed": []
+    }
+  ],
+  "findings": [
+    {
+      "id": "D-01",
+      "scope": "requirement",
+      "kind": "defect",
+      "criterion": "COMPLETE",
+      "severity": "MAJOR",
+      "title": "",
+      "req_ids": [
+        "REQ-03"
+      ],
+      "section": null,
+      "evidence": [
+        {
+          "quote": "При ошибке ввода сообщение появляется под полем.",
+          "line": 29,
+          "status": "exact"
+        }
+      ],
+      "problem": "В требовании не указан конкретный текст сообщения об ошибке и не определены условия, при которых ввод считается ошибочным.",
+      "impact": "Нельзя реализовать и проверить корректность отображения ошибки в пользовательском интерфейсе.",
+      "recommendation": "Указать условия возникновения ошибки ввода и конкретный текст отображаемого сообщения.",
+      "question": "Какой текст сообщения должен выводиться под полем при ошибке ввода порога?",
+      "addressee": "analyst",
+      "question_id": "Q-05",
+      "status": "confirmed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": null,
+      "severity_raised_from": null,
+      "places": [],
+      "origin": null
+    },
+    {
+      "id": "D-02",
+      "scope": "requirement",
+      "kind": "defect",
+      "criterion": "COMPLETE",
+      "severity": "MAJOR",
+      "title": "",
+      "req_ids": [
+        "REQ-06"
+      ],
+      "section": null,
+      "evidence": [
+        {
+          "quote": "Возврат уменьшает расходы месяца исходной покупки.",
+          "line": 38,
+          "status": "exact"
+        }
+      ],
+      "problem": "Не регламентировано поведение системы при возврате, совершённом в следующем месяце после исходной покупки.",
+      "impact": "Нельзя реализовать и протестировать расчёт суммы расходов при межпериодных возвратах.",
+      "recommendation": "Уточнить, влияет ли возврат за предыдущие месяцы на накопленные расходы текущего месяца.",
+      "question": "Влияет ли возврат за прошлый месяц на сумму расходов текущего месяца или только пересчитывает прошлый период?",
+      "addressee": "business",
+      "question_id": null,
+      "status": "merged",
+      "critic_reason": "Дублирует замечание S-08 по обработке возвратов прошлого месяца.",
+      "merged_into": "S-08",
+      "severity_before": null,
+      "divergence": null,
+      "severity_raised_from": null,
+      "places": [],
+      "origin": null
+    },
+    {
+      "id": "D-03",
+      "scope": "requirement",
+      "kind": "defect",
+      "criterion": "COMPLETE",
+      "severity": "MAJOR",
+      "title": "",
+      "req_ids": [
+        "REQ-07"
+      ],
+      "section": null,
+      "evidence": [
+        {
+          "quote": "клиент получает push",
+          "line": 39,
+          "status": "exact"
+        }
+      ],
+      "problem": "В требовании не указано, что push должен отправляться только при включённом флаге уведомлений (enabled=1).",
+      "impact": "Разработчик может реализовать отправку push-уведомлений даже для клиентов, у которых информирование отключено.",
+      "recommendation": "Указать, что push отправляется только при включенном признаке уведомлений.",
+      "question": "Отправляется ли push-уведомление при превышении порога, если уведомление отключено пользователем?",
+      "addressee": "business",
+      "question_id": "Q-06",
+      "status": "confirmed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": null,
+      "severity_raised_from": null,
+      "places": [],
+      "origin": null
+    },
+    {
+      "id": "D-04",
+      "scope": "requirement",
+      "kind": "defect",
+      "criterion": "COMPLETE",
+      "severity": "MAJOR",
+      "title": "",
+      "req_ids": [
+        "REQ-08"
+      ],
+      "section": null,
+      "evidence": [
+        {
+          "quote": "Если она ниже нового порога, следующее достижение вызывает push независимо от истории предыдущей настройки.",
+          "line": 40,
+          "status": "exact"
+        }
+      ],
+      "problem": "Отсутствует обработка ситуации, когда текущая накопленная сумма расходов уже превышает или равна новому установенному порогу.",
+      "impact": "Нельзя реализовать и проверить поведение системы при снижении порога ниже текущих расходов.",
+      "recommendation": "Описать поведение системы, если накопленная сумма расходов уже равна новому порогу или выше его.",
+      "question": "Отправлять ли push-уведомление при сохранении нового порога, если накопленная сумма уже превышает этот порог?",
+      "addressee": "business",
+      "question_id": "Q-08",
+      "status": "confirmed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": null,
+      "severity_raised_from": null,
+      "places": [],
+      "origin": null
+    },
+    {
+      "id": "D-05",
+      "scope": "requirement",
+      "kind": "defect",
+      "criterion": "UNAMBIGUOUS",
+      "severity": "MAJOR",
+      "title": "",
+      "req_ids": [
+        "REQ-09"
+      ],
+      "section": null,
+      "evidence": [
+        {
+          "quote": "сумму при достижении порога",
+          "line": 43,
+          "status": "exact"
+        }
+      ],
+      "problem": "Формулировка допускает два толкования: передается сумма конкретной покупки или накопленная сумма расходов за месяц.",
+      "impact": "Нельзя однозначно спроектировать контракт взаимодействия между сервисом расходов и push-сервисом.",
+      "recommendation": "Уточнить, какая именно сумма передается в сервис push.",
+      "question": "Какая именно сумма передается в push-сервис при достижении порога: сумма последней покупки или накопленная сумма расходов?",
+      "addressee": "analyst",
+      "question_id": "Q-13",
+      "status": "confirmed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": null,
+      "severity_raised_from": null,
+      "places": [],
+      "origin": null
+    },
+    {
+      "id": "D-06",
+      "scope": "requirement",
+      "kind": "defect",
+      "criterion": "UNAMBIGUOUS",
+      "severity": "MAJOR",
+      "title": "",
+      "req_ids": [
+        "REQ-10"
+      ],
+      "section": null,
+      "evidence": [
+        {
+          "quote": "Сервис передаёт push",
+          "line": 46,
+          "status": "exact"
+        }
+      ],
+      "problem": "Слово «Сервис» не однозначно, так как в архитектуре указаны сервис расходов, сервис настроек и push-сервис.",
+      "impact": "Нельзя распределить ответственность за выполнение нефункционального требования между компонентами.",
+      "recommendation": "Указать конкретное наименование сервиса.",
+      "question": "Какой именно сервис должен передать push на отправку в течение минуты: сервис расходов или push-сервис?",
+      "addressee": "architect",
+      "question_id": "Q-14",
+      "status": "confirmed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": null,
+      "severity_raised_from": null,
+      "places": [],
+      "origin": null
+    },
+    {
+      "id": "D-07",
+      "scope": "requirement",
+      "kind": "defect",
+      "criterion": "COMPLETE",
+      "severity": "MAJOR",
+      "title": "",
+      "req_ids": [
+        "REQ-11"
+      ],
+      "section": null,
+      "evidence": [
+        {
+          "quote": "Хранить идентификатор карты, месяц, идентификатор операции, сумму покупки в тиынах, признак отправки и порог в тенге.",
+          "line": 49,
+          "status": "exact"
+        }
+      ],
+      "problem": "Список хранимых полей не содержит признак включения/выключения уведомления (enabled), используемый в API и логике.",
+      "impact": "Разработчик структуры данных не создаст поле для хранения флага активности уведомлений.",
+      "recommendation": "Добавить признак включения уведомления в список хранимых параметров.",
+      "question": "Требуется ли хранить признак включения уведомления (enabled) в составе структуры данных?",
+      "addressee": "analyst",
+      "question_id": "Q-15",
+      "status": "confirmed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": null,
+      "severity_raised_from": null,
+      "places": [],
+      "origin": null
+    },
+    {
+      "id": "D-08",
+      "scope": "requirement",
+      "kind": "defect",
+      "criterion": "SINGULAR",
+      "severity": "MAJOR",
+      "title": "",
+      "req_ids": [
+        "REQ-12"
+      ],
+      "section": null,
+      "evidence": [
+        {
+          "quote": "Приложение читает и сохраняет настройки через дочерний документ «Уведомление о расходах по карте — REST API». Повторная доставка одного события процессинга сохраняет исходный итог.",
+          "line": 52,
+          "status": "exact"
+        }
+      ],
+      "problem": "Требование описывает две разные функции: интеграцию приложения через REST API и правило идемпотентности при получении событий процессинга.",
+      "impact": "Усложняется трассировка и проверка требований к отдельным компонентам системы.",
+      "recommendation": "Разделить требование на два отдельных пункта.",
+      "question": "Следует ли вынести правило повторной доставки событий процессинга в отдельное требование?",
+      "addressee": "analyst",
+      "question_id": null,
+      "status": "confirmed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": null,
+      "severity_raised_from": null,
+      "places": [],
+      "origin": null
+    },
+    {
+      "id": "D-09",
+      "scope": "requirement",
+      "kind": "defect",
+      "criterion": "CONSISTENT",
+      "severity": "CRITICAL",
+      "title": "",
+      "req_ids": [
+        "REQ-14"
+      ],
+      "section": null,
+      "evidence": [
+        {
+          "quote": "| Покупка 31 января в 23:58 на 4 000 ₸ | Провести 1 февраля в 00:03 по Алматы | Февральский счётчик вырос на 4 000 ₸ |",
+          "line": 64,
+          "status": "exact"
+        }
+      ],
+      "problem": "Дата покупки указана 31 января, однако в результате указан рост февральского счётчика.",
+      "impact": "Нельзя однозначно определить алгоритм подсчёта расходов и проверить реализацию.",
+      "recommendation": "Указать счётчик того месяца, который соответствует правилу определения даты покупки.",
+      "question": "Счётчик какого месяца должен вырасти при совершении покупки 31 января и проведении 1 февраля: января или февраля?",
+      "addressee": "business",
+      "question_id": "Q-04",
+      "status": "confirmed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": null,
+      "severity_raised_from": null,
+      "places": [],
+      "origin": null
+    },
+    {
+      "id": "D-10",
+      "scope": "requirement",
+      "kind": "defect",
+      "criterion": "CONSISTENT",
+      "severity": "MAJOR",
+      "title": "",
+      "req_ids": [
+        "REQ-16"
+      ],
+      "section": null,
+      "evidence": [
+        {
+          "quote": "Сохранение порога. Функциональные требования: чтение порога",
+          "line": 103,
+          "status": "exact"
+        }
+      ],
+      "problem": "Поле описания содержит противоречие: указаны одновременно сохранение и чтение порога.",
+      "impact": "Нельзя определить назначение метода при проектировании и разработке.",
+      "recommendation": "Указать только одно назначение API метода.",
+      "question": "Каково назначение описываемого метода: сохранение порога или чтение порога?",
+      "addressee": "analyst",
+      "question_id": null,
+      "status": "merged",
+      "critic_reason": "Дублирует замечание S-01 по противоречию в описании и HTTP методе.",
+      "merged_into": "S-01",
+      "severity_before": null,
+      "divergence": null,
+      "severity_raised_from": null,
+      "places": [],
+      "origin": null
+    },
+    {
+      "id": "D-11",
+      "scope": "requirement",
+      "kind": "defect",
+      "criterion": "CORRECT",
+      "severity": "CRITICAL",
+      "title": "",
+      "req_ids": [
+        "REQ-17"
+      ],
+      "section": null,
+      "evidence": [
+        {
+          "quote": "| **REST type** | GET |",
+          "line": 104,
+          "status": "exact"
+        }
+      ],
+      "problem": "Использование метода GET для операции сохранения настроек нарушает стандарты протокола HTTP.",
+      "impact": "Нельзя корректно реализовать и протестировать REST API метод.",
+      "recommendation": "Указать модифицирующий метод HTTP, например POST или PUT.",
+      "question": "Какой HTTP метод следует использовать для сохранения порога: POST или PUT?",
+      "addressee": "architect",
+      "question_id": null,
+      "status": "merged",
+      "critic_reason": "Дублирует замечание S-01 по использованию HTTP метода GET.",
+      "merged_into": "S-01",
+      "severity_before": null,
+      "divergence": null,
+      "severity_raised_from": null,
+      "places": [],
+      "origin": null
+    },
+    {
+      "id": "D-12",
+      "scope": "requirement",
+      "kind": "defect",
+      "criterion": "COMPLETE",
+      "severity": "MAJOR",
+      "title": "",
+      "req_ids": [
+        "REQ-20"
+      ],
+      "section": null,
+      "evidence": [
+        {
+          "quote": "| **Request URL** | Dev: `/alerts/saveLimit` . Prod: — |",
+          "line": 108,
+          "status": "exact"
+        }
+      ],
+      "problem": "Отсутствует значение Request URL для среды Prod.",
+      "impact": "Из-за этого нельзя реализовать и протестировать вызов метода в продуктовом окружении.",
+      "recommendation": "Указать адрес Request URL для среды Prod.",
+      "question": "Какой Request URL должен использоваться для промышленного окружения Prod?",
+      "addressee": "analyst",
+      "question_id": null,
+      "status": "confirmed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": null,
+      "severity_raised_from": null,
+      "places": [],
+      "origin": null
+    },
+    {
+      "id": "D-13",
+      "scope": "requirement",
+      "kind": "defect",
+      "criterion": "CORRECT",
+      "severity": "MAJOR",
+      "title": "",
+      "req_ids": [
+        "REQ-21"
+      ],
+      "section": null,
+      "evidence": [
+        {
+          "quote": "| **CURL** | `curl -G \"$BASE/alerts/saveLimit\" -H \"Authorization: Bearer $TOKEN\" --data 'cardId=demo-42&amount=50000&enabled=1'` |",
+          "line": 109,
+          "status": "exact"
+        }
+      ],
+      "problem": "Пример cURL использует метод GET (флаг -G) для вызова метода сохранения данных, что нарушает стандарт HTTP REST.",
+      "impact": "Из-за этого нельзя корректно реализовать и протестировать REST API согласно стандартам.",
+      "recommendation": "Изменить пример cURL с использованием метода POST или PUT.",
+      "question": "Каким методом HTTP должен быть реализован вызов метода сохранения порога: POST или PUT?",
+      "addressee": "architect",
+      "question_id": "Q-02",
+      "status": "confirmed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": null,
+      "severity_raised_from": null,
+      "places": [],
+      "origin": null
+    },
+    {
+      "id": "D-14",
+      "scope": "requirement",
+      "kind": "defect",
+      "criterion": "SINGULAR",
+      "severity": "MAJOR",
+      "title": "",
+      "req_ids": [
+        "REQ-24"
+      ],
+      "section": null,
+      "evidence": [
+        {
+          "quote": "3. Проверить сумму и переключатель.",
+          "line": 119,
+          "status": "exact"
+        }
+      ],
+      "problem": "Шаг объединяет валидацию двух разных параметров с независимой логикой: суммы и переключателя.",
+      "impact": "Из-за этого нельзя изолированно описать алгоритм и обработку ошибок для каждого из параметров.",
+      "recommendation": "Разбить шаг на два отдельных действия по проверке каждого параметра.",
+      "question": "Следует ли вынести проверку переключателя в отдельный шаг алгоритма?",
+      "addressee": "analyst",
+      "question_id": null,
+      "status": "confirmed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": null,
+      "severity_raised_from": null,
+      "places": [],
+      "origin": null
+    },
+    {
+      "id": "D-15",
+      "scope": "requirement",
+      "kind": "defect",
+      "criterion": "COMPLETE",
+      "severity": "MAJOR",
+      "title": "",
+      "req_ids": [
+        "REQ-25"
+      ],
+      "section": null,
+      "evidence": [
+        {
+          "quote": "вернуть результат сохранения.",
+          "line": 120,
+          "status": "exact"
+        }
+      ],
+      "problem": "В шаге не указан HTTP-код ответа и структура возвращаемого объекта при успешном сохранении.",
+      "impact": "Нельзя реализовать и протестировать успешный ответ сервиса.",
+      "recommendation": "Указать HTTP-код ответа 200 OK и состав полей возвращаемого объекта.",
+      "question": "Какой HTTP-код ответа и структура полей должны возвращаться при успешной замене настройки?",
+      "addressee": "analyst",
+      "question_id": "Q-05",
+      "status": "confirmed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": null,
+      "severity_raised_from": null,
+      "places": [],
+      "origin": null
+    },
+    {
+      "id": "D-16",
+      "scope": "requirement",
+      "kind": "defect",
+      "criterion": "UNAMBIGUOUS",
+      "severity": "MAJOR",
+      "title": "",
+      "req_ids": [
+        "REQ-26"
+      ],
+      "section": null,
+      "evidence": [
+        {
+          "quote": "При отклонении суммы",
+          "line": 121,
+          "status": "exact"
+        }
+      ],
+      "problem": "Формулировка «отклонение суммы» неоднозначна и не содержит правил проверки параметра.",
+      "impact": "Нельзя реализовать правила валидации входного параметра суммы.",
+      "recommendation": "Указать конкретные условия отклонения суммы.",
+      "question": "При каких условиях сумма считается отклоненной: при выходе за пределы 1 000-1 000 000 или при неверном формате данных?",
+      "addressee": "analyst",
+      "question_id": "Q-01",
+      "status": "confirmed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": null,
+      "severity_raised_from": null,
+      "places": [],
+      "origin": null
+    },
+    {
+      "id": "D-17",
+      "scope": "requirement",
+      "kind": "defect",
+      "criterion": "COMPLETE",
+      "severity": "MAJOR",
+      "title": "",
+      "req_ids": [
+        "REQ-26"
+      ],
+      "section": null,
+      "evidence": [
+        {
+          "quote": "вернуть прежнее состояние и результат ERROR.",
+          "line": 121,
+          "status": "exact"
+        }
+      ],
+      "problem": "Не указан HTTP-код ответа и состав полей объекта при возврате результата ERROR.",
+      "impact": "Нельзя реализовать и протестировать обработку ошибки в ответе API.",
+      "recommendation": "Указать HTTP-код ответа и структуру возвращаемого объекта ошибки.",
+      "question": "Какой HTTP-код ответа должен возвращаться при результате ERROR: 200 OK или 400 Bad Request?",
+      "addressee": "architect",
+      "question_id": null,
+      "status": "merged",
+      "critic_reason": "Дублирует замечание S-02 по кодам ответа при невалидной сумме.",
+      "merged_into": "S-02",
+      "severity_before": null,
+      "divergence": null,
+      "severity_raised_from": null,
+      "places": [],
+      "origin": null
+    },
+    {
+      "id": "D-18",
+      "scope": "requirement",
+      "kind": "defect",
+      "criterion": "COMPLETE",
+      "severity": "MAJOR",
+      "title": "",
+      "req_ids": [
+        "REQ-27"
+      ],
+      "section": null,
+      "evidence": [
+        {
+          "quote": "обе границы включены.",
+          "line": 124,
+          "status": "exact"
+        }
+      ],
+      "problem": "В тексте требования отсутствуют конкретные числовые значения допустимого диапазона.",
+      "impact": "Нельзя проверить и реализовать валидацию границ без обращения к другим разделам.",
+      "recommendation": "Указать явные числовые значения минимального и максимального порога.",
+      "question": "Каковы числовые значения минимальной и максимальной границ диапазона порога в тенге?",
+      "addressee": "analyst",
+      "question_id": "Q-05",
+      "status": "confirmed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": null,
+      "severity_raised_from": null,
+      "places": [],
+      "origin": null
+    },
+    {
+      "id": "D-19",
+      "scope": "requirement",
+      "kind": "defect",
+      "criterion": "COMPLETE",
+      "severity": "MAJOR",
+      "title": "",
+      "req_ids": [
+        "REQ-29"
+      ],
+      "section": null,
+      "evidence": [
+        {
+          "quote": "Изменение порога сохраняет накопленные расходы.",
+          "line": 126,
+          "status": "exact"
+        }
+      ],
+      "problem": "Не описано поведение системы, если накопленные расходы уже равны новому порогу или превышают его.",
+      "impact": "Нельзя реализовать и протестировать отправку push-уведомления при изменении порога ниже текущих расходов.",
+      "recommendation": "Уточнить поведение системы при сохранении нового порога ниже текущей суммы расходов.",
+      "question": "Отправляется ли push-уведомление при сохранении нового порога, если накопленные расходы уже равны ему или превышают его?",
+      "addressee": "business",
+      "question_id": "Q-08",
+      "status": "confirmed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": null,
+      "severity_raised_from": null,
+      "places": [],
+      "origin": null
+    },
+    {
+      "id": "D-20",
+      "scope": "requirement",
+      "kind": "defect",
+      "criterion": "CONSISTENT",
+      "severity": "MAJOR",
+      "title": "",
+      "req_ids": [
+        "REQ-34"
+      ],
+      "section": null,
+      "evidence": [
+        {
+          "quote": "* **Content-Type:** `application/json` .",
+          "line": 147,
+          "status": "exact"
+        }
+      ],
+      "problem": "Указан Content-Type: application/json, хотя тело запроса не используется.",
+      "impact": "Нельзя однозначно реализовать и протестировать заголовок запроса.",
+      "recommendation": "Уточнить необходимость заголовка Content-Type для запроса без тела.",
+      "question": "Передавать ли заголовок Content-Type: application/json, если тело запроса не используется?",
+      "addressee": "analyst",
+      "question_id": "Q-05",
+      "status": "confirmed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": null,
+      "severity_raised_from": null,
+      "places": [],
+      "origin": null
+    },
+    {
+      "id": "D-21",
+      "scope": "requirement",
+      "kind": "defect",
+      "criterion": "UNAMBIGUOUS",
+      "severity": "MAJOR",
+      "title": "",
+      "req_ids": [
+        "REQ-35"
+      ],
+      "section": null,
+      "evidence": [
+        {
+          "quote": "Если результат 400, 401 и далее — неуспешный.",
+          "line": 151,
+          "status": "exact"
+        }
+      ],
+      "problem": "Открытый перечень «и далее» создаёт неопределённость при перечислении статусов ответов.",
+      "impact": "Нельзя однозначно реализовать и протестировать обработку всех неуспешных ответов.",
+      "recommendation": "Заменить неясное «и далее» конкретным списком кодов ошибок.",
+      "question": "Какие конкретно статусы ответа считаются неуспешными вместо «и далее»?",
+      "addressee": "analyst",
+      "question_id": "Q-01",
+      "status": "confirmed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": null,
+      "severity_raised_from": null,
+      "places": [],
+      "origin": null
+    },
+    {
+      "id": "D-22",
+      "scope": "requirement",
+      "kind": "defect",
+      "criterion": "CONSISTENT",
+      "severity": "CRITICAL",
+      "title": "",
+      "req_ids": [
+        "REQ-42"
+      ],
+      "section": null,
+      "evidence": [
+        {
+          "quote": "{\"result\":\"ERROR\",\"message\":\"Проверьте сумму\"}",
+          "line": 171,
+          "status": "exact"
+        }
+      ],
+      "problem": "В примере ответа для успешного статуса 200 содержится структура ошибки с текстом ERROR.",
+      "impact": "Нельзя однозначно реализовать и протестировать обработку ошибок при вызове сервиса.",
+      "recommendation": "Исключить пример ошибки из статуса 200 и возвращать ошибки бизнес-валидации со статусом 400.",
+      "question": "Ошибка валидации суммы должна возвращаться со кодом HTTP 400 или в коде HTTP 200?",
+      "addressee": "architect",
+      "question_id": null,
+      "status": "merged",
+      "critic_reason": "Дублирует замечание S-02 по формату ответа при ошибке.",
+      "merged_into": "S-02",
+      "severity_before": null,
+      "divergence": null,
+      "severity_raised_from": null,
+      "places": [],
+      "origin": null
+    },
+    {
+      "id": "S-01",
+      "scope": "set",
+      "kind": "contradiction",
+      "criterion": "SET_CONSISTENT",
+      "severity": "CRITICAL",
+      "title": "Противоречие в назначении метода saveLimit и используемом HTTP-методе GET",
+      "req_ids": [
+        "REQ-16",
+        "REQ-17"
+      ],
+      "section": "Часть B. REST API",
+      "evidence": [
+        {
+          "quote": "| **Description** | Сохранение порога. Функциональные требования: чтение порога |",
+          "line": 103,
+          "status": "exact"
+        },
+        {
+          "quote": "| **REST type** | GET |",
+          "line": 104,
+          "status": "exact"
+        }
+      ],
+      "problem": "Параметр Description одновременно указывает на сохранение и чтение порога, при этом для операции сохранения выбран метод GET.",
+      "impact": "Нельзя однозначно спроектировать и реализовать REST API, так как использование GET для мутирующих операций нарушает стандарт протокола HTTP.",
+      "recommendation": "Уточнить назначение метода и изменить HTTP-метод на POST или PUT для изменения настроек.",
+      "question": "Какое назначение имеет эндпоинт saveLimit: сохранение порога через метод POST/PUT или чтение порога через метод GET?",
+      "addressee": "architect",
+      "question_id": "Q-02",
+      "status": "confirmed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": "behavior",
+      "severity_raised_from": null,
+      "places": [],
+      "origin": "consistency"
+    },
+    {
+      "id": "S-02",
+      "scope": "set",
+      "kind": "contradiction",
+      "criterion": "SET_CONSISTENT",
+      "severity": "CRITICAL",
+      "title": "Противоречие в коде ответа при невалидной сумме порога: HTTP 200 или HTTP 400",
+      "req_ids": [
+        "REQ-26",
+        "REQ-41",
+        "REQ-42"
+      ],
+      "section": "Часть B. REST API",
+      "evidence": [
+        {
+          "quote": "5. При отклонении суммы вернуть прежнее состояние и результат ERROR.",
+          "line": 121,
+          "status": "exact"
+        },
+        {
+          "quote": "**400.** Ответ в случае, если параметры запроса заполнены неверно.",
+          "line": 163,
+          "status": "exact"
+        },
+        {
+          "quote": "{\"result\":\"ERROR\",\"message\":\"Проверьте сумму\"}",
+          "line": 171,
+          "status": "exact"
+        }
+      ],
+      "problem": "Логика работы и пример JSON-ответа задают возврат статуса HTTP 200 со значением result ERROR при некорректной сумме, тогда как описание статуса 400 требует возвращать HTTP 400 Bad Request.",
+      "impact": "Невозможно разработать единую логику обработки ошибок валидации на бэкенде и в мобильном приложении.",
+      "recommendation": "Согласовать единый стандарт ответа при некорректных параметрах: возвращать HTTP 400 Bad Request либо HTTP 200 OK с полем ошибки.",
+      "question": "При невалидной сумме порога система должна возвращать HTTP 200 OK с {\"result\":\"ERROR\"} или HTTP 400 Bad Request?",
+      "addressee": "architect",
+      "question_id": "Q-01",
+      "status": "confirmed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": "behavior",
+      "severity_raised_from": null,
+      "places": [],
+      "origin": "consistency"
+    },
+    {
+      "id": "S-03",
+      "scope": "set",
+      "kind": "contradiction",
+      "criterion": "SET_CONSISTENT",
+      "severity": "CRITICAL",
+      "title": "Противоречие в коде HTTP-ответа при доступе к чужой карте: 403 или 404",
+      "req_ids": [
+        "REQ-44",
+        "REQ-48"
+      ],
+      "section": "Часть B. REST API",
+      "evidence": [
+        {
+          "quote": "**403.** Ответ в случае, если на указанный ресурс доступ запрещен.",
+          "line": 175,
+          "status": "exact"
+        },
+        {
+          "quote": "Для чужой карты возвращается 404, как и для отсутствующей карты.",
+          "line": 189,
+          "status": "exact"
+        }
+      ],
+      "problem": "В разделе описания статусов указан код 403 Forbidden, но подраздел деталей предписывает возвращать 404 Not Found.",
+      "impact": "Разработка и автоматизированное тестирование сервиса будут заблокированы из-за неопределённости ожидаемого статуса ответа.",
+      "recommendation": "Указать один код ответа для случая запроса по чужой карте в описании статусов и в схеме ответа.",
+      "question": "Какой HTTP-код должен возвращаться при запросе к чужой карте: 403 Forbidden или 404 Not Found?",
+      "addressee": "architect",
+      "question_id": "Q-03",
+      "status": "confirmed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": "behavior",
+      "severity_raised_from": "MAJOR",
+      "places": [],
+      "origin": "consistency"
+    },
+    {
+      "id": "S-04",
+      "scope": "set",
+      "kind": "gap",
+      "criterion": "SET_COMPLETE",
+      "severity": "MAJOR",
+      "title": "Заглушка вместо требований к тестированию",
+      "req_ids": [],
+      "section": "#### Тестирование требований",
+      "evidence": [
+        {
+          "quote": "заполняются тестировщиками",
+          "line": 57,
+          "status": "exact"
+        }
+      ],
+      "problem": "Раздел тестирования содержит только текст плейсхолдера и не содержит описания проверок или стратегии тестирования.",
+      "impact": "Нельзя спланировать приемку и подготовить тестовые сценарии до начала разработки.",
+      "recommendation": "Удалить незаполненную секцию либо внести конкретные требования к тестированию.",
+      "question": "Какую информацию о проверках необходимо внести в раздел тестирования требований?",
+      "addressee": "qa",
+      "question_id": null,
+      "status": "confirmed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": "none",
+      "severity_raised_from": null,
+      "places": [],
+      "origin": "completeness"
+    },
+    {
+      "id": "S-05",
+      "scope": "set",
+      "kind": "gap",
+      "criterion": "SET_COMPLETE",
+      "severity": "MINOR",
+      "title": "Не зафиксированы версия и дата документа в источнике",
+      "req_ids": [],
+      "section": "### Ревью требований",
+      "evidence": [
+        {
+          "quote": "Документ (версия/дата) в источнике не заполнен. Пункты чек-листа приведены как в шаблоне, отметки не проставлены.",
+          "line": 68,
+          "status": "exact"
+        }
+      ],
+      "problem": "В документации не указаны официальная версия и дата утверждения требований.",
+      "impact": "Невозможно отслеживать изменения и гарантировать актуальность спецификации при разработке.",
+      "recommendation": "Указать номер версии и дату создания спецификации.",
+      "question": "Какая версия и дата должны быть присвоены данному документу требований?",
+      "addressee": "analyst",
+      "question_id": null,
+      "status": "downgraded",
+      "critic_reason": "Отсутствие служебных сведений о документе относится к уровню MINOR.",
+      "merged_into": null,
+      "severity_before": "MAJOR",
+      "divergence": "none",
+      "severity_raised_from": null,
+      "places": [],
+      "origin": "completeness"
+    },
+    {
+      "id": "S-06",
+      "scope": "set",
+      "kind": "gap",
+      "criterion": "SET_COMPLETE",
+      "severity": "MINOR",
+      "title": "Не заполнен блок согласующих лиц",
+      "req_ids": [],
+      "section": "### Блок согласующих",
+      "evidence": [
+        {
+          "quote": "| | | |",
+          "line": 91,
+          "status": "missing"
+        }
+      ],
+      "problem": "Таблица согласования содержит пустую строку без указания ответственных лиц и статусов.",
+      "impact": "Отсутствует подтверждение того, что требования приняты архитекторами и бизнесом.",
+      "recommendation": "Заполнить список согласующих лиц с указанием ролей и статуса согласования.",
+      "question": "Кто является уполномоченным согласующим со стороны бизнеса и архитектуры?",
+      "addressee": "business",
+      "question_id": null,
+      "status": "downgraded",
+      "critic_reason": "Незаполненный блок согласующих является служебной информацией уровня MINOR.",
+      "merged_into": null,
+      "severity_before": "MAJOR",
+      "divergence": "none",
+      "severity_raised_from": null,
+      "places": [],
+      "origin": "completeness"
+    },
+    {
+      "id": "S-07",
+      "scope": "set",
+      "kind": "gap",
+      "criterion": "SET_COMPLETE",
+      "severity": "MAJOR",
+      "title": "Сравнение расходов в тиынах с порогом в тенге при наличии копеек",
+      "req_ids": [
+        "REQ-05",
+        "REQ-11"
+      ],
+      "section": "Часть A. Новый функционал",
+      "evidence": [
+        {
+          "quote": "Хранить идентификатор карты, месяц, идентификатор операции, сумму покупки в тиынах, признак отправки и порог в тенге.",
+          "line": 49,
+          "status": "exact"
+        }
+      ],
+      "problem": "Сумма покупки хранится в тиынах, а порог задан в целых тенге. В документе не описаны правила перевода тиынов в тенге или округления сумм при проверке превышения порога.",
+      "impact": "Нельзя однозначно запрограммировать и протестировать сравнение накопленных расходов с порогом при наличии тиынов в операциях.",
+      "recommendation": "Указать правило перевода сумм операций в тиынах к тенге при сравнении с порогом.",
+      "question": "Сумму расходов перед сравнением с порогом нужно округлять до целых тенге или переводить порог в тиыны путём умножения на 100?",
+      "addressee": "analyst",
+      "question_id": "Q-09",
+      "status": "confirmed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": "none",
+      "severity_raised_from": null,
+      "places": [],
+      "origin": "edge"
+    },
+    {
+      "id": "S-08",
+      "scope": "set",
+      "kind": "gap",
+      "criterion": "SET_COMPLETE",
+      "severity": "MAJOR",
+      "title": "Пересчёт расходов при возврате покупки за прошедший календарный месяц",
+      "req_ids": [
+        "REQ-06",
+        "REQ-07"
+      ],
+      "section": "Часть A. Новый функционал",
+      "evidence": [
+        {
+          "quote": "* **Ф-2.** Месяц определяется по дате совершения покупки в Алматы. В расходы входят проведённые покупки. Возврат уменьшает расходы месяца исходной покупки. Переводы и снятие наличных исключаются.",
+          "line": 38,
+          "status": "exact"
+        }
+      ],
+      "problem": "Правило уменьшает расходы месяца исходной покупки, но не описывает поведение системы, если возврат происходит в текущем месяце по покупке прошлого месяца, период по которому уже закрыт.",
+      "impact": "Нельзя реализовать логику обработки возвратов за прошедшие месяцы и определить влияние на историю push-уведомлений.",
+      "recommendation": "Уточнить ограничение на пересчёт расходов закрытых прошедших месяцев при поступлении возврата.",
+      "question": "Пересчитывается ли сумма расходов прошлого месяца при возврате покупки, совершенной в прошлом месяце?",
+      "addressee": "business",
+      "question_id": "Q-07",
+      "status": "confirmed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": "none",
+      "severity_raised_from": null,
+      "places": [],
+      "origin": "edge"
+    },
+    {
+      "id": "S-09",
+      "scope": "set",
+      "kind": "gap",
+      "criterion": "SET_COMPLETE",
+      "severity": "MAJOR",
+      "title": "Включение уведомлений при уже превышенном пороге расходов в текущем месяце",
+      "req_ids": [
+        "REQ-07",
+        "REQ-33"
+      ],
+      "section": "Часть A. Новый функционал",
+      "evidence": [
+        {
+          "quote": "* **Ф-3.** Когда расходы переходят от суммы ниже порога к сумме, равной порогу или выше, клиент получает push. На карту приходится максимум один такой push за календарный месяц.",
+          "line": 39,
+          "status": "exact"
+        }
+      ],
+      "problem": "Не описано поведение системы, если клиент включает переключатель enabled=1 в середине месяца, когда сумма расходов за этот месяц уже равна порогу или превышает его.",
+      "impact": "Нельзя определить, требуется ли мгновенная отправка push при сохранении настройки с enabled=1 или push отправляется только при следующей покупке.",
+      "recommendation": "Добавить правило обработки включения уведомления при уже достигнутом пороге расходов.",
+      "question": "Отправляется ли push сразу при переключении enabled в 1, если расходы текущего месяца уже равны порогу или выше?",
+      "addressee": "business",
+      "question_id": "Q-06",
+      "status": "confirmed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": "none",
+      "severity_raised_from": null,
+      "places": [],
+      "origin": "edge"
+    },
+    {
+      "id": "S-10",
+      "scope": "set",
+      "kind": "gap",
+      "criterion": "SET_COMPLETE",
+      "severity": "MAJOR",
+      "title": "Сброс признака отправки push при снижении расходов ниже порога из-за возврата",
+      "req_ids": [
+        "REQ-06",
+        "REQ-07"
+      ],
+      "section": "Часть A. Новый функционал",
+      "evidence": [
+        {
+          "quote": "* **Ф-3.** Когда расходы переходят от суммы ниже порога к сумме, равной порогу или выше, клиент получает push. На карту приходится максимум один такой push за календарный месяц.",
+          "line": 39,
+          "status": "exact"
+        }
+      ],
+      "problem": "Не описано, обнуляется ли признак отправленного push в текущем месяце, если из-за возврата покупки сумма расходов опустилась ниже порога, а затем снова его превысила.",
+      "impact": "Нельзя однозначно запрограммировать условие отправки повторного push в течение одного месяца при наличии возвратов.",
+      "recommendation": "Уточнить статус лимита push при возвратах внутри одного календарного месяца.",
+      "question": "Сбрасывается ли признак отправки push текущего месяца при уменьшении расходов ниже порога в результате возврата?",
+      "addressee": "business",
+      "question_id": "Q-07",
+      "status": "confirmed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": "none",
+      "severity_raised_from": null,
+      "places": [],
+      "origin": "edge"
+    },
+    {
+      "id": "S-11",
+      "scope": "set",
+      "kind": "gap",
+      "criterion": "SET_COMPLETE",
+      "severity": "MAJOR",
+      "title": "Обработка ошибки или недоступности push-сервиса при отправке уведомления",
+      "req_ids": [
+        "REQ-07",
+        "REQ-10"
+      ],
+      "section": "Часть A. Новый функционал",
+      "evidence": [
+        {
+          "quote": "Сервис передаёт push на отправку в течение минуты после получения события.",
+          "line": 46,
+          "status": "exact"
+        }
+      ],
+      "problem": "Не описано поведение системы при сбое внешней системы push-уведомлений и порядок установки признака отправки в БД при ошибке.",
+      "impact": "Нельзя реализовать механизм повторных попыток отправки (retry) и корректный учёт признака отправки push.",
+      "recommendation": "Описать сценарий повторных попыток отправки и фиксации статуса push при недоступности push-сервиса.",
+      "question": "Фиксируется ли признак отправки push как выполненный, если push-сервис вернул ошибку доставки?",
+      "addressee": "architect",
+      "question_id": "Q-10",
+      "status": "confirmed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": "none",
+      "severity_raised_from": null,
+      "places": [],
+      "origin": "edge"
+    },
+    {
+      "id": "S-12",
+      "scope": "set",
+      "kind": "contradiction",
+      "criterion": "SET_CONSISTENT",
+      "severity": "MAJOR",
+      "title": "Расхождение типов данных полей amount и enabled в запросе и ответе",
+      "req_ids": [
+        "REQ-32",
+        "REQ-33",
+        "REQ-37",
+        "REQ-38"
+      ],
+      "section": "Часть B. REST API",
+      "evidence": [
+        {
+          "quote": "| `amount` | integer | 32 bit | Да | 1 000–1 000 000 | Порог в тенге | `limit_kzt` |",
+          "line": 143,
+          "status": "exact"
+        },
+        {
+          "quote": "| `amount` | string | При успехе | Порог в тенге | `limit_kzt` |",
+          "line": 156,
+          "status": "exact"
+        }
+      ],
+      "problem": "В параметрах запроса amount указан как integer, а в структуре ответа, как string.",
+      "impact": "Несоответствие типов одного и того же поля приводит к ошибкам десериализации данных в клиенте.",
+      "recommendation": "Привести типы полей amount и enabled к одному типу (числовому или строковому) в запросе и в ответе.",
+      "question": "В каком типе данных должно возвращаться поле amount в ответе API: integer или string?",
+      "addressee": "architect",
+      "question_id": "Q-11",
+      "status": "confirmed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": "format",
+      "severity_raised_from": null,
+      "places": [],
+      "origin": "consistency"
+    },
+    {
+      "id": "S-13",
+      "scope": "set",
+      "kind": "gap",
+      "criterion": "SET_FEASIBLE",
+      "severity": "MAJOR",
+      "title": "Отсутствуют требования к производительности и целевой нагрузке",
+      "req_ids": [
+        "REQ-10"
+      ],
+      "section": "### Нефункциональные требования",
+      "evidence": [
+        {
+          "quote": "Сервис передаёт push на отправку в течение минуты после получения события.",
+          "line": 46,
+          "status": "exact"
+        }
+      ],
+      "problem": "В спецификации не указаны требования к производительности API, пропускной способности (RPS) и допустимому времени ответа сервера.",
+      "impact": "Архитектор не может рассчитать нагрузки и спроектировать решение для сервиса уведомлений.",
+      "recommendation": "Добавить требования по пиковой нагрузке RPS и предельному времени ответа сервиса.",
+      "question": "Какая пиковая нагрузка в запросах в секунду (RPS) планируется для сервиса?",
+      "addressee": "architect",
+      "question_id": "Q-12",
+      "status": "confirmed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": "none",
+      "severity_raised_from": null,
+      "places": [],
+      "origin": "completeness"
+    },
+    {
+      "id": "S-14",
+      "scope": "set",
+      "kind": "gap",
+      "criterion": "SET_RANKED",
+      "severity": "MINOR",
+      "title": "Отсутствуют приоритеты функциональных требований",
+      "req_ids": [
+        "REQ-05",
+        "REQ-06",
+        "REQ-07",
+        "REQ-08"
+      ],
+      "section": "#### Функциональные требования",
+      "evidence": [
+        {
+          "quote": "* **Ф-1.** Держатель активной карты KZT задаёт целый порог от 1 000 до 1 000 000 ₸ включительно. По умолчанию уведомление выключено.",
+          "line": 37,
+          "status": "exact"
+        }
+      ],
+      "problem": "Требования не ранжированы по важности и критичности для бизнеса.",
+      "impact": "Нельзя определить порядок реализации задач при ограничениях по срокам.",
+      "recommendation": "Проставить приоритеты требованиями по стандартной шкале MoSCoW или High/Medium/Low.",
+      "question": null,
+      "addressee": null,
+      "question_id": null,
+      "status": "unreviewed",
+      "critic_reason": null,
+      "merged_into": null,
+      "severity_before": null,
+      "divergence": "none",
+      "severity_raised_from": null,
+      "places": [],
+      "origin": "completeness"
+    }
+  ],
+  "rewritten": {
+    "REQ-03": "Карты → Расходы → Уведомления. На экране видны переключатель, поле «Порог, ₸», сумма за месяц и кнопка «Сохранить». При ошибке ввода под полем появляется сообщение <текст ошибки>.",
+    "REQ-06": "* **Ф-2.** Месяц определяется по дате совершения покупки в Алматы. В расходы входят проведённые покупки. Возврат уменьшает расходы месяца исходной покупки <порядок учёта возвратов прошлых периодов>. Переводы и снятие наличных исключаются.",
+    "REQ-07": "* **Ф-3.** Когда расходы переходят от суммы ниже порога к сумме, равной порогу или выше, клиент получает push <при включённом уведомлении>. На карту приходится максимум один такой push за календарный месяц.",
+    "REQ-08": "* **Ф-4.** При изменении порога накопленная сумма сохраняется. Если она ниже нового порога, следующее достижение вызывает push независимо от истории предыдущей настройки. <Поведение при накопленной сумме выше нового порога>.",
+    "REQ-09": "Процессинг → сервис расходов: проведена покупка. Сервис расходов → настройки: получить порог карты. Сервис расходов → push: передать последние четыре цифры карты и <тип суммы> при достижении порога.",
+    "REQ-10": "<Наименование сервиса> передаёт push на отправку в течение минуты после получения события.",
+    "REQ-11": "Хранить идентификатор карты, месяц, идентификатор операции, сумму покупки в тиынах, признак отправки, порог в тенге <и признак включения уведомления>.",
+    "REQ-12": "Приложение читает и сохраняет настройки через дочерний документ «Уведомление о расходах по карте — REST API».",
+    "REQ-14": "| Покупка 31 января в 23:58 на 4 000 ₸ | Провести 1 февраля в 00:03 по Алматы | <Счётчик месяца> вырос на 4 000 ₸ |",
+    "REQ-16": "| **Description** | <Назначение метода> |",
+    "REQ-17": "| **REST type** | <HTTP метод> |",
+    "REQ-20": "| **URL type** | Dev / Prod | | **Request URL** | Dev: `/alerts/saveLimit` . Prod: <Request URL для Prod> |",
+    "REQ-21": "| **CURL** | `curl -X POST \"$BASE/alerts/saveLimit\" -H \"Authorization: Bearer $TOKEN\" -H \"Content-Type: application/json\" -d '{\"cardId\":\"demo-42\",\"amount\":50000,\"enabled\":1}' |",
+    "REQ-24": "3. Проверить сумму порога.",
+    "REQ-25": "4. Заменить настройку и вернуть HTTP-ответ <HTTP-код> со статусом сохранения и обновленными параметрами.",
+    "REQ-26": "5. При отклонении суммы по причине <условие отклонения> вернуть прежнее состояние, HTTP-код <HTTP-код> и результат ERROR.",
+    "REQ-27": "1. Целое число тенге в диапазоне от <минимальный порог> до <максимальный порог> включительно.",
+    "REQ-29": "3. Изменение порога сохраняет накопленные расходы. <Поведение при превышении нового порога текущими расходами>.",
+    "REQ-34": "* **Content-Type:** <указать тип или не требуется> .",
+    "REQ-35": "Если результат 200 или 201, успешный. Если результат 400, 401, <перечень кодов>, неуспешный.",
+    "REQ-42": "{\"result\":\"OK\",\"amount\":\"50000\",\"enabled\":\"1\"}"
+  },
+  "unreviewed": [],
+  "failed_steps": [],
+  "uncovered_lines": [],
+  "skipped_lines": [
+    {
+      "line_start": 1,
+      "line_end": 1,
+      "reason": "heading"
+    },
+    {
+      "line_start": 3,
+      "line_end": 4,
+      "reason": "intro"
+    },
+    {
+      "line_start": 6,
+      "line_end": 6,
+      "reason": "other"
+    },
+    {
+      "line_start": 8,
+      "line_end": 8,
+      "reason": "heading"
+    },
+    {
+      "line_start": 10,
+      "line_end": 10,
+      "reason": "heading"
+    },
+    {
+      "line_start": 12,
+      "line_end": 13,
+      "reason": "template"
+    },
+    {
+      "line_start": 14,
+      "line_end": 20,
+      "reason": "service"
+    },
+    {
+      "line_start": 22,
+      "line_end": 22,
+      "reason": "heading"
+    },
+    {
+      "line_start": 25,
+      "line_end": 25,
+      "reason": "heading"
+    },
+    {
+      "line_start": 28,
+      "line_end": 28,
+      "reason": "heading"
+    },
+    {
+      "line_start": 31,
+      "line_end": 31,
+      "reason": "heading"
+    },
+    {
+      "line_start": 33,
+      "line_end": 33,
+      "reason": "heading"
+    },
+    {
+      "line_start": 36,
+      "line_end": 36,
+      "reason": "heading"
+    },
+    {
+      "line_start": 42,
+      "line_end": 42,
+      "reason": "heading"
+    },
+    {
+      "line_start": 45,
+      "line_end": 45,
+      "reason": "heading"
+    },
+    {
+      "line_start": 48,
+      "line_end": 48,
+      "reason": "heading"
+    },
+    {
+      "line_start": 51,
+      "line_end": 51,
+      "reason": "heading"
+    },
+    {
+      "line_start": 54,
+      "line_end": 54,
+      "reason": "heading"
+    },
+    {
+      "line_start": 56,
+      "line_end": 56,
+      "reason": "heading"
+    },
+    {
+      "line_start": 57,
+      "line_end": 57,
+      "reason": "template"
+    },
+    {
+      "line_start": 59,
+      "line_end": 59,
+      "reason": "heading"
+    },
+    {
+      "line_start": 61,
+      "line_end": 62,
+      "reason": "template"
+    },
+    {
+      "line_start": 67,
+      "line_end": 67,
+      "reason": "heading"
+    },
+    {
+      "line_start": 68,
+      "line_end": 68,
+      "reason": "intro"
+    },
+    {
+      "line_start": 70,
+      "line_end": 71,
+      "reason": "template"
+    },
+    {
+      "line_start": 72,
+      "line_end": 85,
+      "reason": "checklist"
+    },
+    {
+      "line_start": 87,
+      "line_end": 87,
+      "reason": "heading"
+    },
+    {
+      "line_start": 89,
+      "line_end": 91,
+      "reason": "template"
+    },
+    {
+      "line_start": 93,
+      "line_end": 93,
+      "reason": "other"
+    },
+    {
+      "line_start": 95,
+      "line_end": 95,
+      "reason": "heading"
+    },
+    {
+      "line_start": 97,
+      "line_end": 97,
+      "reason": "intro"
+    },
+    {
+      "line_start": 99,
+      "line_end": 99,
+      "reason": "heading"
+    },
+    {
+      "line_start": 101,
+      "line_end": 102,
+      "reason": "template"
+    },
+    {
+      "line_start": 110,
+      "line_end": 114,
+      "reason": "service"
+    },
+    {
+      "line_start": 116,
+      "line_end": 116,
+      "reason": "heading"
+    },
+    {
+      "line_start": 123,
+      "line_end": 123,
+      "reason": "heading"
+    },
+    {
+      "line_start": 128,
+      "line_end": 128,
+      "reason": "heading"
+    },
+    {
+      "line_start": 133,
+      "line_end": 133,
+      "reason": "heading"
+    },
+    {
+      "line_start": 135,
+      "line_end": 135,
+      "reason": "heading"
+    },
+    {
+      "line_start": 136,
+      "line_end": 136,
+      "reason": "intro"
+    },
+    {
+      "line_start": 138,
+      "line_end": 138,
+      "reason": "heading"
+    },
+    {
+      "line_start": 140,
+      "line_end": 141,
+      "reason": "template"
+    },
+    {
+      "line_start": 146,
+      "line_end": 146,
+      "reason": "heading"
+    },
+    {
+      "line_start": 148,
+      "line_end": 148,
+      "reason": "intro"
+    },
+    {
+      "line_start": 150,
+      "line_end": 150,
+      "reason": "heading"
+    },
+    {
+      "line_start": 153,
+      "line_end": 154,
+      "reason": "template"
+    },
+    {
+      "line_start": 160,
+      "line_end": 160,
+      "reason": "heading"
+    },
+    {
+      "line_start": 165,
+      "line_end": 165,
+      "reason": "heading"
+    },
+    {
+      "line_start": 178,
+      "line_end": 178,
+      "reason": "heading"
+    },
+    {
+      "line_start": 183,
+      "line_end": 183,
+      "reason": "heading"
+    },
+    {
+      "line_start": 188,
+      "line_end": 188,
+      "reason": "heading"
+    },
+    {
+      "line_start": 190,
+      "line_end": 190,
+      "reason": "heading"
+    },
+    {
+      "line_start": 195,
+      "line_end": 195,
+      "reason": "heading"
+    }
+  ],
+  "checks": {
+    "REQ-01": [
+      {
+        "criterion": "NECESSARY",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "APPROPRIATE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "UNAMBIGUOUS",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "COMPLETE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "SINGULAR",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "FEASIBLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "VERIFIABLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CORRECT",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CONSISTENT",
+        "status": "pass",
+        "note": ""
+      }
+    ],
+    "REQ-02": [
+      {
+        "criterion": "NECESSARY",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "APPROPRIATE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "UNAMBIGUOUS",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "COMPLETE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "SINGULAR",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "FEASIBLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "VERIFIABLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CORRECT",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CONSISTENT",
+        "status": "pass",
+        "note": ""
+      }
+    ],
+    "REQ-03": [
+      {
+        "criterion": "NECESSARY",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "APPROPRIATE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "UNAMBIGUOUS",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "COMPLETE",
+        "status": "fail",
+        "note": "Не указаны текст сообщения и критерии возникновения ошибки ввода."
+      },
+      {
+        "criterion": "SINGULAR",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "FEASIBLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "VERIFIABLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CORRECT",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CONSISTENT",
+        "status": "pass",
+        "note": ""
+      }
+    ],
+    "REQ-04": [
+      {
+        "criterion": "NECESSARY",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "APPROPRIATE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "UNAMBIGUOUS",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "COMPLETE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "SINGULAR",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "FEASIBLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "VERIFIABLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CORRECT",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CONSISTENT",
+        "status": "pass",
+        "note": ""
+      }
+    ],
+    "REQ-05": [
+      {
+        "criterion": "NECESSARY",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "APPROPRIATE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "UNAMBIGUOUS",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "COMPLETE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "SINGULAR",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "FEASIBLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "VERIFIABLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CORRECT",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CONSISTENT",
+        "status": "pass",
+        "note": ""
+      }
+    ],
+    "REQ-06": [
+      {
+        "criterion": "NECESSARY",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "APPROPRIATE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "UNAMBIGUOUS",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "COMPLETE",
+        "status": "fail",
+        "note": "Не описано влияние возврата за прошлый месяц на расчёт текущего месяца."
+      },
+      {
+        "criterion": "SINGULAR",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "FEASIBLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "VERIFIABLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CORRECT",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CONSISTENT",
+        "status": "pass",
+        "note": ""
+      }
+    ],
+    "REQ-07": [
+      {
+        "criterion": "NECESSARY",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "APPROPRIATE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "UNAMBIGUOUS",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "COMPLETE",
+        "status": "fail",
+        "note": "Не указано обязательное условие включения уведомлений для отправки push"
+      },
+      {
+        "criterion": "SINGULAR",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "FEASIBLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "VERIFIABLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CORRECT",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CONSISTENT",
+        "status": "pass",
+        "note": ""
+      }
+    ],
+    "REQ-08": [
+      {
+        "criterion": "NECESSARY",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "APPROPRIATE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "UNAMBIGUOUS",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "COMPLETE",
+        "status": "fail",
+        "note": "Не описан сценарий, когда накопленные расходы уже равны новому порогу или превышают его"
+      },
+      {
+        "criterion": "SINGULAR",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "FEASIBLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "VERIFIABLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CORRECT",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CONSISTENT",
+        "status": "pass",
+        "note": ""
+      }
+    ],
+    "REQ-09": [
+      {
+        "criterion": "NECESSARY",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "APPROPRIATE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "UNAMBIGUOUS",
+        "status": "fail",
+        "note": "Двусмысленность в понятии передаваемой суммы: сумма транзакции или общие расходы за месяц"
+      },
+      {
+        "criterion": "COMPLETE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "SINGULAR",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "FEASIBLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "VERIFIABLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CORRECT",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CONSISTENT",
+        "status": "pass",
+        "note": ""
+      }
+    ],
+    "REQ-10": [
+      {
+        "criterion": "NECESSARY",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "APPROPRIATE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "UNAMBIGUOUS",
+        "status": "fail",
+        "note": "Не конкретизирован сервис, выполняющий требование по времени"
+      },
+      {
+        "criterion": "COMPLETE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "SINGULAR",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "FEASIBLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "VERIFIABLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CORRECT",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CONSISTENT",
+        "status": "pass",
+        "note": ""
+      }
+    ],
+    "REQ-11": [
+      {
+        "criterion": "NECESSARY",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "APPROPRIATE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "UNAMBIGUOUS",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "COMPLETE",
+        "status": "fail",
+        "note": "В перечне данных отсутствует признак включения уведомления (enabled)"
+      },
+      {
+        "criterion": "SINGULAR",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "FEASIBLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "VERIFIABLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CORRECT",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CONSISTENT",
+        "status": "pass",
+        "note": ""
+      }
+    ],
+    "REQ-12": [
+      {
+        "criterion": "NECESSARY",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "APPROPRIATE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "UNAMBIGUOUS",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "COMPLETE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "SINGULAR",
+        "status": "fail",
+        "note": "Требование объединяет интеграцию с REST API и правило идемпотентности обработки событий"
+      },
+      {
+        "criterion": "FEASIBLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "VERIFIABLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CORRECT",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CONSISTENT",
+        "status": "pass",
+        "note": ""
+      }
+    ],
+    "REQ-13": [
+      {
+        "criterion": "NECESSARY",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "APPROPRIATE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "UNAMBIGUOUS",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "COMPLETE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "SINGULAR",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "FEASIBLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "VERIFIABLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CORRECT",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CONSISTENT",
+        "status": "pass",
+        "note": ""
+      }
+    ],
+    "REQ-14": [
+      {
+        "criterion": "NECESSARY",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "APPROPRIATE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "UNAMBIGUOUS",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "COMPLETE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "SINGULAR",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "FEASIBLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "VERIFIABLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CORRECT",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CONSISTENT",
+        "status": "fail",
+        "note": "Ожидаемый результат противоречит дате совершения покупки"
+      }
+    ],
+    "REQ-15": [
+      {
+        "criterion": "NECESSARY",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "APPROPRIATE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "UNAMBIGUOUS",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "COMPLETE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "SINGULAR",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "FEASIBLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "VERIFIABLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CORRECT",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CONSISTENT",
+        "status": "pass",
+        "note": ""
+      }
+    ],
+    "REQ-16": [
+      {
+        "criterion": "NECESSARY",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "APPROPRIATE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "UNAMBIGUOUS",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "COMPLETE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "SINGULAR",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "FEASIBLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "VERIFIABLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CORRECT",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CONSISTENT",
+        "status": "fail",
+        "note": "В описании указаны противоположные операции сохранения и чтения"
+      }
+    ],
+    "REQ-17": [
+      {
+        "criterion": "NECESSARY",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "APPROPRIATE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "UNAMBIGUOUS",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "COMPLETE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "SINGULAR",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "FEASIBLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "VERIFIABLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CORRECT",
+        "status": "fail",
+        "note": "Метод GET не должен использоваться для изменения состояния"
+      },
+      {
+        "criterion": "CONSISTENT",
+        "status": "pass",
+        "note": ""
+      }
+    ],
+    "REQ-18": [
+      {
+        "criterion": "NECESSARY",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "APPROPRIATE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "UNAMBIGUOUS",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "COMPLETE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "SINGULAR",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "FEASIBLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "VERIFIABLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CORRECT",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CONSISTENT",
+        "status": "pass",
+        "note": ""
+      }
+    ],
+    "REQ-19": [
+      {
+        "criterion": "NECESSARY",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "APPROPRIATE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "UNAMBIGUOUS",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "COMPLETE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "SINGULAR",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "FEASIBLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "VERIFIABLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CORRECT",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CONSISTENT",
+        "status": "pass",
+        "note": ""
+      }
+    ],
+    "REQ-20": [
+      {
+        "criterion": "NECESSARY",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "APPROPRIATE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "UNAMBIGUOUS",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "COMPLETE",
+        "status": "fail",
+        "note": "Не указан Request URL для среды Prod."
+      },
+      {
+        "criterion": "SINGULAR",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "FEASIBLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "VERIFIABLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CORRECT",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CONSISTENT",
+        "status": "pass",
+        "note": ""
+      }
+    ],
+    "REQ-21": [
+      {
+        "criterion": "NECESSARY",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "APPROPRIATE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "UNAMBIGUOUS",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "COMPLETE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "SINGULAR",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "FEASIBLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "VERIFIABLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CORRECT",
+        "status": "fail",
+        "note": "Использование GET запроса для сохранения данных нарушает стандарты REST."
+      },
+      {
+        "criterion": "CONSISTENT",
+        "status": "pass",
+        "note": ""
+      }
+    ],
+    "REQ-22": [
+      {
+        "criterion": "NECESSARY",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "APPROPRIATE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "UNAMBIGUOUS",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "COMPLETE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "SINGULAR",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "FEASIBLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "VERIFIABLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CORRECT",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CONSISTENT",
+        "status": "pass",
+        "note": ""
+      }
+    ],
+    "REQ-23": [
+      {
+        "criterion": "NECESSARY",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "APPROPRIATE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "UNAMBIGUOUS",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "COMPLETE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "SINGULAR",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "FEASIBLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "VERIFIABLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CORRECT",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CONSISTENT",
+        "status": "pass",
+        "note": ""
+      }
+    ],
+    "REQ-24": [
+      {
+        "criterion": "NECESSARY",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "APPROPRIATE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "UNAMBIGUOUS",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "COMPLETE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "SINGULAR",
+        "status": "fail",
+        "note": "В одном шаге объединена проверка двух независимых параметров."
+      },
+      {
+        "criterion": "FEASIBLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "VERIFIABLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CORRECT",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CONSISTENT",
+        "status": "pass",
+        "note": ""
+      }
+    ],
+    "REQ-25": [
+      {
+        "criterion": "NECESSARY",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "APPROPRIATE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "UNAMBIGUOUS",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "COMPLETE",
+        "status": "fail",
+        "note": "Не указан HTTP-код ответа и структура возвращаемых данных."
+      },
+      {
+        "criterion": "SINGULAR",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "FEASIBLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "VERIFIABLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CORRECT",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CONSISTENT",
+        "status": "pass",
+        "note": ""
+      }
+    ],
+    "REQ-26": [
+      {
+        "criterion": "NECESSARY",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "APPROPRIATE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "UNAMBIGUOUS",
+        "status": "fail",
+        "note": "Фраза «отклонение суммы» не определяет условия валидации."
+      },
+      {
+        "criterion": "COMPLETE",
+        "status": "fail",
+        "note": "Не указаны HTTP-код ответа и структура ответа при ошибке."
+      },
+      {
+        "criterion": "SINGULAR",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "FEASIBLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "VERIFIABLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CORRECT",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CONSISTENT",
+        "status": "pass",
+        "note": ""
+      }
+    ],
+    "REQ-27": [
+      {
+        "criterion": "NECESSARY",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "APPROPRIATE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "UNAMBIGUOUS",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "COMPLETE",
+        "status": "fail",
+        "note": "Не указаны числовые значение границ диапазона."
+      },
+      {
+        "criterion": "SINGULAR",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "FEASIBLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "VERIFIABLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CORRECT",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CONSISTENT",
+        "status": "pass",
+        "note": ""
+      }
+    ],
+    "REQ-28": [
+      {
+        "criterion": "NECESSARY",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "APPROPRIATE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "UNAMBIGUOUS",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "COMPLETE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "SINGULAR",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "FEASIBLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "VERIFIABLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CORRECT",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CONSISTENT",
+        "status": "pass",
+        "note": ""
+      }
+    ],
+    "REQ-29": [
+      {
+        "criterion": "NECESSARY",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "APPROPRIATE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "UNAMBIGUOUS",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "COMPLETE",
+        "status": "fail",
+        "note": "Не описан сценарий, если расходы уже выше нового порога."
+      },
+      {
+        "criterion": "SINGULAR",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "FEASIBLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "VERIFIABLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CORRECT",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CONSISTENT",
+        "status": "pass",
+        "note": ""
+      }
+    ],
+    "REQ-30": [
+      {
+        "criterion": "NECESSARY",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "APPROPRIATE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "UNAMBIGUOUS",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "COMPLETE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "SINGULAR",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "FEASIBLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "VERIFIABLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CORRECT",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CONSISTENT",
+        "status": "pass",
+        "note": ""
+      }
+    ],
+    "REQ-31": [
+      {
+        "criterion": "NECESSARY",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "APPROPRIATE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "UNAMBIGUOUS",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "COMPLETE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "SINGULAR",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "FEASIBLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "VERIFIABLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CORRECT",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CONSISTENT",
+        "status": "pass",
+        "note": ""
+      }
+    ],
+    "REQ-32": [
+      {
+        "criterion": "NECESSARY",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "APPROPRIATE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "UNAMBIGUOUS",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "COMPLETE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "SINGULAR",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "FEASIBLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "VERIFIABLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CORRECT",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CONSISTENT",
+        "status": "pass",
+        "note": ""
+      }
+    ],
+    "REQ-33": [
+      {
+        "criterion": "NECESSARY",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "APPROPRIATE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "UNAMBIGUOUS",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "COMPLETE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "SINGULAR",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "FEASIBLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "VERIFIABLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CORRECT",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CONSISTENT",
+        "status": "pass",
+        "note": ""
+      }
+    ],
+    "REQ-34": [
+      {
+        "criterion": "NECESSARY",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "APPROPRIATE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "UNAMBIGUOUS",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "COMPLETE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "SINGULAR",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "FEASIBLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "VERIFIABLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CORRECT",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CONSISTENT",
+        "status": "fail",
+        "note": "Указание Content-Type противоречит правилу о неиспользовании тела запроса."
+      }
+    ],
+    "REQ-35": [
+      {
+        "criterion": "NECESSARY",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "APPROPRIATE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "UNAMBIGUOUS",
+        "status": "fail",
+        "note": "Формулировка «и далее» допускает неоднозначный перечень кодов ответа."
+      },
+      {
+        "criterion": "COMPLETE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "SINGULAR",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "FEASIBLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "VERIFIABLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CORRECT",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CONSISTENT",
+        "status": "pass",
+        "note": ""
+      }
+    ],
+    "REQ-36": [
+      {
+        "criterion": "NECESSARY",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "APPROPRIATE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "UNAMBIGUOUS",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "COMPLETE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "SINGULAR",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "FEASIBLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "VERIFIABLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CORRECT",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CONSISTENT",
+        "status": "pass",
+        "note": ""
+      }
+    ],
+    "REQ-37": [
+      {
+        "criterion": "NECESSARY",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "APPROPRIATE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "UNAMBIGUOUS",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "COMPLETE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "SINGULAR",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "FEASIBLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "VERIFIABLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CORRECT",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CONSISTENT",
+        "status": "pass",
+        "note": ""
+      }
+    ],
+    "REQ-38": [
+      {
+        "criterion": "NECESSARY",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "APPROPRIATE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "UNAMBIGUOUS",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "COMPLETE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "SINGULAR",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "FEASIBLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "VERIFIABLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CORRECT",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CONSISTENT",
+        "status": "pass",
+        "note": ""
+      }
+    ],
+    "REQ-39": [
+      {
+        "criterion": "NECESSARY",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "APPROPRIATE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "UNAMBIGUOUS",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "COMPLETE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "SINGULAR",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "FEASIBLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "VERIFIABLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CORRECT",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CONSISTENT",
+        "status": "pass",
+        "note": ""
+      }
+    ],
+    "REQ-40": [
+      {
+        "criterion": "NECESSARY",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "APPROPRIATE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "UNAMBIGUOUS",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "COMPLETE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "SINGULAR",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "FEASIBLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "VERIFIABLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CORRECT",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CONSISTENT",
+        "status": "pass",
+        "note": ""
+      }
+    ],
+    "REQ-41": [
+      {
+        "criterion": "NECESSARY",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "APPROPRIATE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "UNAMBIGUOUS",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "COMPLETE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "SINGULAR",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "FEASIBLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "VERIFIABLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CORRECT",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CONSISTENT",
+        "status": "pass",
+        "note": ""
+      }
+    ],
+    "REQ-42": [
+      {
+        "criterion": "NECESSARY",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "APPROPRIATE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "UNAMBIGUOUS",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "COMPLETE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "SINGULAR",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "FEASIBLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "VERIFIABLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CORRECT",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CONSISTENT",
+        "status": "fail",
+        "note": "Пример содержит описание ошибки в успешном ответе 200"
+      }
+    ],
+    "REQ-43": [
+      {
+        "criterion": "NECESSARY",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "APPROPRIATE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "UNAMBIGUOUS",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "COMPLETE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "SINGULAR",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "FEASIBLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "VERIFIABLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CORRECT",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CONSISTENT",
+        "status": "pass",
+        "note": ""
+      }
+    ],
+    "REQ-44": [
+      {
+        "criterion": "NECESSARY",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "APPROPRIATE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "UNAMBIGUOUS",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "COMPLETE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "SINGULAR",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "FEASIBLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "VERIFIABLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CORRECT",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CONSISTENT",
+        "status": "pass",
+        "note": ""
+      }
+    ],
+    "REQ-45": [
+      {
+        "criterion": "NECESSARY",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "APPROPRIATE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "UNAMBIGUOUS",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "COMPLETE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "SINGULAR",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "FEASIBLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "VERIFIABLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CORRECT",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CONSISTENT",
+        "status": "pass",
+        "note": ""
+      }
+    ],
+    "REQ-46": [
+      {
+        "criterion": "NECESSARY",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "APPROPRIATE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "UNAMBIGUOUS",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "COMPLETE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "SINGULAR",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "FEASIBLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "VERIFIABLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CORRECT",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CONSISTENT",
+        "status": "pass",
+        "note": ""
+      }
+    ],
+    "REQ-47": [
+      {
+        "criterion": "NECESSARY",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "APPROPRIATE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "UNAMBIGUOUS",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "COMPLETE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "SINGULAR",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "FEASIBLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "VERIFIABLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CORRECT",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CONSISTENT",
+        "status": "pass",
+        "note": ""
+      }
+    ],
+    "REQ-48": [
+      {
+        "criterion": "NECESSARY",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "APPROPRIATE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "UNAMBIGUOUS",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "COMPLETE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "SINGULAR",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "FEASIBLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "VERIFIABLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CORRECT",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CONSISTENT",
+        "status": "pass",
+        "note": ""
+      }
+    ],
+    "REQ-49": [
+      {
+        "criterion": "NECESSARY",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "APPROPRIATE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "UNAMBIGUOUS",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "COMPLETE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "SINGULAR",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "FEASIBLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "VERIFIABLE",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CORRECT",
+        "status": "pass",
+        "note": ""
+      },
+      {
+        "criterion": "CONSISTENT",
+        "status": "pass",
+        "note": ""
+      }
+    ]
+  },
+  "set_analyses": [
+    {
+      "criterion": "SET_CONSISTENT",
+      "status": "fail",
+      "analysis": "Проведено сравнение спецификации REST API и функциональных требований по параметрам, HTTP-методам, типам данных и обработке ошибок. Выявлены прямо противоречащие друг другу требования к HTTP-методу, кодам ответов при ошибках и форматам полей."
+    },
+    {
+      "criterion": "SET_COMPREHENSIBLE",
+      "status": "ok",
+      "analysis": "Проведено сравнение описаний связей системы с карточным процессингом, сервисом настроек и push-уведомлениями. Взаимодействие компонентов и последовательность вызовов изложены понятно и однозначно."
+    },
+    {
+      "criterion": "SET_COMPLETE",
+      "status": "fail",
+      "analysis": "В документе присутствуют незаполненные блоки, заглушки в разделе тестирования и таблицы без данных. Не описаны негативные сценарии при сбоях отправки уведомлений и недоступности смежных сервисов."
+    },
+    {
+      "criterion": "SET_FEASIBLE",
+      "status": "partial",
+      "analysis": "Документ ссылается на REST API, HTTP, JSON, Bearer token, cURL, BPMN и Sequence diagram. Требования соответствуют названным протоколам и форматам, однако из за отсутствия показателей производительности трудно полностью оценить техническую осуществимость."
+    },
+    {
+      "criterion": "SET_VALIDATABLE",
+      "status": "partial",
+      "analysis": "Бизнес цель сформулирована качественно, но критерии приёмки не покрывают сценарии с изменением порога, отключением уведомлений и обработкой ошибок API. Также цель упоминает информирование в момент покупки, а нефункциональное требование допускает задержку до одной минуты."
+    },
+    {
+      "criterion": "SET_RANKED",
+      "status": "fail",
+      "analysis": "В документе отсутствует ранжирование требований по приоритету или стабильности. Ни для функциональных, ни для нефункциональных требований не указана степень важности."
+    },
+    {
+      "criterion": "SET_MODIFIABLE",
+      "status": "ok",
+      "analysis": "Документ разделен на структурные блоки и подразделы. Спецификация REST API вынесена в отдельную часть с атомарным описанием параметров."
+    },
+    {
+      "criterion": "SET_TRACEABLE",
+      "status": "partial",
+      "analysis": "Функциональные требования имеют сквозную нумерацию Ф 1 - Ф 4, а параметры API описаны в таблицах. При этом у самого документа не зафиксированы версия и дата, а нефункциональные требования и разделы интеграции не содержат атомарных идентификаторов."
+    }
+  ],
+  "questions": [
+    {
+      "id": "Q-01",
+      "text": "Какой HTTP-код ответа и формат тела должна возвращать система при невалидной сумме порога?",
+      "addressee": "architect",
+      "options": [
+        {
+          "answer": "HTTP 400 Bad Request с описанием ошибки в JSON",
+          "consequence": "из шага 5 уберут возврат HTTP 200 с ERROR"
+        },
+        {
+          "answer": "HTTP 200 OK с result ERROR в JSON",
+          "consequence": "статус 400 будет исключён из обработки невалидной суммы"
+        }
+      ],
+      "recommended": 1,
+      "why_recommended": "Стандарт REST API требует использовать 4xx для ошибок валидации запроса.",
+      "blocks": "нельзя запрограммировать обработку ошибок валидации суммы в API",
+      "doc_says": "В шаге 5 указан результат ERROR при HTTP 200, а в разделе статусов 400 Bad Request.",
+      "finding_ids": [
+        "S-02",
+        "D-16",
+        "D-21"
+      ],
+      "priority": 9.5,
+      "req_ids": [
+        "REQ-26",
+        "REQ-41",
+        "REQ-42",
+        "REQ-35"
+      ],
+      "quotes": [
+        {
+          "quote": "5. При отклонении суммы вернуть прежнее состояние и результат ERROR.",
+          "line": 121,
+          "status": "exact"
+        },
+        {
+          "quote": "**400.** Ответ в случае, если параметры запроса заполнены неверно.",
+          "line": 163,
+          "status": "exact"
+        },
+        {
+          "quote": "{\"result\":\"ERROR\",\"message\":\"Проверьте сумму\"}",
+          "line": 171,
+          "status": "exact"
+        }
+      ],
+      "source": "model"
+    },
+    {
+      "id": "Q-02",
+      "text": "Каким HTTP-методом должен быть реализован эндпоинт сохранения порога /alerts/saveLimit?",
+      "addressee": "architect",
+      "options": [
+        {
+          "answer": "Методом POST",
+          "consequence": "в спецификации REST type и cURL изменятся на POST"
+        },
+        {
+          "answer": "Методом PUT",
+          "consequence": "в спецификации REST type и cURL изменятся на PUT"
+        }
+      ],
+      "recommended": 1,
+      "why_recommended": "Методы POST и PUT предназначены для изменения данных на сервере по стандарту HTTP.",
+      "blocks": "нельзя разработать и протестировать эндпоинт сохранения порога",
+      "doc_says": "Описание метода указывало чтение, REST type и cURL содержат GET, хотя метод сохраняет данные.",
+      "finding_ids": [
+        "S-01",
+        "D-13"
+      ],
+      "priority": 7.5,
+      "req_ids": [
+        "REQ-16",
+        "REQ-17",
+        "REQ-21"
+      ],
+      "quotes": [
+        {
+          "quote": "| **Description** | Сохранение порога. Функциональные требования: чтение порога |",
+          "line": 103,
+          "status": "exact"
+        },
+        {
+          "quote": "| **REST type** | GET |",
+          "line": 104,
+          "status": "exact"
+        },
+        {
+          "quote": "| **CURL** | `curl -G \"$BASE/alerts/saveLimit\" -H \"Authorization: Bearer $TOKEN\" --data 'cardId=demo-42&amount=50000&enabled=1'` |",
+          "line": 109,
+          "status": "exact"
+        }
+      ],
+      "source": "model"
+    },
+    {
+      "id": "Q-03",
+      "text": "Какой HTTP-код ответа возвращается при попытке изменить настройки чужой карты?",
+      "addressee": "architect",
+      "options": [
+        {
+          "answer": "HTTP 404 Not Found",
+          "consequence": "для защиты от сканирования чужих карт возвращается 404"
+        },
+        {
+          "answer": "HTTP 403 Forbidden",
+          "consequence": "клиент получит явный статус запрета доступа к карте"
+        }
+      ],
+      "recommended": 1,
+      "why_recommended": "Скрытие существования чужой карты через 404 повышает безопасность.",
+      "blocks": "нельзя протестировать и реализовать проверку прав доступа к картам",
+      "doc_says": "В тексте описания 403 указан запрет доступа, а в подразделе возвращается 404.",
+      "finding_ids": [
+        "S-03"
+      ],
+      "priority": 5.5,
+      "req_ids": [
+        "REQ-44",
+        "REQ-48"
+      ],
+      "quotes": [
+        {
+          "quote": "**403.** Ответ в случае, если на указанный ресурс доступ запрещен.",
+          "line": 175,
+          "status": "exact"
+        },
+        {
+          "quote": "Для чужой карты возвращается 404, как и для отсутствующей карты.",
+          "line": 189,
+          "status": "exact"
+        }
+      ],
+      "source": "model"
+    },
+    {
+      "id": "Q-04",
+      "text": "Счётчик какого месяца должен увеличиться, если покупка совершена 31 января, а обработана процессингом 1 февраля?",
+      "addressee": "business",
+      "options": [
+        {
+          "answer": "Января, по дате совершения покупки",
+          "consequence": "пример в критериях приёмки будет исправлен на январь"
+        },
+        {
+          "answer": "Февраля, по дате проведения операции",
+          "consequence": "требование Ф-2 будет изменено на дату проведения"
+        }
+      ],
+      "recommended": 1,
+      "why_recommended": "Требование Ф-2 явно определяет месяц по дате совершения покупки.",
+      "blocks": "нельзя реализовать алгоритм определения месяца для расчёта расходов",
+      "doc_says": "Требование Ф-2 указывает месяц по дате покупки, а пример в критериях увеличивает февральский счётчик.",
+      "finding_ids": [
+        "D-09"
+      ],
+      "priority": 5.25,
+      "req_ids": [
+        "REQ-14"
+      ],
+      "quotes": [
+        {
+          "quote": "| Покупка 31 января в 23:58 на 4 000 ₸ | Провести 1 февраля в 00:03 по Алматы | Февральский счётчик вырос на 4 000 ₸ |",
+          "line": 64,
+          "status": "exact"
+        }
+      ],
+      "source": "model"
+    },
+    {
+      "id": "Q-05",
+      "text": "Какое сообщение об ошибке выводить в UI и следует ли передавать Content-Type для запросов без тела?",
+      "addressee": "analyst",
+      "options": [
+        {
+          "answer": "Указать текст ошибки Введите сумму от 1 000 до 1 000 000 ₸ и удалить Content-Type",
+          "consequence": "дизайн UI получит точный текст ошибки, а API избавится от лишнего заголовка"
+        },
+        {
+          "answer": "Сохранить текущие неопределенные формулировки UI и заголовков",
+          "consequence": "тексты ошибок останутся на усмотрение фронтенд-разработчика"
+        }
+      ],
+      "recommended": 1,
+      "why_recommended": "Спецификация текста ошибки исключит произвольное поведение UI.",
+      "blocks": "нельзя сверстать и протестировать валидацию формы в мобильном приложении",
+      "doc_says": "Текст ошибки под полем не задан, а Content-Type application/json указан при отсутствии тела запроса.",
+      "finding_ids": [
+        "D-01",
+        "D-15",
+        "D-18",
+        "D-20"
+      ],
+      "priority": 8.5,
+      "req_ids": [
+        "REQ-03",
+        "REQ-25",
+        "REQ-27",
+        "REQ-34"
+      ],
+      "quotes": [
+        {
+          "quote": "При ошибке ввода сообщение появляется под полем.",
+          "line": 29,
+          "status": "exact"
+        },
+        {
+          "quote": "вернуть результат сохранения.",
+          "line": 120,
+          "status": "exact"
+        },
+        {
+          "quote": "обе границы включены.",
+          "line": 124,
+          "status": "exact"
+        }
+      ],
+      "source": "model"
+    },
+    {
+      "id": "Q-06",
+      "text": "Должен ли отправляться push при превышении порога, если уведомления отключены или только что включены?",
+      "addressee": "business",
+      "options": [
+        {
+          "answer": "Не отправлять push при enabled=0 и отправлять сразу при включении",
+          "consequence": "при смене enabled на 1 проверится текущий лимит"
+        },
+        {
+          "answer": "Не отправлять push при enabled=0 и при включении ждать новую покупку",
+          "consequence": "push отложится до следующей проведенной покупки"
+        }
+      ],
+      "recommended": null,
+      "why_recommended": null,
+      "blocks": "нельзя реализовать логику проверки флага enabled при отправке push",
+      "doc_says": "В Ф-3 не указана проверка флага enabled и порядок действий при его включении при уже превышенном пороге.",
+      "finding_ids": [
+        "D-03",
+        "S-09"
+      ],
+      "priority": 4.5,
+      "req_ids": [
+        "REQ-07",
+        "REQ-33"
+      ],
+      "quotes": [
+        {
+          "quote": "* **Ф-3.** Когда расходы переходят от суммы ниже порога к сумме, равной порогу или выше, клиент получает push. На карту приходится максимум один такой push за календарный месяц.",
+          "line": 39,
+          "status": "exact"
+        }
+      ],
+      "source": "model"
+    },
+    {
+      "id": "Q-07",
+      "text": "Пересчитываются ли расходы прошлого месяца и сбрасывается ли признак push при возврате покупки?",
+      "addressee": "business",
+      "options": [
+        {
+          "answer": "Пересчитывать прошлый месяц и сбрасывать флаг push при падении ниже порога",
+          "consequence": "клиент сможет получить повторный push в этом месяце"
+        },
+        {
+          "answer": "Пересчитывать прошлый месяц без сброса ранее отправленного push",
+          "consequence": "признак отправки push останется неизменным"
+        }
+      ],
+      "recommended": null,
+      "why_recommended": null,
+      "blocks": "нельзя реализовать обработку операций возврата",
+      "doc_says": "Ф-2 указывает, что возврат уменьшает расходы месяца покупки, но не описаны последствия для push.",
+      "finding_ids": [
+        "S-08",
+        "S-10"
+      ],
+      "priority": 4.5,
+      "req_ids": [
+        "REQ-06",
+        "REQ-07"
+      ],
+      "quotes": [
+        {
+          "quote": "* **Ф-2.** Месяц определяется по дате совершения покупки в Алматы. В расходы входят проведённые покупки. Возврат уменьшает расходы месяца исходной покупки. Переводы и снятие наличных исключаются.",
+          "line": 38,
+          "status": "exact"
+        },
+        {
+          "quote": "* **Ф-3.** Когда расходы переходят от суммы ниже порога к сумме, равной порогу или выше, клиент получает push. На карту приходится максимум один такой push за календарный месяц.",
+          "line": 39,
+          "status": "exact"
+        }
+      ],
+      "source": "model"
+    },
+    {
+      "id": "Q-08",
+      "text": "Отправляется ли push-уведомление при сохранении нового порога, если текущие расходы уже превышают его?",
+      "addressee": "business",
+      "options": [
+        {
+          "answer": "Отправлять push сразу после сохранения нового порога",
+          "consequence": "сохранение порога инициирует проверку и отправку push"
+        },
+        {
+          "answer": "Не отправлять push до следующей покупки выше порога",
+          "consequence": "push отправят только при новой операции"
+        }
+      ],
+      "recommended": null,
+      "why_recommended": null,
+      "blocks": "нельзя реализовать сценарий сохранения порога ниже текущих расходов",
+      "doc_says": "В Ф-4 описан случай, когда расходы ниже нового порога, но упущен случай, когда они уже выше.",
+      "finding_ids": [
+        "D-04",
+        "D-19"
+      ],
+      "priority": 4.5,
+      "req_ids": [
+        "REQ-08",
+        "REQ-29"
+      ],
+      "quotes": [
+        {
+          "quote": "Если она ниже нового порога, следующее достижение вызывает push независимо от истории предыдущей настройки.",
+          "line": 40,
+          "status": "exact"
+        },
+        {
+          "quote": "Изменение порога сохраняет накопленные расходы.",
+          "line": 126,
+          "status": "exact"
+        }
+      ],
+      "source": "model"
+    },
+    {
+      "id": "Q-09",
+      "text": "Как производить сравнение расходов и порога: переводить порог в тиыны или округлять расходы до тенге?",
+      "addressee": "analyst",
+      "options": [
+        {
+          "answer": "Переводить порог в тиыны путём умножения на 100",
+          "consequence": "сравнение выполнится в тиынах без потери точности"
+        },
+        {
+          "answer": "Округлять накопленные расходы до целых тенге",
+          "consequence": "сравнение выполнится в тенге после округления"
+        }
+      ],
+      "recommended": 1,
+      "why_recommended": "Перевод порога в тиыны исключает ошибки округления при сравнении.",
+      "blocks": "нельзя реализовать точное сравнение расходов с порогом",
+      "doc_says": "Покупки хранятся в тиынах, а порог задаётся и хранится в тенге.",
+      "finding_ids": [
+        "S-07"
+      ],
+      "priority": 2.5,
+      "req_ids": [
+        "REQ-05",
+        "REQ-11"
+      ],
+      "quotes": [
+        {
+          "quote": "Хранить идентификатор карты, месяц, идентификатор операции, сумму покупки в тиынах, признак отправки и порог в тенге.",
+          "line": 49,
+          "status": "exact"
+        }
+      ],
+      "source": "model"
+    },
+    {
+      "id": "Q-10",
+      "text": "Как система должна обрабатывать сбои и недоступность push-сервиса при отправке уведомления?",
+      "addressee": "architect",
+      "options": [
+        {
+          "answer": "Повторять отправку с механизмом retry и не ставить признак успеха до доставки",
+          "consequence": "потребуется очередь повторных отправок push"
+        },
+        {
+          "answer": "Считать push отправленным независимо от ответа push-сервиса",
+          "consequence": "ошибки доставки push-сервиса будут игнорироваться"
+        }
+      ],
+      "recommended": 1,
+      "why_recommended": "Механизм retry гарантирует доставку уведомления клиенту.",
+      "blocks": "нельзя запрограммировать обработку ошибок взаимодействия с push-сервисом",
+      "doc_says": "В требованиях не указаны повторные попытки отправки и фиксация ошибки.",
+      "finding_ids": [
+        "S-11"
+      ],
+      "priority": 2.5,
+      "req_ids": [
+        "REQ-07",
+        "REQ-10"
+      ],
+      "quotes": [
+        {
+          "quote": "Сервис передаёт push на отправку в течение минуты после получения события.",
+          "line": 46,
+          "status": "exact"
+        }
+      ],
+      "source": "model"
+    },
+    {
+      "id": "Q-11",
+      "text": "В каком типе данных должно передаваться и возвращаться значение порога в API?",
+      "addressee": "architect",
+      "options": [
+        {
+          "answer": "В типе integer в запросе и ответе",
+          "consequence": "тип поля amount в ответе API изменится на integer"
+        },
+        {
+          "answer": "В типе string в запросе и ответе",
+          "consequence": "тип поля amount в Query-параметрах изменится на string"
+        }
+      ],
+      "recommended": 1,
+      "why_recommended": "Использование integer соответствует числовой природе суммы.",
+      "blocks": "нельзя согласовать схему данных REST API",
+      "doc_says": "В Query-параметрах amount определен как integer 32 bit, а в ответе API как string.",
+      "finding_ids": [
+        "S-12"
+      ],
+      "priority": 2.5,
+      "req_ids": [
+        "REQ-32",
+        "REQ-33",
+        "REQ-37",
+        "REQ-38"
+      ],
+      "quotes": [
+        {
+          "quote": "| `amount` | integer | 32 bit | Да | 1 000–1 000 000 | Порог в тенге | `limit_kzt` |",
+          "line": 143,
+          "status": "exact"
+        },
+        {
+          "quote": "| `amount` | string | При успехе | Порог в тенге | `limit_kzt` |",
+          "line": 156,
+          "status": "exact"
+        }
+      ],
+      "source": "model"
+    },
+    {
+      "id": "Q-12",
+      "text": "Какая целевая пиковая нагрузка (RPS) планируется для сервиса расходов и сервиса настроек?",
+      "addressee": "architect",
+      "options": [
+        {
+          "answer": "Задать целевое значение RPS (например, 500 RPS)",
+          "consequence": "архитектор спроектирует кеширование и масштабирование"
+        },
+        {
+          "answer": "Ограничиться базовой производительностью без проведения НТ",
+          "consequence": "нагрузочное тестирование проводиться не будет"
+        }
+      ],
+      "recommended": 1,
+      "why_recommended": "Чёткие требования к RPS необходимы для выбора архитектуры кеширования.",
+      "blocks": "нельзя провести нагрузочное тестирование и расчёт инфраструктуры",
+      "doc_says": "Требования к производительности и целевой нагрузке отсутствуют.",
+      "finding_ids": [
+        "S-13"
+      ],
+      "priority": 2.25,
+      "req_ids": [
+        "REQ-10"
+      ],
+      "quotes": [
+        {
+          "quote": "Сервис передаёт push на отправку в течение минуты после получения события.",
+          "line": 46,
+          "status": "exact"
+        }
+      ],
+      "source": "model"
+    },
+    {
+      "id": "Q-13",
+      "text": "Какая сумма передается в push-сервис: сумма последней покупки или накопленная сумма расходов за месяц?",
+      "addressee": "analyst",
+      "options": [
+        {
+          "answer": "Накопленная сумма расходов за текущий месяц",
+          "consequence": "в push передаётся и отображается общая сумма расходов"
+        },
+        {
+          "answer": "Сумма последней проведенной покупки",
+          "consequence": "в push передаётся только сумма текущей операции"
+        }
+      ],
+      "recommended": 1,
+      "why_recommended": "Цель фичи информировать о достижении личного бюджета расходов.",
+      "blocks": "нельзя составить контракт интеграции с push-сервисом",
+      "doc_says": "Sequence Diagram упоминает сумму при достижении порога без уточнения типа суммы.",
+      "finding_ids": [
+        "D-05"
+      ],
+      "priority": 2.25,
+      "req_ids": [
+        "REQ-09"
+      ],
+      "quotes": [
+        {
+          "quote": "сумму при достижении порога",
+          "line": 43,
+          "status": "exact"
+        }
+      ],
+      "source": "model"
+    },
+    {
+      "id": "Q-14",
+      "text": "Какой сервис ответственен за передачу push-уведомления на отправку в течение минуты?",
+      "addressee": "architect",
+      "options": [
+        {
+          "answer": "Сервис расходов отправляет событие в push-сервис",
+          "consequence": "сервис расходов отвечает за соблюдение тайм-аута в 1 минуту"
+        },
+        {
+          "answer": "Push-сервис самостоятельно выполняет отправку клиенту",
+          "consequence": "ответственность за интервал в 1 минуту несет push-сервис"
+        }
+      ],
+      "recommended": 1,
+      "why_recommended": "Сервис расходов вычисляет момент достижения порога.",
+      "blocks": "нельзя распределить ответственность между микросервисами",
+      "doc_says": "Раздел нефункциональных требований говорит Сервис передаёт push, не уточняя конкретный компонент.",
+      "finding_ids": [
+        "D-06"
+      ],
+      "priority": 2.25,
+      "req_ids": [
+        "REQ-10"
+      ],
+      "quotes": [
+        {
+          "quote": "Сервис передаёт push",
+          "line": 46,
+          "status": "exact"
+        }
+      ],
+      "source": "model"
+    },
+    {
+      "id": "Q-15",
+      "text": "Требуется ли хранить признак включения уведомления (enabled) в БД сервиса настроек?",
+      "addressee": "analyst",
+      "options": [
+        {
+          "answer": "Добавить поле enabled в структуру хранилища настроек",
+          "consequence": "список хранимых полей пополнится признаком enabled"
+        },
+        {
+          "answer": "Хранить только факт наличия порога без отдельного флага",
+          "consequence": "логика работы API изменится для отключения порога"
+        }
+      ],
+      "recommended": 1,
+      "why_recommended": "Переключатель enabled передаётся в API и должен сохраняться.",
+      "blocks": "нельзя спроектировать схему таблицы базы данных",
+      "doc_says": "Требования к данным не содержат поле enabled, хотя оно передаётся в API.",
+      "finding_ids": [
+        "D-07"
+      ],
+      "priority": 2.25,
+      "req_ids": [
+        "REQ-11"
+      ],
+      "quotes": [
+        {
+          "quote": "Хранить идентификатор карты, месяц, идентификатор операции, сумму покупки в тиынах, признак отправки и порог в тенге.",
+          "line": 49,
+          "status": "exact"
+        }
+      ],
+      "source": "model"
+    }
+  ],
+  "steps": [
+    {
+      "number": "0",
+      "name": "Чтение документа",
+      "status": "ok",
+      "calls": 0,
+      "cache_hits": 0,
+      "retries": 0,
+      "seconds": 0.0,
+      "summary": "строк 198, формат md",
+      "reason": ""
+    },
+    {
+      "number": "3",
+      "name": "Нарезка требований (198 строк)",
+      "status": "ok",
+      "calls": 1,
+      "cache_hits": 0,
+      "retries": 2,
+      "seconds": 41.9,
+      "summary": "требований 49, пропущено фрагментов 53",
+      "reason": ""
+    },
+    {
+      "number": "4",
+      "name": "Проверка каждого требования",
+      "status": "ok",
+      "calls": 9,
+      "cache_hits": 0,
+      "retries": 0,
+      "seconds": 351.2,
+      "summary": "дефектов 22, без проверки 0",
+      "reason": ""
+    },
+    {
+      "number": "5",
+      "name": "Набор требований целиком (три прохода)",
+      "status": "ok",
+      "calls": 3,
+      "cache_hits": 0,
+      "retries": 0,
+      "seconds": 93.2,
+      "summary": "замечаний 14, из них граничных случаев 5, анализов по критериям 8",
+      "reason": ""
+    },
+    {
+      "number": "6",
+      "name": "Нумерация и свёртка замечаний, итог сверки цитат",
+      "status": "ok",
+      "calls": 0,
+      "cache_hits": 0,
+      "retries": 0,
+      "seconds": 0.0,
+      "summary": "замечаний 36, свёрнуто в системные 0; сверка цитат на шагах 4 и 5: точных 40, нечётких 0, не найдено 1; в карантине 0, противоречий только с вопросом 0, отброшено без опоры 0",
+      "reason": ""
+    },
+    {
+      "number": "7",
+      "name": "Критик",
+      "status": "ok",
+      "calls": 1,
+      "cache_hits": 0,
+      "retries": 0,
+      "seconds": 62.6,
+      "summary": "проверено 35 (групп кандидатов на слияние 8): оставлено 28, понижено 2, снято 0, слито 5, без решения 0, отклонено кодом 0",
+      "reason": ""
+    },
+    {
+      "number": "8",
+      "name": "Итог и сводные вопросы",
+      "status": "ok",
+      "calls": 1,
+      "cache_hits": 0,
+      "retries": 0,
+      "seconds": 125.5,
+      "summary": "решение: Не рекомендуется начинать; вопросов 15",
+      "reason": ""
+    },
+    {
+      "number": "9",
+      "name": "Отчёт",
+      "status": "ok",
+      "calls": 0,
+      "cache_hits": 0,
+      "retries": 0,
+      "seconds": 0.0,
+      "summary": "записаны: gemini-free.report.md, gemini-free.report.questions.md, gemini-free.report.json",
+      "reason": ""
+    }
+  ],
+  "json_mode": "parse",
+  "fatal": null,
+  "empty_pages": [],
+  "removed_headers": 0,
+  "fallback_pages": [],
+  "verdict": {
+    "decision": "Не рекомендуется начинать",
+    "ready_for_development": "Нет",
+    "ready_for_testing": "Нет",
+    "rule": "«Не рекомендуется начинать», если есть хотя бы одно замечание CRITICAL, которое не снято критиком и не ушло в карантин из-за ненайденной цитаты. «Условно допускается», если CRITICAL нет, но есть MAJOR. «Допускается», если есть только MINOR или замечаний нет. Готовность к тестированию считается отдельно: «Нет», если есть CRITICAL по проверяемости, однозначности, полноте, согласованности или валидируемости; «Да, с оговорками», если есть другие CRITICAL или MAJOR; иначе «Да». Если отчёт неполный, а CRITICAL не найден, решение «Не вынесен», готовность «Не определена».",
+    "rationale": "Документ содержит критические противоречия в архитектурном описании API и бизнес-логике расчёта расходов. Главные блокирующие проблемы связаны с выбором HTTP-метода и кодов ошибок в REST API (S-01, S-02, S-03), а также расхождением между правилом определения месяца и примером в критериях приёмки (D-09). Неопределённости в обработке возвратов, включения уведомлений и конвертации тенге в тиыны мешают проектированию базы данных и реализации бизнес-логики (S-07, S-08, S-09, S-10). Отсутствие правил обработки ошибок интеграции и параметров производительности блокирует подготовку нагрузочного и системного тестирования (S-04, S-11, S-13).",
+    "top_fixes": [
+      {
+        "finding_ids": [
+          "S-01",
+          "D-12",
+          "D-13"
+        ],
+        "action": "Уточнить HTTP-метод (POST или PUT), URL для Prod и исправить cURL для эндпоинта сохранения порога."
+      },
+      {
+        "finding_ids": [
+          "S-02",
+          "S-03",
+          "D-15",
+          "D-16",
+          "D-21"
+        ],
+        "action": "Согласовать HTTP-коды ответов (200, 400, 403, 404) и убрать возвращение HTTP 200 при ошибках валидации."
+      },
+      {
+        "finding_ids": [
+          "D-09"
+        ],
+        "action": "Привести пример в критериях приёмки в соответствие с правилом определения месяца по дате совершения покупки."
+      },
+      {
+        "finding_ids": [
+          "D-03",
+          "D-04",
+          "D-19",
+          "S-08",
+          "S-09",
+          "S-10"
+        ],
+        "action": "Описать поведение системы при возвратах прошлых периодов, изменении порога и включении уведомлений при превышенном лимите."
+      },
+      {
+        "finding_ids": [
+          "D-05",
+          "D-07",
+          "S-07",
+          "S-12"
+        ],
+        "action": "Привести типы полей, единицы измерения (тенге/тиыны) и список хранимых атрибутов к единой модели данных."
+      },
+      {
+        "finding_ids": [
+          "D-06",
+          "S-11",
+          "S-13"
+        ],
+        "action": "Указать ответственный сервис за отправку push, регламент обработки ошибок push-сервиса и целевую нагрузку RPS."
+      },
+      {
+        "finding_ids": [
+          "S-04",
+          "S-05",
+          "S-06",
+          "S-14",
+          "D-08",
+          "D-14",
+          "D-18",
+          "D-20"
+        ],
+        "action": "Заполнить раздел тестирования, свойства документа, блок согласующих и разделение независимых шагов проверки."
+      }
+    ],
+    "blockers": [
+      "S-01",
+      "S-02",
+      "S-03",
+      "D-09"
+    ],
+    "critic_done": true,
+    "generated_by_model": true,
+    "questions_by_model": true,
+    "partial": false,
+    "partial_reason": null
+  },
+  "grounding": {
+    "exact": 40,
+    "fuzzy": 0,
+    "missing": 1,
+    "dropped_findings": 0,
+    "quarantine": 0,
+    "question_only": 0,
+    "folded": 0
+  },
+  "quality": {
+    "content_lines": 95,
+    "in_requirements": 54,
+    "skipped_by_model": 41,
+    "ids_in_document": 4,
+    "ids_missing": [],
+    "ids_added": [],
+    "dropped_defects": 0,
+    "dropped_checks": 0,
+    "checks_missing": 0,
+    "checks_pass_overridden": 0,
+    "defects_without_question": 0,
+    "severity_raised": 1,
+    "questions_dropped": 0,
+    "questions_merged": 0,
+    "questions_added": 0,
+    "placeholder_lines": [],
+    "placeholder_lines_cited": [],
+    "truncations": 0,
+    "splits": 0,
+    "truncation_retries": 0
+  },
+  "critic": {
+    "done": true,
+    "reviewed": 35,
+    "keep": 28,
+    "downgraded": 2,
+    "dropped": 0,
+    "merged": 5,
+    "no_decision": 0,
+    "rejected": 0,
+    "candidate_groups": 8,
+    "retry_calls": 0,
+    "retry_resolved": 0
+  },
+  "llm": {
+    "calls": 15,
+    "cache_hits": 0,
+    "retries": 2,
+    "repairs": 0,
+    "prompt_tokens": 106681,
+    "completion_tokens": 32743,
+    "total_tokens": 216254,
+    "reasoning_tokens": 76830,
+    "notes": [
+      "модель gemini-3.8-flash: не отвечает (InternalServerError), перехожу на запасную gemini-3.6-flash"
+    ]
+  }
+}
