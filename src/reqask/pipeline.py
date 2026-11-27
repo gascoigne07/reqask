@@ -42,7 +42,7 @@ from .config import Settings
 from .criteria import REQ_CODES, SET_CODES, SEVERITY_ORDER
 from .grounding import TextIndex, clean_quote, distinct_quotes, normalize
 from .lint import lint, placeholders
-from .llm import LLMError, LLMFatal, LLMNetworkError, LLMSchemaError, LLMTruncated
+from .llm import LLMContextTooLong, LLMError, LLMFatal, LLMNetworkError, LLMSchemaError, LLMTruncated
 from .loader import Document
 from .schemas import (
     DIVERGENCE_RAISE,
@@ -233,6 +233,8 @@ def error_reason(exc: Exception, limit: int = 200) -> str:
         kind = "схема"
     elif isinstance(exc, LLMNetworkError):
         kind = "сеть"
+    elif isinstance(exc, LLMContextTooLong):
+        kind = "длина контекста"
     else:
         kind = "другое"
     if len(text) > limit:

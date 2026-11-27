@@ -64,6 +64,10 @@ class LLMNetworkError(LLMError):
     """
 
 
+class LLMContextTooLong(LLMError):
+    """Запрос длиннее окна модели (400 про длину контекста). Повтор не поможет, меньшая порция может."""
+
+
 class LLMFatal(LLMError):
     """Ошибка, которую повтор не исправит.
 
@@ -88,6 +92,13 @@ JSON_ERROR_WORDS = ("response_format", "json_schema", "json_object", "schema", "
 # quotaId «GenerateRequestsPerDayPerProjectPerModel-FreeTier». Минутный лимит Gemini тоже пишет
 # «quota», поэтому одно слово quota признаком суточной не считаем.
 DAILY_WORDS = ("per day", "perday", "daily", "insufficient_quota", "credit balance", "billing")
+# Длина контекста. OpenAI: «This model's maximum context length is N tokens», код context_length_exceeded;
+# Anthropic: «prompt is too long: N tokens > M maximum»; Gemini: «The input token count (N) exceeds the maximum
+# number of tokens allowed (M)».
+CONTEXT_WORDS = ("context_length_exceeded", "maximum context length", "context length", "context window",
+                 "prompt is too long", "input token count", "too many tokens", "exceeds the maximum number of tokens")
+# Тот же текст OpenAI бывает из-за слишком большого max_tokens: тогда это не длина документа.
+OUTPUT_LIMIT_WORDS = ("max_tokens", "max_completion_tokens", "in the completion", "completion tokens")
 AUTH_WORDS = ("api key", "api_key", "apikey", "invalid x-api-key", "authentication")
 # Пока есть запасная модель, на сбои сервера и таймауты текущей тратим не больше стольких повторов (М-10):
 # перегруженная модель держит 503 часами, а каждый повтор идёт в счёт суточной квоты.
@@ -558,6 +569,10 @@ class LLMClient:
             except BadRequestError as exc:
                 text = error_text(exc)
                 low = text.lower()
+                if any(word in low for word in CONTEXT_WORDS) and not any(word in low for word in OUTPUT_LIMIT_WORDS):
+                    raise LLMContextTooLong(
+                        f"[{step}] документ длиннее окна модели, шаг пропущен. Ответ провайдера: {text[:300]}"
+                    ) from exc
                 # Gemini на неверный ключ отвечает 400 INVALID_ARGUMENT «Please pass a valid API key»
                 # (проверено живым вызовом 25.11.2026), а не 401.
                 if any(word in low for word in AUTH_WORDS):

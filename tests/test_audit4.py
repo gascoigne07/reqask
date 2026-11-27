@@ -199,3 +199,83 @@ def test_cp1251_real_requirements_file_is_read(tmp_path):
 def test_wrong_encoding_is_rejected_with_advice(tmp_path, data):
     with pytest.raises(LoadError, match="UTF-8"):
         _load(tmp_path, data)
+
+
+# ---------- 400 про длину контекста ----------
+
+from reqask.llm import LLMContextTooLong, LLMError  # noqa: E402
+from reqask.pipeline import Pipeline  # noqa: E402
+from reqask.schemas import BatchReviewOut, SetReviewOut  # noqa: E402
+from test_core import SETTINGS, FakeLLM, doc  # noqa: E402,F401
+from test_llm import error  # noqa: E402
+
+CONTEXT_400 = [
+    "This model's maximum context length is 128000 tokens. However, your messages resulted in 300000 tokens. "
+    "Please reduce the length of the messages.",
+    "prompt is too long: 250000 tokens > 200000 maximum",
+    "The input token count (1500000) exceeds the maximum number of tokens allowed (1048576).",
+    # слова про схему в том же тексте не уводят в понижение режима
+    "prompt is too long: 250000 tokens > 200000 maximum (response_format json_schema strict)",
+]
+
+
+@pytest.mark.parametrize("message", CONTEXT_400)
+def test_context_length_400_is_own_error_without_downgrade(client_with, message):
+    client, sent, waits = client_with(lambda body, n: (400, error(400, message)), provider="anthropic")
+    with pytest.raises(LLMContextTooLong, match="документ длиннее окна модели"):
+        client.complete_json("набор", "s", "u", OneOut)
+    assert len(sent) == 1 and waits == []
+    assert client._modes_for(OneOut)[0] == "parse" and client.stats.notes == []
+
+
+def test_openai_max_tokens_400_is_still_a_downgrade(client_with):
+    """Тот же текст OpenAI из-за слишком большого max_tokens: не длина документа, лимит вывода убирается."""
+    def handler(body, n):
+        if "max_tokens" in body:
+            return 400, error(400, "max_tokens is too large: 99999. This model's maximum context length is 8192 "
+                                   "tokens. However, you requested 9000 tokens (1000 in the messages, 8000 in the completion).")
+        return 200, completion(ONE)
+
+    client, sent, _ = client_with(handler, provider="openai")
+    assert client.complete_json("шаг", "s", "u", OneOut).answer == "ок"
+    assert "max_tokens" not in sent[-1] and any("max_tokens" in n for n in client.stats.notes)
+
+
+class _TooLong(FakeLLM):
+    """Проходы по набору и порции из нескольких требований не помещаются в окно модели."""
+
+    def __init__(self):
+        super().__init__()
+        self.set_calls = 0
+
+    def complete_json(self, step, system, user, schema, kind="", **opts):
+        if schema is SetReviewOut:
+            self.set_calls += 1
+            self.steps.append(step)
+            raise LLMContextTooLong(f"[{step}] документ длиннее окна модели, шаг пропущен. Ответ провайдера: x")
+        return super().complete_json(step, system, user, schema, kind)
+
+
+def test_context_too_long_is_reported_and_set_pass_not_repeated(doc):
+    llm = _TooLong()
+    result = Pipeline(llm, SETTINGS).run(doc, "test")
+    set_failures = [s for s in result.failed_steps if s.startswith("набор")]
+    assert set_failures and all("документ длиннее окна модели" in s for s in set_failures)
+    assert llm.set_calls == len(set_failures)  # по одному вызову на проход, без повторов
+    assert result.fatal is None
+
+
+def test_context_too_long_splits_review_batch(doc):
+    class Big(FakeLLM):
+        calls = 0
+
+        def complete_json(self, step, system, user, schema, kind="", **opts):
+            if schema is BatchReviewOut:
+                Big.calls += 1
+                if Big.calls == 1:
+                    self.steps.append(step)
+                    raise LLMContextTooLong("[проверка] документ длиннее окна модели, шаг пропущен")
+            return super().complete_json(step, system, user, schema, kind)
+
+    result = Pipeline(Big(), SETTINGS).run(doc, "test")
+    assert Big.calls == 3 and result.unreviewed == []
