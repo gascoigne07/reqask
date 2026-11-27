@@ -117,10 +117,15 @@ def _first_sentence(text: str, limit: int) -> str:
         end = text.find(". ", start)
         if not 0 < end < limit:
             return text
-        word = text[:end].rsplit(None, 1)[-1].lower().lstrip("(«\"'") if text[:end].strip() else ""
+        head = text[:end]
+        word = head.rsplit(None, 1)[-1].lower().lstrip("(«\"'") if head.strip() else ""
         following = text[end + 2: end + 3]
         # Однобуквенное слово перед точкой: инициал, «т. е.», «т. д.», «г.». Строчная буква или цифра дальше: фраза продолжается.
-        if (len(word) == 1 and word.isalpha()) or word in _ABBREVIATIONS or following.islower() or following.isdigit():
+        # Точка внутри незакрытой кавычки («12. Общие сведения») или номер в начале текста («12. Ответ») не конец фразы.
+        quoted = head.count("«") > head.count("»")
+        number_first = word.isdigit() and len(head.split()) == 1
+        if ((len(word) == 1 and word.isalpha()) or word in _ABBREVIATIONS or following.islower() or following.isdigit()
+                or quoted or number_first):
             start = end + 2
             continue
         return text[: end + 1]
@@ -538,8 +543,15 @@ class _Report:
 
     def _statuses(self, x: Requirement) -> tuple[list, dict]:
         checks = {c.criterion: c for c in self.r.checks.get(x.id, [])}
-        visible = [c for c in REQ_CRITERIA if c.group == "core" or checks.get(c.code) and checks[c.code].status == "fail"]
         statuses = {c.code: (checks[c.code].status if checks.get(c.code) else "pass") for c in REQ_CRITERIA}
+        # Критик снял все замечания требования по критерию: нарушения больше нет, показываем «выполнен».
+        # Слитое, карантин и question_only остаются нарушением (дефект описан в другом месте или не проверен).
+        own = self.req_findings.get(x.id, [])
+        for code, status in statuses.items():
+            by_code = [f for f in own if f.criterion == code]
+            if status == "fail" and by_code and all(f.status == "dropped" for f in by_code):
+                statuses[code] = "pass"
+        visible = [c for c in REQ_CRITERIA if c.group == "core" or statuses[c.code] == "fail"]
         return visible, {"checks": checks, "statuses": statuses}
 
     def _notes(self, x: Requirement, explained: set[str], with_na: bool = True) -> list[str]:
