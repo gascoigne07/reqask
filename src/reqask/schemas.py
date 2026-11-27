@@ -458,6 +458,8 @@ class StepStat(BaseModel):
 
 
 class RunResult(BaseModel):
+    # Версия формата report.json: старые файлы без поля читаются как версия 1.
+    schema_version: int = 1
     document_name: str
     document_format: str
     document_lines: int

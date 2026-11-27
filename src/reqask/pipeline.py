@@ -1431,6 +1431,7 @@ class Pipeline:
         lost = f"; идентификаторы документа вне нарезки: {', '.join(self.quality.ids_missing)}" if self.quality.ids_missing else ""
         added = f"; добавлено кодом по идентификаторам: {', '.join(self.quality.ids_added)}" if self.quality.ids_added else ""
         self._end(mark, f"требований {len(requirements)}, пропущено фрагментов {len(self.skipped)}{added}{lost}")
+        self.log(f"    дальше примерно {-(-len(requirements) // self.s.batch_size) + (3 if self.s.edge else 2) + int(self.s.critic) + 1} обращений к модели")
         index = TextIndex(doc)
 
         mark = self._begin("4", STEP_NAMES["4"])
