@@ -1,17 +1,15 @@
-"""Находки аудита по командной строке: пробная запись, каталог на входе, один и тот же файл, --render, --dry-run."""
+"""Файлы командной строки: пробная запись, каталог на входе, один и тот же файл, --render, --dry-run."""
 
 import os
-import sys
-from pathlib import Path
 
 import pytest
 
-from reqask import cli, report, report_html
+from reqask import cli, report_html
 from reqask.report import _first_sentence
 from reqask.schemas import RunResult
 
-from test_cli import run, use, workdir  # noqa: F401  фикстура workdir
-from test_core import FakeLLM
+from helpers import run, use
+from helpers import FakeLLM
 
 
 def _full_run(workdir, monkeypatch, *extra):

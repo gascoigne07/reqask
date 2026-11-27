@@ -1,84 +1,12 @@
 """Клиент модели против локального HTTP-сервера: ошибки, повторы, понижение режима, обрезка."""
 
 import json
-import threading
-from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 import pytest
-from pydantic import BaseModel
 
-from reqask.config import Settings
-from reqask.llm import LLMClient, LLMError, LLMFatal, LLMTruncated
+from reqask.llm import LLMError, LLMFatal, LLMTruncated
 
-
-class OneOut(BaseModel):
-    answer: str
-
-
-class TwoOut(BaseModel):
-    value: str
-
-
-ONE = '{"answer": "ок"}'
-TWO = '{"value": "ок"}'
-
-
-def completion(content: str, finish: str = "stop") -> dict:
-    return {
-        "id": "1", "object": "chat.completion", "created": 0, "model": "m",
-        "choices": [{"index": 0, "finish_reason": finish, "message": {"role": "assistant", "content": content}}],
-        "usage": {"prompt_tokens": 10, "completion_tokens": 5, "total_tokens": 15},
-    }
-
-
-def error(code: int, message: str, **extra) -> dict:
-    return {"error": {"code": code, "message": message, **extra}}
-
-
-@pytest.fixture
-def client_with():
-    """handler(тело, номер запроса) -> (код, тело) или (код, тело, заголовки). Паузы не ждём, а записываем."""
-    servers = []
-
-    def make(handler, provider="gemini", **overrides):
-        sent: list[dict] = []
-
-        class Handler(BaseHTTPRequestHandler):
-            def do_POST(self):
-                body = json.loads(self.rfile.read(int(self.headers["content-length"])))
-                sent.append(body)
-                status, payload, *rest = handler(body, len(sent))
-                data = json.dumps(payload).encode("utf-8")
-                self.send_response(status)
-                self.send_header("content-type", "application/json")
-                self.send_header("content-length", str(len(data)))
-                for name, value in (rest[0] if rest else {}).items():
-                    self.send_header(name, value)
-                self.end_headers()
-                self.wfile.write(data)
-
-            def log_message(self, *args):
-                pass
-
-        server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
-        threading.Thread(target=server.serve_forever, daemon=True).start()
-        servers.append(server)
-        params = {"cache_dir": None, "max_retries": 5, **overrides}
-        settings = Settings(provider=provider, base_url=f"http://127.0.0.1:{server.server_port}/v1/", api_key="x",
-                            model="m", **params)
-        client = LLMClient(settings)
-        waits: list[float] = []
-        client._sleep = waits.append
-        return client, sent, waits
-
-    yield make
-    for server in servers:
-        server.shutdown()
-        server.server_close()
-
-
-def ask(client, schema=OneOut, **kw):
-    return client.complete_json("шаг", "system", "user", schema, kind="review", **kw)
+from helpers import ONE, OneOut, TWO, TwoOut, ask, completion, error
 
 
 def test_temperature_goes_only_to_non_gemini(client_with):

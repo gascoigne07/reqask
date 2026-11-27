@@ -4,7 +4,7 @@ from reqask import cli
 from reqask.compare import SAME_DOC, compare, render_compare
 from reqask.schemas import Evidence
 
-from test_report_audit import _f, _req, _result
+from helpers import _f, _req, _result
 
 
 def _reqs(shift: int = 0):

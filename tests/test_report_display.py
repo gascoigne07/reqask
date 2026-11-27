@@ -1,9 +1,9 @@
-"""Правки показа в report.py: конец предложения у числа в кавычках, оценка при снятом критиком замечании."""
+"""Показ в report.py: конец предложения у числа в кавычках, оценка при снятом критиком замечании."""
 
 from reqask.pipeline import Pipeline
 from reqask.report import _Report, _first_sentence, render
 
-from test_core import SETTINGS, FakeLLM, doc  # noqa: F401  фикстура doc нужна тестам ниже
+from helpers import SETTINGS, FakeLLM
 
 
 def test_first_sentence_keeps_number_inside_quotes_and_heading_number():

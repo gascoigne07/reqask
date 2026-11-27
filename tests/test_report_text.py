@@ -1,37 +1,13 @@
-"""Правки отчёта по аудиту сдачи: счётчик дефектов, дубль блокеров, сокращения, слияния, паспорт, вердикт."""
+"""Текст отчёта: счётчик дефектов, дубль блокеров, сокращения, слияния, паспорт, вердикт."""
 
 import pytest
 
 from reqask.report import _first_sentence, _gist, render, render_questions
 from reqask.schemas import (
-    CriterionCheck, Evidence, Finding, GroundingStats, LLMStats, Question, Requirement, RunResult, StepStat, Verdict,
+    CriterionCheck, LLMStats, Question, StepStat, Verdict,
 )
 
-
-def _req(n: int, line: int, quote: str = "Система сохраняет порог.") -> Requirement:
-    return Requirement(id=f"REQ-0{n}", source_id=None, section="Раздел", line_start=line, line_end=line,
-                       kind="functional", summary="суть", quote=quote)
-
-
-def _f(fid: str, scope: str, lines: list[int], req_ids: list[str], severity: str = "MAJOR", **kw) -> Finding:
-    return Finding(id=fid, scope=scope, criterion="COMPLETE" if scope == "requirement" else "SET_COMPLETE",
-                   severity=severity, req_ids=req_ids, problem=kw.pop("problem", f"Проблема {fid}."),
-                   recommendation="Исправить.", evidence=[Evidence(quote=f"цитата {n}", line=n) for n in lines], **kw)
-
-
-def _result(findings: list[Finding], requirements: list[Requirement] | None = None, **kw) -> RunResult:
-    reqs = requirements or [_req(1, 10), _req(2, 20), _req(3, 30), _req(4, 40)]
-    blockers = [f.id for f in sorted((f for f in findings if f.severity == "CRITICAL" and f.status in ("confirmed", "unreviewed")),
-                                     key=lambda f: f.scope != "set")]
-    verdict = kw.pop("verdict", None) or Verdict(
-        decision="Не рекомендуется начинать" if blockers else "Условно допускается", ready_for_development="Нет",
-        ready_for_testing="Нет", rule="правило", rationale="обоснование", blockers=blockers, critic_done=True)
-    return RunResult(
-        document_name="doc.md", document_format="md", document_lines=50, document_sha256="0" * 64,
-        started_at="2026-11-27 10:00:00 +0500", provider="custom", model="fake", agent_version="test",
-        requirements=reqs, findings=findings, verdict=verdict, grounding=GroundingStats(),
-        llm=kw.pop("llm", None) or LLMStats(), **kw,
-    )
+from helpers import _f, _req, _result
 
 
 def _row(report: str, name: str) -> str:

@@ -1,14 +1,13 @@
-"""Правки по ревью кода 27.11 (audit3.md, раздел «Ревью кода», пункты 1-14)."""
+"""Сбои прогона: фатальные ошибки модели, сетевые обрывы, совпадение путей, ключ в ошибках, старые json."""
 
-from pathlib import Path
 
 import pytest
 
 from reqask import cli
 from reqask.schemas import BatchReviewOut, SegmentationOut
 
-from test_cli import FatalAt, run, use, workdir  # noqa: F401  фикстура workdir нужна тестам ниже
-from test_core import FakeLLM, doc  # noqa: F401
+from helpers import FatalAt, run, use
+from helpers import FakeLLM
 
 
 # ---------- 1. фатальная ошибка до первого ответа не трогает прежний отчёт ----------
@@ -52,8 +51,8 @@ from openai.types.chat import ChatCompletion  # noqa: E402
 from reqask.llm import LLMClient, LLMError, LLMFatal, LLMNetworkError, LLMTruncated  # noqa: E402
 from reqask.pipeline import Pipeline  # noqa: E402
 
-from test_core import SETTINGS  # noqa: E402
-from test_llm import ONE, OneOut, client_with, completion, error  # noqa: E402,F401
+from helpers import SETTINGS  # noqa: E402
+from helpers import ONE, OneOut, completion, error  # noqa: E402
 
 
 class _Batches(FakeLLM):
@@ -285,7 +284,7 @@ def test_critic_context_of_long_document_keeps_lines(tmp_path):
 
 def test_id_recovery_only_for_known_prefixes(tmp_path):
     from reqask.loader import load_document
-    from test_audit_fixes import _Seg, _settings
+    from helpers import _Seg, _settings
 
     path = tmp_path / "spec.md"
     path.write_text(
@@ -345,7 +344,7 @@ def test_pdf_page_that_breaks_pdfplumber_is_read_by_pypdf(tmp_path, monkeypatch)
 from reqask.report import render_questions  # noqa: E402
 from reqask.schemas import Question  # noqa: E402
 
-from test_report_audit import _f, _result  # noqa: E402
+from helpers import _f, _result  # noqa: E402
 
 
 def test_fold_by_code_is_not_called_critic_merge():

@@ -11,8 +11,8 @@ from reqask.report import render
 from reqask.report_html import render_html
 from reqask.schemas import BatchReviewOut, RunResult, SegmentationOut
 
-from test_cli import run, use, workdir  # noqa: F401  фикстура workdir нужна тестам командной строки
-from test_core import SETTINGS, FakeLLM, doc  # noqa: F401  фикстура doc нужна тестам ниже
+from helpers import run, use
+from helpers import SETTINGS, FakeLLM
 
 EVIL = "<script>alert(1)</script> \"><img src=x onerror=1> & `код` 'кавычки'"
 

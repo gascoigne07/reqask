@@ -1,4 +1,4 @@
-"""Находки аудита кода: границы настроек, ключ в repr, загрузчик, кэш, длина контекста, внедрение инструкций."""
+"""Границы настроек, ключ в repr, загрузчик, кэш, длина контекста, внедрение инструкций."""
 
 import os
 
@@ -48,7 +48,7 @@ def test_api_key_not_in_repr():
 
 from pathlib import Path  # noqa: E402
 
-from reqask.loader import Document, Line, LoadError, load_document  # noqa: E402
+from reqask.loader import LoadError, load_document  # noqa: E402
 
 
 def test_is_heading_matches_headings_list(tmp_path):
@@ -63,7 +63,7 @@ def test_is_heading_matches_headings_list(tmp_path):
 
 def test_check_ids_keeps_order_without_duplicates(tmp_path):
     from reqask.pipeline import Pipeline
-    from test_core import SETTINGS, FakeLLM
+    from helpers import SETTINGS, FakeLLM
 
     path = tmp_path / "d.md"
     path.write_text("FR-1. Система должна А.\nFR-2. Система должна Б.\nFR-1. Система должна В.\n", encoding="utf-8")
@@ -117,7 +117,7 @@ def test_docx_separator_is_table_separator_for_loader(tmp_path):
 
 # ---------- кэш ответов ----------
 
-from test_llm import ONE, OneOut, client_with, completion  # noqa: E402,F401
+from helpers import ONE, OneOut, completion  # noqa: E402
 
 
 def _cached_client(client_with, cache_dir, logs=None):
@@ -203,11 +203,11 @@ def test_wrong_encoding_is_rejected_with_advice(tmp_path, data):
 
 # ---------- 400 про длину контекста ----------
 
-from reqask.llm import LLMContextTooLong, LLMError  # noqa: E402
+from reqask.llm import LLMContextTooLong  # noqa: E402
 from reqask.pipeline import Pipeline  # noqa: E402
 from reqask.schemas import BatchReviewOut, SetReviewOut  # noqa: E402
-from test_core import SETTINGS, FakeLLM, doc  # noqa: E402,F401
-from test_llm import error  # noqa: E402
+from helpers import SETTINGS, FakeLLM  # noqa: E402
+from helpers import error  # noqa: E402
 
 CONTEXT_400 = [
     "This model's maximum context length is 128000 tokens. However, your messages resulted in 300000 tokens. "

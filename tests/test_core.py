@@ -5,7 +5,6 @@ import re
 from dataclasses import replace
 import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-from pathlib import Path
 
 import pytest
 from pydantic import BaseModel
@@ -25,147 +24,18 @@ from reqask.schemas import (
     CriticOut,
     LLMStats,
     SegmentationOut,
-    EdgeReviewOut,
     SetReviewOut,
     FinalOut,
     TopFix,
 )
 
-DOC = """# Библиотечный каталог
-
-## Требования
-* **FR-1.** Система должна быстро показывать результаты поиска книги.
-* **FR-2.** Читатель может взять на руки не больше 5 книг.
-
-## Данные
-
-| Поле | Тип |
-| :--- | :--- |
-| `max_books` | Не больше 3 книг на читателя, integer |
-
-## Тестирование
-заполняется позже
-"""
+from helpers import DOC, FakeLLM, SETTINGS, _question, _set_finding
 
 class SimpleOut(BaseModel):
     """Простая схема для тестов клиента модели."""
 
     rationale: str
     top_fixes: list[TopFix]
-
-
-SETTINGS = Settings(provider="fake", base_url=None, api_key="x", model="fake-model", cache_dir=None, max_retries=0)
-
-
-@pytest.fixture
-def doc(tmp_path: Path):
-    path = tmp_path / "spec.md"
-    path.write_text(DOC, encoding="utf-8")
-    return load_document(path)
-
-
-def _defect(criterion, severity, evidence, question=None, addressee=None, line=None):
-    return {"criterion": criterion, "severity": severity, "evidence": evidence, "line": line,
-            "problem": "п", "impact": "и", "recommendation": "р", "question": question, "addressee": addressee}
-
-
-def _set_finding(kind, criterion, severity, title, evidence, req_ids=(), question=None, section=None, addressee=None,
-                 divergence="none"):
-    return {"kind": kind, "criterion": criterion, "severity": severity, "title": title, "req_ids": list(req_ids),
-            "section": section, "evidence": [{"quote": q, "line": None} for q in evidence], "problem": "п",
-            "impact": "и", "recommendation": "р", "question": question, "addressee": addressee,
-            "divergence": divergence}
-
-
-def _question(ids, n_options, recommended=None, addressee=None):
-    return {"text": f"Вопрос про {ids[0]}?", "addressee": addressee,
-            "options": [{"answer": f"вариант {i}", "consequence": "правка"} for i in range(1, n_options + 1)],
-            "recommended": recommended, "why_recommended": "так проще" if recommended else None,
-            "blocks": "нельзя реализовать", "doc_says": None, "finding_ids": list(ids)}
-
-
-class FakeLLM:
-    """Отдаёт заранее заданные ответы по типу схемы, как это делала бы модель."""
-
-    def __init__(self):
-        self.stats = LLMStats()
-        self.steps: list[str] = []
-        self.users: list[str] = []
-
-    def complete_json(self, step, system, user, schema, kind=""):
-        self.steps.append(step)
-        self.users.append(user)
-        self.stats.calls += 1
-        if schema is SegmentationOut:
-            return SegmentationOut.model_validate({"requirements": [
-                {"line_start": 4, "line_end": 4, "source_id": "FR-1.", "section": "Требования",
-                 "kind": "nonfunctional", "summary": "Быстрый поиск"},
-                {"line_start": 5, "line_end": 5, "source_id": "FR-2", "section": "Требования",
-                 "kind": "data", "summary": "Число книг на руках"},
-                {"line_start": 9, "line_end": 11, "source_id": None, "section": "Данные",
-                 "kind": "странный", "summary": "Поле max_books"},
-            ], "skipped": [{"line_start": 13, "line_end": 14, "reason": "Template"}]})
-        if schema is BatchReviewOut:
-            return BatchReviewOut.model_validate({"reviews": [
-                {"req_id": "REQ-001", "checks": [
-                    {"criterion": "verifiable", "status": "fail", "note": "нет числа"},
-                    {"criterion": "COMPLETE", "status": "fail", "note": "дефект не описан"},
-                    {"criterion": "NECESSARY", "status": "NA", "note": "не применим"},
-                    {"criterion": "STYLE", "status": "fail", "note": "нет такого критерия"},
-                    {"criterion": "SINGULAR", "status": "Pass", "note": ""},
-                ], "defects": [
-                    _defect("verifiable", "critical", "«быстро показывать»", "Какое время ответа, в секундах?", "Business"),
-                    _defect("STYLE", "MAJOR", "быстро показывать результаты", "лишний вопрос", "qa"),
-                ], "rewritten": "Система отвечает за <N секунд>."},
-                {"req_id": "REQ-2", "checks": [
-                    {"criterion": "UNAMBIGUOUS", "status": "pass", "note": "лишнее пояснение"},
-                ], "defects": [
-                    _defect("UNAMBIGUOUS", "MINOR", "такого текста в документе нет совсем"),
-                ], "rewritten": None},
-                {"req_id": "REQ-03", "checks": [], "defects": [], "rewritten": None},
-            ]})
-        if schema is SetReviewOut:
-            if "согласованность" in step:
-                return SetReviewOut.model_validate({
-                    "analyses": [{"criterion": "SET_CONSISTENT", "status": "fail", "analysis": "Сравнил число книг."},
-                                 {"criterion": "SET_COMPLETE", "status": "ok", "analysis": "чужой критерий"}],
-                    "findings": [_set_finding(
-                        "contradiction", "SET_CONSISTENT", "CRITICAL", "Разное число книг",
-                        ["Читатель может взять на руки не больше 5 книг", "Не больше 3 книг на читателя, integer",
-                         "выдуманная цитата абсолютно"],
-                        req_ids=["REQ-002", "REQ-3", "REQ-999"], question="Сколько книг можно взять: 3 или 5?",
-                        addressee="business",
-                    )]})
-            return SetReviewOut.model_validate({
-                "analyses": [{"criterion": "SET_COMPLETE", "status": "partial", "analysis": "Раздел тестов пуст."}],
-                "findings": [
-                    _set_finding("gap", "SET_COMPLETE", "MAJOR", "Пустой раздел", ["заполняется позже"],
-                                 question="Кто и когда заполнит раздел тестирования?"),
-                    _set_finding("other", "SET_RANKED", "MINOR", "Без опоры", ["нет такой цитаты нигде вообще"]),
-                    _set_finding("gap", "SET_COMPLETE", "MAJOR", "Нет требований к доступу", [],
-                                 question="Кто может менять лимит книг?", section="Требования", addressee="security"),
-                    _set_finding("gap", "SET_COMPLETE", "MAJOR", "Пробел без места", [], question="Вопрос?"),
-                ]})
-        if schema is EdgeReviewOut:
-            # По умолчанию граничных случаев нет: остальные тесты считают замечания первых двух проходов.
-            return EdgeReviewOut.model_validate({"findings": []})
-        if schema is CriticOut:
-            # По умолчанию критик оставляет все замечания из списка как есть.
-            ids = re.findall(r"^([DS]-\d+) \|", user, re.MULTILINE)
-            return CriticOut.model_validate({"decisions": [
-                {"finding_id": i, "action": "keep", "severity": None, "into": None, "reason": "верно"} for i in ids]})
-        if schema is FinalOut:
-            return FinalOut.model_validate({"rationale": "Есть блокеры.", "top_fixes": [
-                {"finding_ids": ["S-01", "X-404"], "action": "Оставить одно число."},
-                {"finding_ids": ["нет"], "action": "Мимо."},
-            ], "questions": [
-                _question(["S-01", "D-99"], 2, recommended=1, addressee="business"),
-                _question(["s-01"], 3),  # тот же набор замечаний: сливается с первым
-                _question(["S-02", "S-03"], 1),  # один вариант: отброшен
-                _question(["X-1"], 2),  # нет существующих замечаний: отброшен
-                _question(["S-02"], 5, recommended=7),  # вариантов больше четырёх, номер рекомендации мимо
-            ]})
-        raise AssertionError(schema)
 
 
 def test_loader_sections_and_content(doc):

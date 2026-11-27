@@ -1,37 +1,10 @@
 """Командная строка: коды возврата, частичный отчёт, вывод не в Markdown, ошибка записи."""
 
-from pathlib import Path
-
-import pytest
 
 from reqask import cli
-from reqask.llm import LLMFatal
 from reqask.schemas import BatchReviewOut, FinalOut, SegmentationOut
 
-from test_core import DOC, FakeLLM
-
-
-@pytest.fixture
-def workdir(tmp_path: Path, monkeypatch):
-    """Чистая папка без .env: настройки только из переменных, кэш выключен, сети нет."""
-    monkeypatch.chdir(tmp_path)
-    for name in ("GEMINI_API_KEY", "ANTHROPIC_API_KEY", "OPENAI_API_KEY", "OLLAMA_MODEL", "LLM_BASE_URL", "LLM_API_KEY"):
-        monkeypatch.delenv(name, raising=False)
-    monkeypatch.setenv("LLM_BASE_URL", "http://127.0.0.1:9/v1/")
-    monkeypatch.setenv("LLM_API_KEY", "x")
-    monkeypatch.setenv("LLM_MODEL", "fake")
-    monkeypatch.setenv("REQASK_CACHE_DIR", "")
-    (tmp_path / "spec.md").write_text(DOC, encoding="utf-8")
-    return tmp_path
-
-
-def use(monkeypatch, llm):
-    monkeypatch.setattr(cli, "LLMClient", lambda settings, log=None: llm)
-    return llm
-
-
-def run(*extra):
-    return cli.main(["-i", "spec.md", "-o", "out/report.md", "-q", *extra])
+from helpers import FakeLLM, FatalAt, run, use
 
 
 def test_full_report_is_code_0(workdir, monkeypatch):
@@ -45,17 +18,6 @@ def test_full_report_is_code_0(workdir, monkeypatch):
 def test_fail_on_critical_is_code_10(workdir, monkeypatch):
     use(monkeypatch, FakeLLM())
     assert run("--fail-on-critical") == cli.EXIT_CRITICAL  # в заглушке есть CRITICAL
-
-
-class FatalAt(FakeLLM):
-    def __init__(self, schema, kind):
-        super().__init__()
-        self.fatal_schema, self.kind = schema, kind
-
-    def complete_json(self, step, system, user, schema, kind="", **opts):
-        if schema is self.fatal_schema:
-            raise LLMFatal("суточная квота исчерпана", kind=self.kind)
-        return super().complete_json(step, system, user, schema, kind)
 
 
 def test_fatal_on_last_step_gives_partial_report_code_3(workdir, monkeypatch):

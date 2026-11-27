@@ -1,4 +1,4 @@
-"""Правила промптов второй волны: нарезка размытых требований, общие фразы вместо случаев
+"""Правила промптов: нарезка размытых требований, общие фразы вместо случаев
 одного документа, сверка пересказа строк. Классы граничных случаев: отдельный третий проход шага 5."""
 
 from dataclasses import replace
@@ -8,7 +8,7 @@ from reqask.llm import LLMError, LLMTruncated
 from reqask.pipeline import EDGE_STEP, Pipeline
 from reqask.schemas import EdgeReviewOut, SetReviewOut
 
-from test_core import SETTINGS, FakeLLM, _set_finding, doc  # noqa: F401  (doc это фикстура)
+from helpers import SETTINGS, FakeLLM, _set_finding
 
 EDGE_CLASSES = ("величины:", "границы диапазонов:", "время:", "состояние:", "операции:", "классификация:",
                 "смежные системы:", "одновременность:", "количество:", "права:")

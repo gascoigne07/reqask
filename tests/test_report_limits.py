@@ -5,7 +5,7 @@ from reqask.report import LIMITS, LIMITS_TITLE, PASS_LABEL, render, segmentation
 from reqask.report_html import render_html
 from reqask.schemas import QualityStats
 
-from test_report_audit import _f, _req, _result
+from helpers import _f, _req, _result
 
 
 def _with_ids():

@@ -1,7 +1,6 @@
-"""Правки по аудиту кода 27.11: крайние входы, аргументы, ответы не в формате API, шаги конвейера."""
+"""Крайние входы, аргументы, ответы не в формате API, шаги конвейера."""
 
 import os
-from pathlib import Path
 
 import pytest
 
@@ -9,8 +8,7 @@ from reqask import cli
 from reqask.config import ConfigError, load_settings
 from reqask.loader import LoadError, load_document
 
-from test_cli import run, use, workdir  # noqa: F401  фикстура workdir нужна тестам ниже
-from test_core import FakeLLM, doc  # noqa: F401
+from helpers import FakeLLM, ONE, OneOut, SETTINGS, _Seg, _settings, ask, completion, run, use
 
 
 # ---------- вход (В-2, С-2, Н-2) ----------
@@ -115,7 +113,6 @@ def test_unexpected_error_is_message_and_code_1(workdir, monkeypatch, capsys):
 # ---------- клиент модели (В-4, В-5) ----------
 
 from reqask.llm import LLMFatal  # noqa: E402
-from test_llm import ONE, OneOut, ask, client_with, completion  # noqa: E402,F401
 
 
 @pytest.mark.parametrize("mode", ["parse", "none"])
@@ -138,7 +135,6 @@ def test_cache_key_follows_model_that_answered(client_with, tmp_path):
 
 
 def test_result_names_the_model_that_answered(doc):
-    from test_core import SETTINGS
     from reqask.pipeline import Pipeline
 
     llm = FakeLLM()
@@ -156,32 +152,7 @@ import inspect  # noqa: E402
 
 from reqask.llm import LLMError  # noqa: E402
 from reqask.pipeline import NO_REQUIREMENTS, STEP_NAMES, Pipeline, _with_trailing_dash, tidy  # noqa: E402
-from reqask.schemas import CriticOut, FinalOut, Finding, Question, SegmentationOut  # noqa: E402
-
-
-class _Seg(FakeLLM):
-    """Нарезка с заданным ответом, остальное как у FakeLLM."""
-
-    def __init__(self, seg: dict | Exception, critic: Exception | None = None):
-        super().__init__()
-        self.seg, self.critic_error = seg, critic
-
-    def complete_json(self, step, system, user, schema, kind=""):
-        if schema is SegmentationOut:
-            self.steps.append(step)
-            self.stats.calls += 1
-            if isinstance(self.seg, Exception):
-                raise self.seg
-            return SegmentationOut.model_validate(self.seg)
-        if schema is CriticOut and self.critic_error:
-            self.steps.append(step)
-            raise self.critic_error
-        return super().complete_json(step, system, user, schema, kind)
-
-
-def _settings():
-    from test_core import SETTINGS
-    return SETTINGS
+from reqask.schemas import Finding, Question, SegmentationOut  # noqa: E402
 
 
 def test_steps_numbered_as_in_log_and_decide_has_no_dead_parameter(doc):
