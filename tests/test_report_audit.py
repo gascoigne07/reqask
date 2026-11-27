@@ -48,12 +48,15 @@ def test_merged_defect_counts_as_defect_in_summary_and_first_screen():
     ]
     report = render(_result(findings))
     assert "- Требований: 4, с дефектами: 2." in report
-    assert _row(report, "с дефектами") == "| с дефектами | 2 |" and _row(report, "без дефектов") == "| без дефектов | 2 |"
+    assert _row(report, "с дефектами") == "| с дефектами | 2 |" and _row(report, "без своих замечаний") == "| без своих замечаний | 2 |"
     # Слитое в общее замечание стоит в своей группе, снятое критиком только пометка.
     moved = report[report.index("**Дефект описан в общем замечании"):]
     assert moved.startswith("**Дефект описан в общем замечании, на которое ссылается строка (1):**")
     assert "**REQ-02 · строка 20 · Раздел**: слито критиком: [D-02](#d-02) в [S-01](#s-01)." in report
-    assert "**Без замечаний, с пометками к оценкам (1):**" in report and "снято критиком: [D-03](#d-03)" in report
+    assert "**Замечаний не найдено, есть пометки к оценкам (1):**" in report and "снято критиком: [D-03](#d-03)" in report
+    # Сводка раскладывает «без своих замечаний» на те же группы, что раздел 3: 2 = 1 затронуто набором + 1 с пометками.
+    assert _row(report, "из них затронуты замечаниями по набору") == "| из них затронуты замечаниями по набору | 1 |"
+    assert _row(report, "из них с пометками к оценкам") == "| из них с пометками к оценкам | 1 |"
 
 
 def test_requirement_blocker_inside_set_blocker_is_one_row():
@@ -191,7 +194,7 @@ def test_question_numbers_note_and_na_noise():
     report = render(result)
     assert "номера идут по важности" in report[report.index("## 7."):]
     # Требование только с «не применим» стоит в общей строке без шумного пояснения.
-    assert "все применимые критерии выполнены (2):**" in report and "к нему не применима" not in report
+    assert "ни по одному применимому критерию (2):**" in report and "к нему не применима" not in report
 
 
 def test_quote_with_code_fence_uses_tildes():

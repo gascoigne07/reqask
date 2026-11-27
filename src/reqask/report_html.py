@@ -16,7 +16,7 @@ import re
 from collections import Counter
 
 from . import report as md
-from .criteria import REQ_CRITERIA, SET_CRITERIA, SET_SECTIONS, SEVERITIES, SEVERITY_RU, SEVERITY_RULES
+from .criteria import REQ_CRITERIA, SET_CRITERIA, SET_SECTIONS, SEVERITIES, SEVERITY_RULES
 from .grounding import distinct_quotes
 from .report import (
     BLOCKER_GROUPS,
@@ -25,6 +25,12 @@ from .report import (
     FIRST_SCREEN_BLOCKERS_ALL,
     FIRST_SCREEN_QUESTIONS,
     KIND_RU,
+    LIMITS,
+    LIMITS_ANCHOR,
+    LIMITS_LINK_TEXT,
+    LIMITS_TITLE,
+    PASS_LABEL,
+    PLAIN_TITLE,
     QUESTION_NUMBERS_NOTE,
     SET_STATUS_RU,
     SKIP_REASONS_RU,
@@ -44,6 +50,7 @@ from .report import (
     _review_only_question,
     _sentence_case,
     _short_section,
+    segmentation_ids,
 )
 from .schemas import Evidence, Finding, Question, Requirement, RunResult
 
@@ -285,6 +292,7 @@ class _Html(md._Report):
         if lost:
             self.add(f'<p class="warn-line">{len(lost)} критичных замечаний не подтверждены цитатой, '
                      'см. <a href="#appendix-b">приложение Б</a>.</p>')
+        self.add(f'<p>{esc(LIMITS_LINK_TEXT)} <a href="#{LIMITS_ANCHOR}">раздел 6</a>.</p>')
         if v.blockers:
             self.add("<h2>Блокеры</h2>")
             rows = self._blocker_rows()
@@ -350,9 +358,8 @@ class _Html(md._Report):
     def segmentation(self) -> None:
         r = self.r
         self.section("segmentation", "2. Нарезка на требования")
-        with_id = sum(1 for x in r.requirements if x.source_id)
         self.add(
-            f"<p>Выделено требований: <strong>{len(r.requirements)}</strong>, у {with_id} есть идентификатор в документе. "
+            f"<p>Выделено требований: <strong>{len(r.requirements)}</strong>. {esc(segmentation_ids(r))} "
             "Границы заданы номерами строк, текст требований вырезан из документа кодом. "
             "Дословный текст каждого требования стоит в разделе 3.</p>"
         )
@@ -425,26 +432,18 @@ class _Html(md._Report):
         self.section("requirements", "3. Проверка каждого требования")
         legend = ", ".join(
             f'<span class="mark st-{s}">{MARKS[s]}</span> {t}'
-            for s, t in (("pass", "выполнен"), ("fail", "нарушен"), ("na", "не применим"), ("unknown", "нельзя оценить по тексту"))
+            for s, t in (("pass", PASS_LABEL), ("fail", "нарушен"), ("na", "не применим"), ("unknown", "нельзя оценить по тексту"))
         )
         self.add(
             f'<p class="legend">Отметки: {legend}. Шесть основных критериев показаны всегда, '
             "уместность уровня, атомарность и корректность только при нарушении.</p>"
         )
-        quiet = [x for x in self.r.requirements if self._quiet(x)]
-        moved = [x for x in quiet if self._has_defect(x.id)]
-        noted = [x for x in quiet if x not in moved and (self._moved(x) or self._notes(x, set(), with_na=False))]
-        plain = [x for x in quiet if x not in moved and x not in noted]
-        set_refs: dict[str, list[str]] = {}
-        for f in self.active:
-            if f.scope == "set":
-                for rid in f.req_ids:
-                    set_refs.setdefault(rid, []).append(f.id)
-        touched = [x for x in plain if x.id in set_refs]
-        plain = [x for x in plain if x.id not in set_refs]
+        g = self._groups()
+        quiet, moved, noted, touched, plain, set_refs = (
+            g["quiet"], g["moved"], g["noted"], g["touched"], g["plain"], g["set_refs"])
         if plain:
             items = ", ".join(f"<span{self.tid(x.id)}>{esc(x.id)} ({_lines(x.line_start, x.line_end)})</span>" for x in plain)
-            self.add(f'<p class="plain"><strong>Без замечаний, все применимые критерии выполнены ({len(plain)}):</strong> {items}.</p>')
+            self.add(f'<p class="plain"><strong>{PLAIN_TITLE} ({len(plain)}):</strong> {items}.</p>')
         if touched:
             self.add(f"<p><strong>Своих замечаний нет, но требование затронуто общими замечаниями ({len(touched)}):</strong></p><ul>")
             for x in touched:
@@ -452,7 +451,7 @@ class _Html(md._Report):
             self.add("</ul>")
         for title, group in (
             ("Дефект описан в общем замечании, на которое ссылается строка", moved),
-            ("Без замечаний, с пометками к оценкам", noted),
+            ("Замечаний не найдено, есть пометки к оценкам", noted),
         ):
             if not group:
                 continue
@@ -603,23 +602,7 @@ class _Html(md._Report):
     def summary(self) -> None:
         r = self.r
         self.section("summary", "5. Сводка")
-        reviewed = [x for x in r.requirements if x.id not in r.unreviewed]
-        with_defects = [x for x in reviewed if self._has_defect(x.id)]
-        sev = Counter(f.severity for f in self.active)
-        rows = [
-            ["Требований всего", len(r.requirements)],
-            ["без дефектов", len(reviewed) - len(with_defects)],
-            ["с дефектами", len(with_defects)],
-        ]
-        if r.unreviewed:
-            rows.append(["не проверено", len(r.unreviewed)])
-        rows += [
-            ["Замечаний всего", len(self.active)],
-            ["в отдельных требованиях", sum(1 for f in self.active if f.scope == "requirement")],
-            ["по набору", sum(1 for f in self.active if f.scope == "set")],
-            *([f"{s} ({SEVERITY_RU[s]})", sev.get(s, 0)] for s in SEVERITIES),
-            ["Вопросов автору", len(r.questions)],
-        ]
+        rows = self.summary_rows()
         self.table(["Показатель", "Значение"], [[esc(a), esc(b)] for a, b in rows], "kv num")
         blockers = self._blocker_rows()
         self.add("<h3>Блокеры</h3>")
@@ -658,6 +641,10 @@ class _Html(md._Report):
             for fix in v.top_fixes:
                 self.add(f"<li>{esc(fix.action)} ({self.links(fix.finding_ids)})</li>")
             self.add("</ol>")
+        self.add(f"<h3{self.tid(LIMITS_ANCHOR)}>{esc(LIMITS_TITLE)}</h3><ul>")
+        for item in LIMITS:
+            self.add(f"<li>{esc(item)}</li>")
+        self.add("</ul>")
         self.end()
 
     # ---------- 7. вопросы ----------

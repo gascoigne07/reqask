@@ -32,7 +32,7 @@ SKIP_REASONS_RU = {
     "checklist": "чек-листы", "template": "шаблоны, шапки таблиц и пустые поля",
     "intro": "вводный и поясняющий текст", "other": "прочее",
 }
-SET_STATUS_RU = {"ok": "выполнен", "partial": "частично", "fail": "нарушен", "unknown": "нельзя оценить"}
+SET_STATUS_RU = {"ok": "замечаний не найдено", "partial": "частично", "fail": "нарушен", "unknown": "нельзя оценить"}
 _DIVERGENCE_RU = {"behavior": "разное поведение", "result": "разный результат расчёта", "units": "разные единицы одной величины"}
 KIND_RU = {"contradiction": "противоречие", "gap": "пробел", "other": "прочее", "defect": "дефект"}
 FINDING_STATUS_RU = {
@@ -58,6 +58,28 @@ FIRST_SCREEN_QUESTIONS = 5
 BLOCKER_TEXT = 160
 # Вопросы сгруппированы по адресату, а номер у вопроса один на оба файла: внутри группы номера идут не подряд.
 QUESTION_NUMBERS_NOTE = "Вопросы собраны по адресату, а номера идут по важности, поэтому внутри раздела номера не подряд."
+
+# Отметка у критерия без нарушений: агент замечаний не нашёл. Это не доказательство, что требование верное.
+PASS_LABEL = "замечаний не найдено"
+PLAIN_TITLE = "Замечаний не найдено ни по одному применимому критерию"
+LIMITS_ANCHOR = "limits"
+LIMITS_TITLE = "Что агент не проверяет"
+LIMITS_LINK_TEXT = "Отметка «замечаний не найдено» не доказывает, что требование верное. Что агент не проверяет:"
+# Границы проверки: что следует из устройства агента (только текст документа, одна модель, сверка цитат кодом).
+LIMITS = (
+    f"Отметка «{PASS_LABEL}» у критерия значит, что агент не нашёл по нему нарушений. "
+    "Доказательством того, что требование верное, она не служит.",
+    "Нужно ли требование и верно ли оно передаёт цель бизнеса, без автора ТЗ проверить нельзя: "
+    "агент видит только текст документа. Необходимость и корректность оценены по этому тексту.",
+    "Осуществимость по срокам, оборудованию, бюджету и людям не проверяется: таких данных агент не получает, "
+    "критерии осуществимости оценены только по тексту требований.",
+    "Цитаты сверяются с документом кодом, смысл замечания нет. Замечание с точной цитатой тоже может быть ошибочным.",
+    "Часть дефектов агент пропускает. Состав замечаний меняется от прогона к прогону даже на том же документе: "
+    "модель отвечает не одинаково.",
+    "Отчёт не заменяет ревью человеком: решение о передаче в разработку принимает команда.",
+)
+# Идентификатор требования с буквенным префиксом, как его ищет в документе код нарезки (паспорт, «Идентификаторы»).
+_LETTER_ID_RE = re.compile(r"[A-ZА-ЯЁ][A-Za-zА-Яа-яЁё]{0,7}-\d+(?:\.\d+)*")
 
 
 # ---------- мелкие помощники ----------
@@ -242,6 +264,27 @@ def _review_only_question(q: Question, by_id: dict[str, Finding]) -> bool:
     return bool(linked) and all(f.status == "question_only" for f in linked)
 
 
+def segmentation_ids(result: RunResult) -> str:
+    """Фраза раздела 2 о номерах из документа. Паспорт считает другое: разные идентификаторы с буквами,
+    найденные кодом в начале строк. Фраза называет оба числа, чтобы они не выглядели противоречием."""
+    numbered = [x.source_id for x in result.requirements if x.source_id]
+    if not numbered:
+        return "Своего номера в документе нет ни у одного требования."
+    letter = sum(1 for sid in numbered if _LETTER_ID_RE.fullmatch(sid.strip()))
+    text = f"Номер из документа стоит у {len(numbered)} требований"
+    if letter and letter < len(numbered):
+        text += f": у {letter} это идентификатор с буквами (вида «ФТ-3»), у {len(numbered) - letter} номер пункта списка"
+    elif letter:
+        text += ", у всех это идентификатор с буквами (вида «ФТ-3»)"
+    else:
+        text += ", это номера пунктов списка"
+    text += "."
+    if result.quality.ids_in_document:
+        text += (f" Разных идентификаторов с буквами код нашёл в документе {result.quality.ids_in_document}, "
+                 "это число стоит в паспорте.")
+    return text
+
+
 # ---------- отчёт ----------
 
 
@@ -285,6 +328,55 @@ class _Report:
     def _has_defect(self, rid: str) -> bool:
         """Есть действующее замечание или замечание, слитое критиком в другое (дефект описан там, но он есть)."""
         return any(_active(f) or f.status == "merged" for f in self.req_findings.get(rid, []))
+
+    def _groups(self) -> dict[str, list[Requirement]]:
+        """Требования без действующих замечаний по группам раздела 3; set_refs: требование -> замечания по набору.
+
+        moved: дефект слит в другое замечание (в сводке считается дефектом); noted: замечаний нет, есть пометки
+        к оценкам; touched: своих замечаний нет, но на требование ссылается замечание по набору; plain: остальные.
+        Сводка «без своих замечаний» = noted + touched + plain.
+        """
+        quiet = [x for x in self.r.requirements if self._quiet(x)]
+        # Слитый дефект остаётся дефектом требования (так его считает и сводка); снятый критиком только пометка.
+        moved = [x for x in quiet if self._has_defect(x.id)]
+        noted = [x for x in quiet if x not in moved and (self._moved(x) or self._notes(x, set(), with_na=False))]
+        plain = [x for x in quiet if x not in moved and x not in noted]
+        # Замечание по набору может ссылаться на требование без своих дефектов: такие требования идут
+        # отдельным списком со ссылками, иначе требование из блокера выглядит как «без замечаний».
+        set_refs: dict[str, list[str]] = {}
+        for f in self.active:
+            if f.scope == "set":
+                for rid in f.req_ids:
+                    set_refs.setdefault(rid, []).append(f.id)
+        touched = [x for x in plain if x.id in set_refs]
+        plain = [x for x in plain if x.id not in set_refs]
+        return {"quiet": quiet, "moved": moved, "noted": noted, "touched": touched, "plain": plain, "set_refs": set_refs}
+
+    def summary_rows(self) -> list[tuple[str, int]]:
+        """Строки таблицы сводки (раздел 5), общие для Markdown и HTML."""
+        r = self.r
+        reviewed = [x for x in r.requirements if x.id not in r.unreviewed]
+        with_defects = [x for x in reviewed if self._has_defect(x.id)]
+        g = self._groups()
+        sev = Counter(f.severity for f in self.active)
+        rows = [("Требований всего", len(r.requirements)),
+                ("без своих замечаний", len(reviewed) - len(with_defects))]
+        # Раздел 3 делит требования без своих замечаний на группы: числа здесь те же, что в его заголовках.
+        if g["touched"]:
+            rows.append(("из них затронуты замечаниями по набору", len(g["touched"])))
+        if g["noted"]:
+            rows.append(("из них с пометками к оценкам", len(g["noted"])))
+        rows.append(("с дефектами", len(with_defects)))
+        if r.unreviewed:
+            rows.append(("не проверено", len(r.unreviewed)))
+        rows += [
+            ("Замечаний всего", len(self.active)),
+            ("в отдельных требованиях", sum(1 for f in self.active if f.scope == "requirement")),
+            ("по набору", sum(1 for f in self.active if f.scope == "set")),
+            *((f"{s} ({SEVERITY_RU[s]})", sev.get(s, 0)) for s in SEVERITIES),
+            ("Вопросов автору", len(r.questions)),
+        ]
+        return rows
 
     def _blocker_rows(self) -> list[tuple[Finding, list[str]]]:
         """Блокеры для показа: D, который закрывает тот же вопрос, что блокер S, и цитирует только его строки,
@@ -344,6 +436,7 @@ class _Report:
         lost = [f for f in self.inactive if f.severity == "CRITICAL" and f.status in ("quarantine", "question_only")]
         if lost:
             self.add(f"- {len(lost)} критичных замечаний не подтверждены цитатой, см. [приложение Б](#appendix-b).")
+        self.add(f"- {LIMITS_LINK_TEXT} [раздел 6](#{LIMITS_ANCHOR}).")
         self.add("")
         if v.blockers:
             self.add("**Блокеры:**\n")
@@ -421,7 +514,10 @@ class _Report:
             )
         if q.ids_in_document:
             lost = f", потеряны: {', '.join(q.ids_missing)}" if q.ids_missing else ", потерянных нет"
-            self.add(f"| Идентификаторы | в документе {q.ids_in_document}, в нарезке {q.ids_in_document - len(q.ids_missing)}{lost} |")
+            self.add(
+                f"| Идентификаторы с буквами (вида «ФТ-3») | разных в документе {q.ids_in_document}, "
+                f"в нарезке {q.ids_in_document - len(q.ids_missing)}{lost} |"
+            )
         quarantine = sum(1 for f in self.inactive if f.status == "quarantine")
         self.add(
             f"| Цитаты | точных {g.exact}, нечётких {g.fuzzy}, не найдено {g.missing}; "
@@ -499,9 +595,8 @@ class _Report:
     def segmentation(self) -> None:
         r = self.r
         self.add("## 2. Нарезка на требования\n")
-        with_id = sum(1 for x in r.requirements if x.source_id)
         self.add(
-            f"Выделено требований: **{len(r.requirements)}**, у {with_id} есть идентификатор в документе. "
+            f"Выделено требований: **{len(r.requirements)}**. {segmentation_ids(r)} "
             "Границы заданы номерами строк, текст требований вырезан из документа кодом. "
             "Дословный текст каждого требования стоит в разделе 3.\n"
         )
@@ -606,28 +701,17 @@ class _Report:
     def requirements(self) -> None:
         self.add("## 3. Проверка каждого требования\n")
         self.add(
-            f"Значки: {ICONS['pass']} выполнен, {ICONS['fail']} нарушен, {ICONS['na']} не применим, "
+            f"Значки: {ICONS['pass']} {PASS_LABEL}, {ICONS['fail']} нарушен, {ICONS['na']} не применим, "
             f"{ICONS['unknown']} нельзя оценить по тексту. Шесть основных критериев показаны всегда, "
             "уместность уровня, атомарность и корректность только при нарушении.\n"
         )
-        quiet = [x for x in self.r.requirements if self._quiet(x)]
-        # Слитый дефект остаётся дефектом требования (так его считает и сводка); снятый критиком только пометка.
-        moved = [x for x in quiet if self._has_defect(x.id)]
-        noted = [x for x in quiet if x not in moved and (self._moved(x) or self._notes(x, set(), with_na=False))]
-        plain = [x for x in quiet if x not in moved and x not in noted]
-        # Замечание по набору может ссылаться на требование без своих дефектов: такие требования идут
-        # отдельным списком со ссылками, иначе требование из блокера выглядит как «без замечаний».
-        set_refs: dict[str, list[str]] = {}
-        for f in self.active:
-            if f.scope == "set":
-                for rid in f.req_ids:
-                    set_refs.setdefault(rid, []).append(f.id)
-        touched = [x for x in plain if x.id in set_refs]
-        plain = [x for x in plain if x.id not in set_refs]
+        g = self._groups()
+        quiet, moved, noted, touched, plain, set_refs = (
+            g["quiet"], g["moved"], g["noted"], g["touched"], g["plain"], g["set_refs"])
         # Требования без своих замечаний короче блока: строка со ссылкой на строки документа.
         if plain:
             items = ", ".join(f"{_target(x.id)}{x.id} ({_lines(x.line_start, x.line_end)})" for x in plain)
-            self.add(f"**Без замечаний, все применимые критерии выполнены ({len(plain)}):** {items}.\n")
+            self.add(f"**{PLAIN_TITLE} ({len(plain)}):** {items}.\n")
         if touched:
             self.add(f"**Своих замечаний нет, но требование затронуто общими замечаниями ({len(touched)}):**\n")
             for x in touched:
@@ -635,7 +719,7 @@ class _Report:
             self.add("")
         for title, group in (
             ("Дефект описан в общем замечании, на которое ссылается строка", moved),
-            ("Без замечаний, с пометками к оценкам", noted),
+            ("Замечаний не найдено, есть пометки к оценкам", noted),
         ):
             if not group:
                 continue
@@ -766,25 +850,12 @@ class _Report:
     # ---------- 5. сводка ----------
 
     def summary(self) -> None:
-        r = self.r
         self.add('<a id="summary"></a>')
         self.add("## 5. Сводка\n")
-        reviewed = [x for x in r.requirements if x.id not in r.unreviewed]
-        with_defects = [x for x in reviewed if self._has_defect(x.id)]
-        sev = Counter(f.severity for f in self.active)
         self.add("| Показатель | Значение |")
         self.add("| :--- | :---: |")
-        self.add(f"| Требований всего | {len(r.requirements)} |")
-        self.add(f"| без дефектов | {len(reviewed) - len(with_defects)} |")
-        self.add(f"| с дефектами | {len(with_defects)} |")
-        if r.unreviewed:
-            self.add(f"| не проверено | {len(r.unreviewed)} |")
-        self.add(f"| Замечаний всего | {len(self.active)} |")
-        self.add(f"| в отдельных требованиях | {sum(1 for f in self.active if f.scope == 'requirement')} |")
-        self.add(f"| по набору | {sum(1 for f in self.active if f.scope == 'set')} |")
-        for s in SEVERITIES:
-            self.add(f"| {s} ({SEVERITY_RU[s]}) | {sev.get(s, 0)} |")
-        self.add(f"| Вопросов автору | {len(r.questions)} |")
+        for label, value in self.summary_rows():
+            self.add(f"| {label} | {value} |")
         self.add("")
 
         rows = self._blocker_rows()
@@ -821,6 +892,11 @@ class _Report:
             for number, fix in enumerate(v.top_fixes, start=1):
                 self.add(f"{number}. {fix.action} ({_links(fix.finding_ids)})")
             self.add("")
+        self.add(f'<a id="{LIMITS_ANCHOR}"></a>')
+        self.add(f"### {LIMITS_TITLE}\n")
+        for item in LIMITS:
+            self.add(f"- {item}")
+        self.add("")
 
     # ---------- 7. вопросы ----------
 
