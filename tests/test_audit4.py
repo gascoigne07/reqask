@@ -150,3 +150,52 @@ def test_cache_write_failure_is_logged_and_leaves_no_temp(client_with, tmp_path)
     assert out.answer == "ок"
     assert any("кэш не записан" in line for line in logs)
     assert [p.name for p in cache.iterdir()] == [f"{key}.json"]
+
+
+# ---------- кодировка текстовых файлов ----------
+
+RUS = ("Система должна принимать оплату картой через API банка. ФТ-1: СМС с кодом приходит в течение 30 секунд.\n"
+       "Если оплата не прошла, пользователь видит сообщение об ошибке и может повторить попытку не более 3 раз.\n"
+       "Администратор может отключить автопродление в личном кабинете; срок хранения данных не меньше 5 лет.\n")
+FRENCH = ("Le résumé de la réunion à Paris est prêt. Les développeurs ont préparé l'été dernier un système "
+          "qui gère les réservations et les paiements. Où est-ce que l'équipe a décidé d'enregistrer les données ?\n")
+GERMAN = ("Das System muss alle Änderungen protokollieren. Die Größe der Datei darf nicht über zehn Megabyte "
+          "liegen. Für Übersicht und Prüfung wird ein Bericht erzeugt, der äußerst genau über Fehler informiert.\n")
+
+
+def _load(tmp_path, data: bytes, name="d.txt"):
+    path = tmp_path / name
+    path.write_bytes(data)
+    return load_document(path)
+
+
+@pytest.mark.parametrize("text", [
+    RUS * 5,
+    RUS,
+    "Система должна хранить данные.\n",
+    "СИСТЕМА ДОЛЖНА ХРАНИТЬ ДАННЫЕ\n",
+    "Требования ФТ-1 и СМС через API: ФТ, НФТ, ТЗ, ИС, ЦБ, РФ.\n",
+    "Пользователь вводит email и пароль. Сервер возвращает JSON со статусом 200.\n",
+    "The system shall respond within 2 seconds.\n",
+])
+def test_cp1251_normal_text_is_read(tmp_path, text):
+    doc = _load(tmp_path, text.encode("cp1251"))
+    assert doc.lines[0].text == text.split("\n")[0]
+
+
+def test_cp1251_real_requirements_file_is_read(tmp_path):
+    text = (Path(__file__).resolve().parent.parent / "input" / "requirements.md").read_text(encoding="utf-8")
+    doc = _load(tmp_path, text.encode("cp1251", errors="replace"), "r.md")
+    assert doc.n > 50
+
+
+@pytest.mark.parametrize("data", [
+    (RUS * 5).encode("koi8-r"),
+    "Система должна хранить данные.".encode("koi8-r"),
+    (RUS * 5).encode("cp866"),
+    FRENCH.encode("latin-1"),
+    (GERMAN * 3).encode("latin-1"),
+])
+def test_wrong_encoding_is_rejected_with_advice(tmp_path, data):
+    with pytest.raises(LoadError, match="UTF-8"):
+        _load(tmp_path, data)

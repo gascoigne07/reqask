@@ -134,19 +134,59 @@ _BOMS = ((b"\xff\xfe\x00\x00", "utf-32"), (b"\x00\x00\xfe\xff", "utf-32"),
 MAX_CONTROL_SHARE = 0.02
 
 
-def _decode(data: bytes) -> str:
+def _decode(data: bytes) -> tuple[str, str]:
+    """Текст и название кодировки, в которой он прочитан."""
     for bom, encoding in _BOMS:
         if data.startswith(bom):
             try:
-                return data.decode(encoding)
+                return data.decode(encoding), encoding
             except UnicodeDecodeError:
                 break
     for encoding in ("utf-8-sig", "cp1251"):
         try:
-            return data.decode(encoding)
+            return data.decode(encoding), encoding
         except UnicodeDecodeError:
             continue
-    return data.decode("utf-8", errors="replace")
+    return data.decode("utf-8", errors="replace"), "utf-8"
+
+
+_CYRILLIC_RE = re.compile("[А-Яа-яЁё]")
+_WORD_RE = re.compile("[A-Za-zА-Яа-яЁё]+")
+_LATIN_RE = re.compile("[A-Za-z]")
+# Самые частые буквы русского текста: у настоящего русского их доля 0.6-0.7, у KOI8-R и CP866,
+# прочитанных как cp1251, 0.35-0.45.
+_COMMON_RU_LETTERS = "оеаинтсрвл"
+# Меньше этого числа кириллических букв частоту не считаем: на коротком тексте она шумит.
+_MIN_LETTERS_FOR_FREQUENCY = 200
+_DOS_JUNK = "¤¦¬"
+
+
+def _wrong_cp1251(text: str) -> bool:
+    """Текст, прочитанный как cp1251, похож на кракозябры: файл в другой кодировке (KOI8-R, Latin-1, CP866).
+
+    cp1251 принимает почти любые байты, поэтому ошибки декодирования не будет. Признаки:
+    у длинного текста доля частых русских букв ниже обычной; у короткого заглавных букв больше
+    половины и внутри слов строчная стоит перед заглавной (KOI8-R меняет регистр); слова из латиницы
+    с вкраплением кириллицы («caf?», «Gr??e») встречаются заметно часто (Latin-1 с диакритикой);
+    знаки ¤ ¦ ¬ в заметном числе выдают CP866.
+    """
+    cyrillic = _CYRILLIC_RE.findall(text)
+    words = _WORD_RE.findall(text)
+    if len(cyrillic) >= _MIN_LETTERS_FOR_FREQUENCY:
+        common = sum(1 for ch in cyrillic if ch.lower() in _COMMON_RU_LETTERS) / len(cyrillic)
+        if common < 0.5:
+            return True
+    elif cyrillic:
+        upper = sum(1 for ch in cyrillic if ch.isupper()) / len(cyrillic)
+        inverted = sum(1 for w in words if re.search("[а-яё][А-ЯЁ]", w))
+        if upper > 0.6 and inverted >= 1:
+            return True
+    # CP866 (старый DOS) даёт в середине слов знаки ¤ ¦ ¬, которых нет в настоящем тексте cp1251.
+    odd = sum(1 for ch in text if ch in _DOS_JUNK)
+    if odd >= 5 and odd >= 0.01 * (len(cyrillic) + odd):
+        return True
+    mixed = sum(1 for w in words if _CYRILLIC_RE.search(w) and _LATIN_RE.search(w))
+    return mixed >= 2 and mixed >= 0.03 * len(words)
 
 
 def _looks_binary(text: str) -> bool:
@@ -162,11 +202,16 @@ _SOFT_BREAKS_RE = re.compile("[\f\v\x1c-\x1e\x85\u2028\u2029]")
 
 
 def _load_text(data: bytes, path: Path) -> list[tuple[str, int | None]]:
-    text = _decode(data)
+    text, encoding = _decode(data)
     if _looks_binary(text):
         raise LoadError(
             f"Файл похож на двоичный, а не на текст: {path.name}. Передайте PDF, Markdown, DOCX или TXT "
             "в кодировке UTF-8."
+        )
+    if encoding == "cp1251" and _wrong_cp1251(text):
+        raise LoadError(
+            f"Не удалось определить кодировку файла {path.name}: текст читается как набор случайных символов. "
+            "Сохраните файл в UTF-8 (в редакторе: «Сохранить как», кодировка UTF-8) и запустите снова."
         )
     # Строки делим только по переводу строки, как редактор: str.splitlines() режет ещё по \f, \v,
     # \x1c-\x1e, \x85, U+2028 и U+2029, и номера строк в отчёте расходились бы с редактором.
