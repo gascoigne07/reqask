@@ -150,15 +150,16 @@ def distinct_quotes(evidence: list, limit: int | None = None) -> list:
             continue
         if any(k[0] == key[0] and key[1] in k[1] for k in keys):
             continue
-        # Новая цитата длиннее и содержит уже взятую: заменяет её на том же месте.
+        # Новая цитата длиннее и содержит уже взятые: заменяет каждую на её месте.
+        replaced = False
         for i, k in enumerate(keys):
             if k[0] == key[0] and k[1] in key[1]:
                 kept[i], keys[i] = e, key
-                break
-        else:
+                replaced = True
+        if not replaced:
             kept.append(e)
             keys.append(key)
-    # После замены одна длинная цитата могла встать на два места.
+    # После замены одна длинная цитата могла встать на несколько мест: остаётся первое.
     out, seen = [], set()
     for e, k in zip(kept, keys):
         if k not in seen:

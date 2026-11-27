@@ -100,6 +100,47 @@ def test_overloaded_model_switches_after_two_retries(client_with):
     assert [b["model"] for b in sent] == ["m", "m", "m", "b"] and len(waits) == 2
 
 
+def _hanging(client, models, sent):
+    """Подмена запроса: модели из models молчат до таймаута, остальные отвечают."""
+    import httpx2
+    from openai import APITimeoutError
+    from openai.types.chat import ChatCompletion
+
+    def request(kwargs):
+        sent.append(kwargs["model"])
+        if kwargs["model"] in models:
+            raise APITimeoutError(request=httpx2.Request("POST", "http://127.0.0.1:9/v1/chat/completions"))
+        return ChatCompletion.model_validate(completion(ONE))
+
+    client._request = request
+
+
+def test_hung_model_switches_to_fallback_after_first_timeout(client_with):
+    """Таймаут это уже целый timeout_sec молчания: при запасной модели второй раз ту же не ждём."""
+    client, _, waits = client_with(lambda b, n: (200, completion(ONE)), fallback_models=("b", "c"))
+    sent: list[str] = []
+    _hanging(client, {"m", "b"}, sent)
+    assert ask(client).answer == "ок"
+    assert sent == ["m", "b", "c"] and waits == [] and client.model == "c"
+
+
+def test_hung_model_without_fallback_gets_two_retries_not_all(client_with):
+    """Без запасной зависшая модель получает два повтора, а не все пять: иначе вызов висит десятки минут."""
+    client, _, waits = client_with(lambda b, n: (200, completion(ONE)))
+    sent: list[str] = []
+    _hanging(client, {"m"}, sent)
+    with pytest.raises(LLMError):
+        ask(client)
+    assert sent == ["m", "m", "m"] and len(waits) == 2
+
+
+def test_default_gemini_chain_has_no_model_that_never_answered():
+    from reqask.config import DEFAULT_GEMINI_FALLBACKS, DEFAULT_GEMINI_MODEL
+
+    assert DEFAULT_GEMINI_MODEL == "gemini-3.6-flash"
+    assert DEFAULT_GEMINI_FALLBACKS == ("gemini-3.5-flash", "gemini-3.7-flash")
+
+
 def test_missing_fallback_is_skipped_and_last_model_gets_all_retries(client_with):
     def handler(b, n):
         if b["model"] == "m":

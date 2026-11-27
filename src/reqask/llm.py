@@ -103,6 +103,8 @@ AUTH_WORDS = ("api key", "api_key", "apikey", "invalid x-api-key", "authenticati
 # Пока есть запасная модель, на сбои сервера и таймауты текущей тратим не больше стольких повторов:
 # перегруженная модель держит 503 часами, а каждый повтор идёт в счёт суточной квоты.
 FALLBACK_AFTER_RETRIES = 2
+# Сколько раз повторять вызов после таймаута, если запасной модели нет.
+TIMEOUT_RETRIES = 2
 # Столько вызовов подряд, кончившихся сетевым сбоем после всех повторов, и прогон останавливается
 # (LLMFatal rate): без сети иначе каждая порция ждёт свои повторы, и шаг идёт часами.
 NET_FAILS_FATAL = 3
@@ -636,8 +638,16 @@ class LLMClient:
 
             transient += 1
             rate = isinstance(error, RateLimitError)
-            # Минутный лимит ждём полностью: он общий для ключа. Сбои сервера и таймауты при запасной модели ждём недолго.
-            limit = self.s.max_retries if rate or not self._has_fallback() else min(self.s.max_retries, FALLBACK_AFTER_RETRIES)
+            hung = isinstance(error, APITimeoutError)
+            # Минутный лимит ждём полностью: он общий для ключа. Сбои сервера при запасной модели ждём недолго.
+            # Таймаут значит, что модель молчала весь timeout_sec: при запасной уходим сразу,
+            # без запасной повторяем не больше TIMEOUT_RETRIES раз, иначе зависшая модель держит прогон десятки минут.
+            if rate:
+                limit = self.s.max_retries
+            elif self._has_fallback():
+                limit = 0 if hung else min(self.s.max_retries, FALLBACK_AFTER_RETRIES)
+            else:
+                limit = min(self.s.max_retries, TIMEOUT_RETRIES) if hung else self.s.max_retries
             if transient > limit:
                 why = "держит лимит запросов (429)" if rate else f"не отвечает ({type(error).__name__})"
                 if self._switch_model(model, why):

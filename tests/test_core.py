@@ -701,6 +701,12 @@ def test_question_text_helpers():
     other = Evidence(quote="доступ к ресурсу запрещен", line=9, status="exact")
     lost = Evidence(quote="нет такого", line=3, status="missing")
     assert distinct_quotes([part, long, other, lost]) == [long, other]
+    # Длинная цитата поглощает обе короткие с той же строки, а не только первую.
+    a = Evidence(quote="альфа бета", line=5, status="exact")
+    b = Evidence(quote="гамма дельта", line=5, status="exact")
+    both = Evidence(quote="альфа бета и гамма дельта", line=5, status="exact")
+    assert distinct_quotes([a, b, both]) == [both]
+    assert distinct_quotes([a, other, b, both]) == [both, other]
     assert _sentence_case("GET меняет данные") == "GET меняет данные" and _sentence_case("Так проще") == "так проще"
     assert _sentence_case("В разделе статусов только 200") == "в разделе статусов только 200"
     assert _sentence_case("Content-Type убирается") == "Content-Type убирается"
