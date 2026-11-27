@@ -113,3 +113,40 @@ def test_docx_separator_is_table_separator_for_loader(tmp_path):
     d.save(str(path))
     doc = load_document(path)
     assert [doc.is_content(i) for i in (1, 2, 3)] == [True, False, True]
+
+
+# ---------- кэш ответов ----------
+
+from test_llm import ONE, OneOut, client_with, completion  # noqa: E402,F401
+
+
+def _cached_client(client_with, cache_dir, logs=None):
+    client, sent, waits = client_with(lambda body, n: (200, completion(ONE)), cache_dir=str(cache_dir))
+    if logs is not None:
+        client.log = logs.append
+    return client, sent
+
+
+def test_cache_truncated_file_does_not_crash_and_calls_model(client_with, tmp_path):
+    client, sent = _cached_client(client_with, tmp_path / "cache")
+    key = client._cache_key("s", "u", OneOut, "")
+    (tmp_path / "cache").mkdir()
+    (tmp_path / "cache" / f"{key}.json").write_text('{"answer": "об', encoding="utf-8")
+    out = client.complete_json("шаг", "s", "u", OneOut)
+    assert out.answer == "ок" and len(sent) == 1
+    # после новой записи файл целый и временных файлов нет
+    assert sorted(p.suffix for p in (tmp_path / "cache").iterdir()) == [".json"]
+    assert client._cache_get(key, OneOut).answer == "ок"
+
+
+def test_cache_write_failure_is_logged_and_leaves_no_temp(client_with, tmp_path):
+    cache = tmp_path / "cache"
+    logs: list[str] = []
+    client, _ = _cached_client(client_with, cache, logs)
+    key = client._cache_key("s", "u", OneOut, "")
+    cache.mkdir()
+    (cache / f"{key}.json").mkdir()  # на месте файла каталог: replace не пройдёт
+    out = client.complete_json("шаг", "s", "u", OneOut)
+    assert out.answer == "ок"
+    assert any("кэш не записан" in line for line in logs)
+    assert [p.name for p in cache.iterdir()] == [f"{key}.json"]

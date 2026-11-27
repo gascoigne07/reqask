@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import random
 import re
 import threading
@@ -271,13 +272,20 @@ class LLMClient:
             return None
 
     def _cache_put(self, key: str, obj: BaseModel) -> None:
+        """Запись через временный файл рядом: прерванный прогон не оставит обрезанный JSON."""
         if not self._cache_dir:
             return
+        tmp = self._cache_dir / f"{key}.{os.getpid()}.{threading.get_ident()}.tmp"
         try:
             self._cache_dir.mkdir(parents=True, exist_ok=True)
-            (self._cache_dir / f"{key}.json").write_text(obj.model_dump_json(), encoding="utf-8")
-        except OSError:
-            pass
+            tmp.write_text(obj.model_dump_json(), encoding="utf-8")
+            os.replace(tmp, self._cache_dir / f"{key}.json")
+        except OSError as exc:
+            self.log(f"  кэш не записан ({self._cache_dir}): {exc.strerror or exc}")
+            try:
+                tmp.unlink(missing_ok=True)
+            except OSError:
+                pass
 
     # ---------- вызов ----------
 
