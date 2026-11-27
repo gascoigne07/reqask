@@ -87,6 +87,13 @@ def test_network_failure_does_not_split_batch(doc):
     assert result.fatal is None and any(s.startswith("набор") for s in llm.steps)  # прогон идёт дальше
 
 
+def test_other_model_error_still_splits_batch(doc):
+    llm = _Batches(LLMError("[проверка] ответ закрыт фильтром содержания провайдера"))
+    result = Pipeline(llm, SETTINGS).run(doc, "test")
+    assert llm.review_calls == 3  # порция из трёх требований, затем две половины
+    assert result.unreviewed == []
+
+
 def _content_for(schema, fake=FakeLLM()):
     return fake.complete_json("нарезка", "", "", schema).model_dump_json()
 

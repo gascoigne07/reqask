@@ -421,8 +421,7 @@ def test_pipeline_survives_failed_steps(doc):
 
     result = Pipeline(Flaky(), SETTINGS).run(doc, "test")
     assert result.unreviewed == ["REQ-01", "REQ-02", "REQ-03"]
-    # Порция из трёх требований (сбой не про длину и не про схему, порция не делится), проход по набору, итог.
-    assert len(result.failed_steps) == 3
+    assert len(result.failed_steps) == 5  # три требования, проход по набору, итог
     assert [f.id for f in result.findings] == ["S-01"]
     assert result.verdict.generated_by_model is False and result.verdict.top_fixes
     # Запасной путь вопросов: из поля question замечания, без вариантов (К-08).
