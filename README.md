@@ -25,10 +25,7 @@
 </p>
 
 <p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="docs/img/hero-dark.png">
-    <img alt="Начало отчёта агента: вердикт «Не рекомендуется начинать», 50 требований, 5 замечаний CRITICAL, 15 вопросов автору и список блокеров" src="docs/img/hero-light.png" width="780">
-  </picture>
+  <img alt="Начало отчёта агента: вердикт «Не рекомендуется начинать», 50 требований, 5 замечаний CRITICAL, 15 вопросов автору и список блокеров" src="docs/img/hero-light.png" width="780">
 </p>
 
 <p align="center">

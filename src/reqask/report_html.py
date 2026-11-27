@@ -786,7 +786,7 @@ class _Html(md._Report):
             '<meta name="viewport" content="width=device-width, initial-scale=1">\n'
             "<meta http-equiv=\"content-security-policy\" content=\"default-src 'none'; "
             "style-src 'unsafe-inline'; script-src 'unsafe-inline'\">\n"
-            '<meta name="color-scheme" content="light dark">\n'
+            '<meta name="color-scheme" content="light">\n'
             f"<title>{title}</title>\n<style>{CSS}</style>\n</head>\n<body>\n<div class=\"page\">\n"
             f"{body}\n</main>\n</div>\n<script>{JS}</script>\n</body>\n</html>\n"
         )
@@ -798,19 +798,13 @@ def render_html(result: RunResult) -> str:
 
 CSS = """
 :root {
-  color-scheme: light dark;
+  color-scheme: light;
   --bg: #ffffff; --fg: #15181d; --muted: #5a616b; --ln: #6c7178; --rule: #d6d9de; --strong: #15181d;
   --quote-bg: #f4f5f6; --link: #15181d; --link-line: #9aa3af; --crit: #9b1c1c; --major: #7a5200; --mark: #fff0b3;
   --serif: Charter, "Bitstream Charter", "Sitka Text", Cambria, Georgia, serif;
   --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, Roboto, "Helvetica Neue", Arial, sans-serif;
   --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
   --measure: 37em; --gutter: 0px; --gap: 1.25rem;
-}
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #12151a; --fg: #e4e2dd; --muted: #9da4ae; --ln: #8a919b; --rule: #2b3139; --strong: #e4e2dd;
-    --quote-bg: #1a1f26; --link: #e4e2dd; --link-line: #6f7885; --crit: #e0786c; --major: #d3a558; --mark: #4d4214;
-  }
 }
 * { box-sizing: border-box; }
 html { -webkit-text-size-adjust: 100%; }
