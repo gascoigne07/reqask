@@ -42,3 +42,33 @@ def test_api_key_not_in_repr():
     s = Settings(provider="p", base_url=None, api_key="secret-key-123456", model="m")
     assert "secret-key-123456" not in repr(s)
     assert s.api_key == "secret-key-123456"
+
+
+# ---------- загрузчик: заголовки и проверка идентификаторов ----------
+
+from pathlib import Path  # noqa: E402
+
+from reqask.loader import Document, Line, LoadError, load_document  # noqa: E402
+
+
+def test_is_heading_matches_headings_list(tmp_path):
+    path = tmp_path / "d.md"
+    path.write_text("# A\nтекст\n## B\n```\n# не заголовок\n```\n### C\n", encoding="utf-8")
+    doc = load_document(path)
+    expected = {no for no, _level, _title in doc._headings}
+    assert expected == {1, 3, 7}
+    assert [no for no in range(1, doc.n + 1) if doc.is_heading(no)] == sorted(expected)
+    assert not doc.is_content(1) and doc.is_content(2)
+
+
+def test_check_ids_keeps_order_without_duplicates(tmp_path):
+    from reqask.pipeline import Pipeline
+    from test_core import SETTINGS, FakeLLM
+
+    path = tmp_path / "d.md"
+    path.write_text("FR-1. Система должна А.\nFR-2. Система должна Б.\nFR-1. Система должна В.\n", encoding="utf-8")
+    doc = load_document(path)
+    pipe = Pipeline(FakeLLM(), SETTINGS, lambda _m: None)
+    pipe._check_ids(doc, [])
+    assert pipe.quality.ids_in_document == 2
+    assert pipe.quality.ids_missing == ["FR-1", "FR-2"]

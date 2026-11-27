@@ -102,8 +102,12 @@ class Document:
             paths[no] = " / ".join(parts)
         return paths
 
+    @cached_property
+    def _heading_nos(self) -> frozenset[int]:
+        return frozenset(h[0] for h in self._headings)
+
     def is_heading(self, no: int) -> bool:
-        return any(h[0] == no for h in self._headings)
+        return no in self._heading_nos
 
     def section_path(self, no: int) -> str:
         if 1 <= no <= self.n:

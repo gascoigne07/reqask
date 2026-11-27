@@ -451,11 +451,13 @@ class Pipeline:
     def _check_ids(self, doc: Document, requirements: list[Requirement]) -> None:
         """Сверка нарезки с идентификаторами, найденными в документе кодом (К-03)."""
         in_doc: list[str] = []
+        seen: set[str] = set()
         for line in doc.lines:
             match = _DOC_ID_RE.match(line.text)
             if match:
                 ident = _norm_doc_id(match.group(1))
-                if ident not in in_doc:
+                if ident not in seen:
+                    seen.add(ident)
                     in_doc.append(ident)
         known = {_norm_doc_id(r.source_id) for r in requirements if r.source_id}
         # «UTF-8» или «SHA-256» в начале строки не идентификатор требования: если модель приняла
