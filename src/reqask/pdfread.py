@@ -56,6 +56,8 @@ class PdfLine:
     cells: list[str] | None = field(default=None, repr=False)
     end_page: int = field(default=0, repr=False)
     box: tuple[float, float] = field(default=(0.0, 0.0), repr=False)
+    # Границы столбцов таблицы в долях ширины страницы.
+    cols: tuple[float, ...] = field(default=(), repr=False)
 
 
 @dataclass
@@ -127,7 +129,8 @@ def _row_text(cells: list[str]) -> str:
     return "| " + " | ".join(cells) + " |"
 
 
-def _table_lines(rows: list[list[str | None]], page: int, box: tuple[float, float] = (0.0, 0.0)) -> list[PdfLine]:
+def _table_lines(rows: list[list[str | None]], page: int, box: tuple[float, float] = (0.0, 0.0),
+                 cols: tuple[float, ...] = ()) -> list[PdfLine]:
     rows = [row for row in rows if row and any(cell for cell in row)]
     if not rows:
         return []
@@ -135,7 +138,7 @@ def _table_lines(rows: list[list[str | None]], page: int, box: tuple[float, floa
     out = [PdfLine("", page)]
     for index, row in enumerate(rows):
         cells = [_cell(c) for c in row] + [""] * (width - len(row))
-        out.append(PdfLine(_row_text(cells), page, "table", cells=cells, end_page=page, box=box))
+        out.append(PdfLine(_row_text(cells), page, "table", cells=cells, end_page=page, box=box, cols=cols))
         if index == 0:
             # Строка-разделитель после шапки, как в Markdown.
             out.append(PdfLine(_row_text(["---"] * width), page, "table"))
@@ -185,9 +188,12 @@ def _page_lines(pypdf_page, plumber_page, page_no: int) -> list[PdfLine]:
     for line in outside.extract_text_lines():
         items.append((line["top"], 0, [PdfLine(_clean(line["text"]), page_no)]))
     height = float(plumber_page.height) or 1.0
+    width = float(plumber_page.width) or 1.0
     for table in tables:
         box = (table.bbox[1] / height, table.bbox[3] / height)
-        items.append((table.bbox[1], 1, _table_lines(table.extract(), page_no, box)))
+        columns = [column.bbox for column in table.columns]
+        cols = tuple(round(x / width, 4) for x in [c[0] for c in columns] + [columns[-1][2]]) if columns else ()
+        items.append((table.bbox[1], 1, _table_lines(table.extract(), page_no, box, cols)))
     items.sort(key=lambda item: (item[0], item[1]))
     return [line for _, _, lines in items for line in lines]
 
@@ -309,7 +315,7 @@ def _join_wrapped(lines: list[PdfLine]) -> list[PdfLine]:
 # и начинающейся сверху, если её верх выше этой доли.
 TABLE_BOTTOM_EDGE = 0.7
 TABLE_TOP_EDGE = 0.3
-# Служебные слова, на которых ячейка не может кончаться, если строка не разорвана.
+# Служебные слова, на которых длинная ячейка не может кончаться, если строка не разорвана.
 OPEN_WORDS = frozenset(
     "и или а но в во на с со к ко по для от до из у о об при без над под за через между что как "
     "and or but of to in on at by for with from the a an".split()
@@ -320,33 +326,67 @@ def _norm_cells(cells: list[str]) -> list[str]:
     return [" ".join(c.split()).casefold() for c in cells]
 
 
-def _unfinished(cell: str) -> bool:
-    """Ячейка обрывается: кончается запятой, дефисом, открытой скобкой или служебным словом."""
-    cell = cell.rstrip()
-    if not cell:
+def _cell_continues(a: str, b: str) -> bool:
+    """Ячейка продолжения дописывает ячейку над ней: фраза разорвана посередине.
+
+    Нужна строчная буква в начале продолжения и одно из трёх: перенос слова через дефис;
+    фраза из нескольких слов без точки в конце и продолжение тоже из нескольких слов; длинная
+    ячейка (три слова и больше) оборвана на запятой, открытой скобке или служебном слове.
+    Прочерк, одна буква, одно слово («Group A», «Mode on», «daily») ничего не обрывают.
+    """
+    a, b = a.rstrip(), b.lstrip()
+    if not a or not b or not b[0].islower():
         return False
-    if cell[-1] in ",(-/":
+    words = a.split()
+    if a.endswith("-") and len(words[-1]) > 3 and words[-1][-2].isalpha():
         return True
-    words = cell.split()
-    return words[-1].casefold() in OPEN_WORDS
+    if len(words) > 1 and a[-1] not in SENTENCE_END and len(b.split()) > 1:
+        return True
+    return len(words) >= 3 and (a[-1] in ",(" or words[-1].casefold() in OPEN_WORDS)
 
 
 def _row_continues(prev: list[str], nxt: list[str], first_col_always_filled: bool) -> bool:
-    """Первая строка продолжения дописывает последнюю строку предыдущей части таблицы."""
-    filled = [(a, b) for a, b in zip(prev, nxt) if b]
-    if not filled:
+    """Первая строка продолжения дописывает последнюю строку предыдущей части таблицы.
+
+    Первая колонка держит ключ строки (номер, идентификатор, название). Если в продолжении она
+    заполнена, решает только она: новый ключ означает новую строку. Если пуста, строка разорвана,
+    когда в таблице первая колонка нигде больше не пуста, иначе нужна оборванная фраза в другой колонке.
+    """
+    if not any(nxt):
         return False
-    for a, b in filled:
-        if a and _unfinished(a):
-            return True
-    # Первая непустая ячейка продолжения начинается со строчной буквы и состоит из нескольких слов,
-    # а ячейка над ней не кончается точкой: фраза разорвана. Одно слово со строчной («да», «daily»)
-    # бывает началом обычной строки, такое не клеим.
-    a, b = filled[0]
-    if a and a[-1] not in SENTENCE_END and b[0].islower() and len(b.split()) > 1 and len(a.split()) > 1:
+    if nxt[0]:
+        return _cell_continues(prev[0], nxt[0])
+    if first_col_always_filled and prev[0]:
         return True
-    # Пустая первая ячейка при заполненной сверху, а во всей таблице первая ячейка нигде больше не пуста.
-    return first_col_always_filled and not nxt[0] and bool(prev[0])
+    return any(_cell_continues(a, b) for a, b in zip(prev[1:], nxt[1:]))
+
+
+def _looks_like_header(cells: list[str]) -> bool:
+    """Строка похожа на шапку: все ячейки заполнены, короткие, без цифр и без точки в конце."""
+    return all(c and len(c.split()) <= 6 and not any(ch.isdigit() for ch in c) and c[-1] != "." for c in cells)
+
+
+def _same_columns(a: tuple[float, ...], b: tuple[float, ...]) -> bool:
+    """Границы столбцов совпадают с допуском в 1% ширины страницы (около 6 pt на A4)."""
+    return len(a) == len(b) and all(abs(x - y) <= 0.01 for x, y in zip(a, b))
+
+
+def _join_plan(rows_a: list[PdfLine], rows_b: list[PdfLine]) -> tuple[list[PdfLine], PdfLine | None] | None:
+    """Как приклеить продолжение: (строки продолжения, строка для приклейки к последней) или None."""
+    last = rows_a[-1]
+    if not _same_columns(last.cols, rows_b[0].cols):
+        return None
+    repeated = _norm_cells(rows_b[0].cells) == _norm_cells(rows_a[0].cells)
+    rest = rows_b[1:] if repeated else rows_b
+    if not rest:
+        return rest, None
+    first_filled = all(r.cells[0] for r in rows_a + rest[1:])
+    if _row_continues(last.cells, rest[0].cells, first_filled):
+        return rest[1:], rest[0]
+    if not repeated and _looks_like_header(rest[0].cells):
+        # Своя шапка, не как у первой таблицы: это другая таблица без подписи между ними.
+        return None
+    return rest, None
 
 
 def _glue(a: str, b: str) -> str:
@@ -361,10 +401,11 @@ def _join_tables(lines: list[PdfLine]) -> int:
     """Склейка таблицы, продолженной на следующей странице (после снятия колонтитулов).
 
     Склеиваются две таблицы, между которыми нет текста, если первая кончается внизу страницы,
-    вторая начинается вверху следующей и у них одно число столбцов, больше одного. Повтор шапки в начале
+    вторая начинается вверху следующей и у них те же столбцы (число больше одного, границы по bbox). Повтор шапки в начале
     продолжения убирается. Первая строка продолжения, которая дописывает разорванную строку
     (_row_continues), приклеивается к ней по ячейкам. У склеенной строки остаётся страница начала.
-    При любом сомнении таблицы остаются раздельными.
+    Своя шапка у продолжения означает другую таблицу (_join_plan). При любом сомнении таблицы
+    остаются раздельными.
     """
     joined = 0
     index = 0
@@ -382,28 +423,28 @@ def _join_tables(lines: list[PdfLine]) -> int:
                 continue
             last, first = rows_a[-1], rows_b[0]
             # Таблица в один столбец обычно рамка вокруг страницы (слайды, плакаты), а не данные.
-            if (first.page == last.end_page + 1 and len(first.cells) == len(last.cells) > 1
+            if not (first.page == last.end_page + 1 and len(first.cells) == len(last.cells) > 1
                     and last.box[1] >= TABLE_BOTTOM_EDGE and first.box[0] <= TABLE_TOP_EDGE):
-                pair = (a0, a1, b0, b1, rows_a, rows_b)
+                continue
+            plan = _join_plan(rows_a, rows_b)
+            if plan is not None:
+                pair = (a1, b1, last, first, plan)
                 break
         if pair is None:
             return joined
-        a0, a1, b0, b1, rows_a, rows_b = pair
-        if _norm_cells(rows_b[0].cells) == _norm_cells(rows_a[0].cells):
-            rows_b = rows_b[1:]
-        last = rows_a[-1]
-        if rows_b:
-            first_filled = all(r.cells[0] for r in rows_a + rows_b[1:])
-            if _row_continues(last.cells, rows_b[0].cells, first_filled):
-                head = rows_b.pop(0)
-                last.cells = [_glue(a, b) for a, b in zip(last.cells, head.cells)]
-                last.text = _row_text(last.cells)
-                last.end_page, last.box = head.end_page, (last.box[0], head.box[1])
+        a1, b1, last, first, (rest, head) = pair
+        if head is not None:
+            last.cells = [_glue(a, b) for a, b in zip(last.cells, head.cells)]
+            last.text = _row_text(last.cells)
+        if not rest:
+            # Продолжение целиком ушло в последнюю строку (или было одной шапкой): дальше
+            # цепочку продолжает последняя строка, ей нужны страница и низ этой части.
+            last.end_page, last.box = first.end_page, (last.box[0], first.box[1])
         # Строки продолжения сохраняют свою страницу и положение: таблицу на три страницы
         # и больше следующий шаг склеивает по низу последней части.
-        lines[a1 + 1:b1 + 1] = rows_b
+        lines[a1 + 1:b1 + 1] = rest
         joined += 1
-        index = a0
+        index = a1
 
 
 def read_pdf(path: Path) -> PdfText:

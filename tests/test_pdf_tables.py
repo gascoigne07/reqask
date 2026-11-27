@@ -226,3 +226,90 @@ def test_single_column_frames_are_not_joined(tmp_path):
     pdf = read_pdf(path)
     assert pdf.joined_tables == 0
     assert sum(line.text.startswith("| ---") for line in pdf.lines) == 3
+
+
+def _rows_after_split(tmp_path, name, first, second, **kw):
+    path = tmp_path / name
+    split_pdf(path, first, second, **kw)
+    pdf = read_pdf(path)
+    return pdf, [line.text for line in pdf.lines if line.kind == "table"]
+
+
+VALUES = [["Req"], ["Default value"]]
+
+
+def test_finished_rows_are_not_glued(tmp_path):
+    # Прочерк, одна буква, короткое значение ничего не обрывают: R6 остаётся отдельной строкой.
+    for last in ("-", "Group A", "Mode on", "Zone (", "Cash,"):
+        first = [VALUES] + [[[f"R{i}"], ["daily"]] for i in range(1, 5)] + [[["R5"], [last]]]
+        second = [VALUES, [["R6"], ["weekly"]], [["R7"], ["monthly"]]]
+        pdf, rows = _rows_after_split(tmp_path, "values.pdf", first, second)
+        assert pdf.joined_tables == 1, last
+        assert f"| R5 | {last} |" in rows and "| R6 | weekly |" in rows, last
+        assert len(rows) == 2 + 7, last
+
+
+def test_new_key_in_first_column_is_a_new_row(tmp_path):
+    # Длинная ячейка оборвана запятой, но в первой колонке продолжения новый идентификатор: новая строка.
+    first = [VALUES, [["R1"], ["daily"]], [["R2"], ["Reminders go by SMS, e-mail,"]]]
+    second = [VALUES, [["R3"], ["push messages are not used"]]]
+    _, rows = _rows_after_split(tmp_path, "keys.pdf", first, second)
+    assert rows[-2:] == ["| R2 | Reminders go by SMS, e-mail, |", "| R3 | push messages are not used |"]
+
+
+def test_broken_sentence_in_long_cell_is_glued(tmp_path):
+    # Первая колонка продолжения пуста, а в таблице она есть у одной строки из двух: склеивает
+    # только оборванная фраза в длинной ячейке.
+    first = [VALUES, [["R1"], ["daily"]], [[""], ["note"]], [["R2"], ["Reminders go by SMS or"]]]
+    second = [[[""], ["by a call from the desk"]], [["R3"], ["weekly"]]]
+    _, rows = _rows_after_split(tmp_path, "broken.pdf", first, second)
+    assert "| R2 | Reminders go by SMS or by a call from the desk |" in rows
+    assert rows[-1] == "| R3 | weekly |"
+
+
+def test_other_table_with_own_header_is_not_joined(tmp_path):
+    # Вторая таблица со своей шапкой наверху следующей страницы, без подписи: две таблицы.
+    first = [VALUES] + [[[f"R{i}"], ["daily"]] for i in range(1, 6)]
+    second = [[["Code"], ["Meaning"]], [["E1"], ["no free slot"]], [["E2"], ["doctor is away"]]]
+    pdf, rows = _rows_after_split(tmp_path, "two_tables.pdf", first, second)
+    assert pdf.joined_tables == 0
+    assert "| Code | Meaning |" in rows and rows.count("| --- | --- |") == 2
+
+    # Та же шапка, но столбцы другой ширины: тоже другая таблица.
+    second = [VALUES, [["R6"], ["weekly"]]]
+    pdf, _ = _rows_after_split(tmp_path, "widths2.pdf", first, second, widths_second=[200, 230])
+    assert pdf.joined_tables == 0
+
+
+def test_table_over_three_pages(tmp_path):
+    # Таблица на три страницы: средняя часть занимает страницу целиком, последняя строка
+    # второй страницы разорвана и дописана на третьей.
+    path = tmp_path / "three.pdf"
+    c = canvas.Canvas(str(path), pagesize=A4)
+    rows1 = [HEADER] + [[[f"R{i}"], ["daily"]] for i in range(1, 6)]
+    rows2 = [HEADER] + [[[f"R{i}"], ["weekly"]] for i in range(6, 30)] + [[["R30"], ["The portal sends the report to"]]]
+    rows3 = [HEADER, [[""], ["the head doctor every Monday."]], [["R31"], ["monthly"]]]
+    header_footer(c, 1, 4)
+    body(c, H - 100, ["1 Appointments"])
+    h1 = sum(LINE * max(len(cell) for cell in row) + 8 for row in rows1)
+    draw_table(c, 130 + h1, [130, 300], rows1)
+    c.showPage()
+    header_footer(c, 2, 4)
+    draw_table(c, H - 70, [130, 300], rows2)
+    c.showPage()
+    header_footer(c, 3, 4)
+    bottom = draw_table(c, H - 70, [130, 300], rows3)
+    body(c, bottom - 30, ["End of table."])
+    c.showPage()
+    header_footer(c, 4, 4)
+    body(c, H - 100, ["2 Limits"])
+    c.showPage()
+    c.save()
+
+    pdf = read_pdf(path)
+    rows = [line for line in pdf.lines if line.kind == "table"]
+    texts = [r.text for r in rows]
+    assert pdf.joined_tables == 2
+    assert texts.count("| Rule | Description |") == 1 and len(texts) == 2 + 31
+    assert "| R30 | The portal sends the report to the head doctor every Monday. |" in texts
+    assert {r.page for r in rows if r.text.startswith("| R30 ")} == {2}
