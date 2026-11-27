@@ -799,8 +799,8 @@ def render_html(result: RunResult) -> str:
 CSS = """
 :root {
   color-scheme: light dark;
-  --bg: #ffffff; --fg: #1a1b1d; --muted: #5b6066; --ln: #6c7178; --rule: #dadcdf; --strong: #1a1b1d;
-  --quote-bg: #f5f5f2; --link: #1f4e8c; --crit: #b42318; --major: #8a5300; --mark: #fff0b3;
+  --bg: #ffffff; --fg: #15181d; --muted: #5a616b; --ln: #6c7178; --rule: #d6d9de; --strong: #15181d;
+  --quote-bg: #f4f5f6; --link: #15181d; --link-line: #9aa3af; --crit: #9b1c1c; --major: #7a5200; --mark: #fff0b3;
   --serif: Charter, "Bitstream Charter", "Sitka Text", Cambria, Georgia, serif;
   --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, Roboto, "Helvetica Neue", Arial, sans-serif;
   --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
@@ -808,15 +808,17 @@ CSS = """
 }
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #161719; --fg: #e6e4e0; --muted: #a6aab0; --ln: #8f949b; --rule: #34373b; --strong: #e6e4e0;
-    --quote-bg: #212326; --link: #93bbf5; --crit: #ff8b7e; --major: #e3ad52; --mark: #4d4214;
+    --bg: #12151a; --fg: #e4e2dd; --muted: #9da4ae; --ln: #8a919b; --rule: #2b3139; --strong: #e4e2dd;
+    --quote-bg: #1a1f26; --link: #e4e2dd; --link-line: #6f7885; --crit: #e0786c; --major: #d3a558; --mark: #4d4214;
   }
 }
 * { box-sizing: border-box; }
 html { -webkit-text-size-adjust: 100%; }
 body { margin: 0; background: var(--bg); color: var(--fg); font: 17px/1.58 var(--serif);
   font-kerning: normal; overflow-wrap: break-word; }
-a { color: var(--link); text-decoration-thickness: 1px; text-underline-offset: 0.16em; }
+a { color: var(--link); text-decoration-color: var(--link-line); text-decoration-thickness: 1px;
+  text-underline-offset: 0.18em; }
+a:hover { text-decoration-color: currentColor; }
 .doc a[href^="#"] { white-space: nowrap; }
 a:focus-visible, button:focus-visible, summary:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
 code { font: 0.84em var(--mono); overflow-wrap: anywhere; }
@@ -839,12 +841,14 @@ h1 { font: 600 1.6rem/1.2 var(--serif); margin: 0 0 0.5rem; letter-spacing: -0.0
 .toc ul { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 0.15rem 1rem; }
 .toc li { margin: 0; }
 .toc a { color: var(--fg); text-decoration: none; display: inline-block; padding: 0.2rem 0; }
-.toc a:hover { color: var(--link); text-decoration: underline; }
+.toc a:hover { text-decoration: underline; }
 .tools { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 0.95rem; margin-top: 0.4rem; }
 .tools[hidden] { display: none; }
 .tools-label { color: var(--muted); }
-.tools button { font: inherit; color: var(--link); background: none; border: 0; padding: 0.3rem 0; cursor: pointer;
-  text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 0.18em; }
+.tools button { font: inherit; color: var(--muted); background: none; border: 0; padding: 0.3rem 0; cursor: pointer;
+  text-decoration: none; }
+.tools button:hover { color: var(--fg); text-decoration: underline; text-decoration-thickness: 1px;
+  text-underline-offset: 0.18em; }
 .tools button[aria-pressed="true"] { color: var(--fg); font-weight: 700; text-decoration: none; }
 
 /* заголовки */
@@ -859,7 +863,7 @@ h3 { font: 600 1.14rem/1.35 var(--serif); margin: 2rem 0 0.5rem; }
 .v-bad { --v: var(--crit); } .v-warn { --v: var(--major); } .v-ok { --v: var(--fg); }
 .verdict .label { display: block; font: 600 0.72rem/1.4 var(--sans); letter-spacing: 0.09em;
   text-transform: uppercase; color: var(--muted); }
-.decision { display: block; font: 600 2.1rem/1.12 var(--serif); color: var(--v); margin: 0.2rem 0 0.5rem;
+.decision { display: block; font: 600 2.1rem/1.12 var(--serif); color: var(--fg); margin: 0.2rem 0 0.5rem;
   letter-spacing: -0.012em; text-wrap: balance; }
 .verdict-note { margin: 0.3rem 0; color: var(--muted); }
 .ready { font: 0.88rem/1.5 var(--sans); display: flex; flex-wrap: wrap; gap: 0.1rem 1.6rem; margin: 0.5rem 0 0; }
