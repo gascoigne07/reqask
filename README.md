@@ -38,7 +38,7 @@ reqask читает документ с требованиями (PDF, DOCX, Mar
 - Второй ревьюер (критик) перепроверяет замечания уровня CRITICAL и MAJOR: понижает уровень и сливает повторы. Повысить уровень он не может.
 - Агент работает с любой моделью через OpenAI-совместимый API: Gemini, Claude, OpenAI или локальная модель в Ollama.
 - Готовый отчёт перерисовывается из `report.json` и сравнивается с прошлым без модели и ключа: `--render`, `--compare`.
-- 301 тест идёт без сети и ключа, CI на Python 3.10 и 3.12.
+- 303 теста идут без сети и ключа, CI на Python 3.10 и 3.12.
 
 Решение для BCC-HUB x MNU FinTech Hackathon, задание: [ai-requirements-validator-task](https://github.com/BCC-HUB/ai-requirements-validator-task).
 
@@ -281,7 +281,7 @@ flowchart TD
 | В коде агента нет идентификаторов, путей, имён полей и чисел из выданного документа | [tests/test_no_overfit.py](tests/test_no_overfit.py) |
 | На документе из другой области (написали сами, подсадили 12 дефектов) агент нашёл все 12 | [examples/README.md](examples/README.md): таблица дефект и замечание со ссылками. Оговорка там же: на двух из трёх чистых требований (C-01, C-02) агент поставил лишние замечания уровня MAJOR |
 | На спецификации из открытого набора PURE агент нашёл 5-7 из 9 дефектов, которые вслепую выписал человек | [examples/README.md](examples/README.md), список человека [examples/pure-puget-sound.human-list.txt](examples/pure-puget-sound.human-list.txt) |
-| Тесты не ходят в сеть и не требуют ключа | `uv run pytest -q`: 301 тест; CI на Python 3.10 и 3.12 в [.github/workflows/tests.yml](.github/workflows/tests.yml) |
+| Тесты не ходят в сеть и не требуют ключа | `uv run pytest -q`: 303 теста; CI на Python 3.10 и 3.12 в [.github/workflows/tests.yml](.github/workflows/tests.yml) |
 
 <details>
 <summary>Ещё пять проверок: перерисовка отчёта, сравнение, строка-приказ, путь отчёта, оценки моделей</summary>
