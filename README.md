@@ -38,7 +38,7 @@ reqask читает документ с требованиями (PDF, DOCX, Mar
 - Второй ревьюер (критик) перепроверяет замечания уровня CRITICAL и MAJOR: понижает уровень и сливает повторы. Повысить уровень он не может.
 - Агент работает с любой моделью через OpenAI-совместимый API: Gemini, Claude, OpenAI или локальная модель в Ollama.
 - Готовый отчёт перерисовывается из `report.json` и сравнивается с прошлым без модели и ключа: `--render`, `--compare`. Замечания выгружаются в CSV для трекера задач: `--export-csv`.
-- 318 тестов идут без сети и ключа, CI на Python 3.10 и 3.12.
+- 319 тестов идут без сети и ключа, CI на Python 3.10 и 3.12.
 
 Решение для BCC-HUB x MNU FinTech Hackathon, задание: [ai-requirements-validator-task](https://github.com/BCC-HUB/ai-requirements-validator-task).
 
@@ -304,13 +304,13 @@ flowchart TD
 | Ответ модели проходит JSON-схему, невалидный ответ уходит модели на исправление | схемы ответов (классы `*Out`) в [src/reqask/schemas.py](src/reqask/schemas.py); `complete_json` и `_downgrade` в [src/reqask/llm.py](src/reqask/llm.py); тесты `test_llm_repairs_invalid_json` в [tests/test_core.py](tests/test_core.py) и `test_json_downgrade_is_per_schema` в [tests/test_llm.py](tests/test_llm.py) |
 | Вердикт считает код по правилу, модель пишет только обоснование | `DECISION_RULE` и `decide` в [src/reqask/pipeline.py](src/reqask/pipeline.py); то же правило напечатано в разделе 6 отчёта; тест `test_incomplete_report_has_no_positive_verdict` в [tests/test_core.py](tests/test_core.py) |
 | Критик не может повысить уровень, снять или понизить без причины | `test_critic_decisions_and_limits` в [tests/test_core.py](tests/test_core.py); снятое и слитое в приложении Б отчёта |
-| Сбой модели не роняет прогон: повторы, запасная модель, неполный отчёт с пометкой, коды возврата | [tests/test_llm.py](tests/test_llm.py) (429, суточная квота, 5xx, обрезка, пустой ответ), [tests/test_cli.py](tests/test_cli.py) (коды 0, 1, 2, 3, 10, 130), [tests/test_run_failures.py](tests/test_run_failures.py) (обрыв сети, старый отчёт не затирается) |
+| Сбой модели не роняет прогон: повторы, запасная модель, неполный отчёт с пометкой, коды возврата | [tests/test_llm.py](tests/test_llm.py) (429, суточная квота, 5xx, обрезка, пустой ответ), [tests/test_cli.py](tests/test_cli.py) (коды 0, 1, 2, 3, 10, 130), [tests/test_run_failures.py](tests/test_run_failures.py) (обрыв сети, старый отчёт не затирается); живой пример неполного отчёта: [examples/gemini-hydrogen-partial.report.md](examples/gemini-hydrogen-partial.report.md) (кончилась суточная квота, код 3) |
 | Повреждённый или пустой файл даёт код 2 и файл отчёта с причиной | `_write_unreadable` в [src/reqask/cli.py](src/reqask/cli.py); тест `test_unreadable_document_gets_diagnostic_report` в [tests/test_cli.py](tests/test_cli.py) |
 | Ключ не попадает в тексты ошибок | `redact` в [src/reqask/llm.py](src/reqask/llm.py); тест `test_key_in_provider_error_text_is_hidden` в [tests/test_run_failures.py](tests/test_run_failures.py) |
 | В коде агента нет идентификаторов, путей, имён полей и чисел из выданного документа | [tests/test_no_overfit.py](tests/test_no_overfit.py) |
 | На документе из другой области (написали сами, подсадили 12 дефектов) агент нашёл все 12 | [examples/README.md](examples/README.md): таблица дефект и замечание со ссылками. Оговорка там же: на двух из трёх чистых требований (C-01, C-02) агент поставил лишние замечания уровня MAJOR |
 | На спецификации из открытого набора PURE агент нашёл 5-7 из 9 дефектов, которые вслепую выписал человек | [examples/README.md](examples/README.md), список человека [examples/pure-puget-sound.human-list.txt](examples/pure-puget-sound.human-list.txt) |
-| Тесты не ходят в сеть и не требуют ключа | `uv run pytest -q`: 318 тестов; CI на Python 3.10 и 3.12 в [.github/workflows/tests.yml](.github/workflows/tests.yml) |
+| Тесты не ходят в сеть и не требуют ключа | `uv run pytest -q`: 319 тестов; CI на Python 3.10 и 3.12 в [.github/workflows/tests.yml](.github/workflows/tests.yml) |
 
 <details>
 <summary>Ещё пять проверок: перерисовка отчёта, сравнение, строка-приказ, путь отчёта, оценки моделей</summary>
@@ -361,7 +361,8 @@ docker run --rm -v "$PWD":/work reqask --input docs/requirements.md --output out
 
 Агент берёт первый заполненный вариант по порядку: `LLM_*`, `GEMINI_*`, `ANTHROPIC_*`, `OPENAI_*`, `OLLAMA_*`. Все варианты описаны в [.env.example](.env.example).
 
-- Gemini: модель по умолчанию `gemini-3.8-flash`, запасные `gemini-3.6-flash`, `gemini-3.7-flash`, `gemini-3.5-flash`. Бесплатный тариф даёт 20 запросов в день на модель, прогону выданного документа нужно 15. Полный прогон на бесплатном ключе прошёл 27.11: код 0, 15 обращений, 11 минут, отчёт полный, лежит в [examples/gemini-free.report.md](examples/gemini-free.report.md). Основная модель в тот час не отвечала (таймаут, потом ошибка 500), агент сам перешёл на `gemini-3.6-flash` и записал переход в паспорт отчёта. Днём раньше такой же запуск дал неполный отчёт: серверы отвечали ошибками перегрузки, и суточная квота ушла на повторы. Если так случится у вас, повторите после сброса квоты (13:00 по Астане) или возьмите другой ключ.
+- Gemini: модель по умолчанию `gemini-3.8-flash`, запасные `gemini-3.6-flash`, `gemini-3.7-flash`, `gemini-3.5-flash`. Бесплатный тариф даёт 20 запросов в день на модель, прогону выданного документа нужно 15. Полный прогон на бесплатном ключе прошёл 27.11: код 0, 15 обращений, 11 минут, отчёт полный, лежит в [examples/gemini-free.report.md](examples/gemini-free.report.md). Основная модель в тот час не отвечала (таймаут, потом ошибка 500), агент сам перешёл на `gemini-3.6-flash` и записал переход в паспорт отчёта. Днём раньше такой же запуск дал неполный отчёт: серверы отвечали ошибками перегрузки, и суточная квота ушла на повторы. Если так случится у вас, повторите после сброса квоты (13:00 по Астане) или возьмите другой ключ. Неудачные запросы, судя по счётчику, тоже идут в суточный лимит, а у `gemini-3.5-flash` и `gemini-3.6-flash` лимит, похоже, общий: отказ по квоте на первой называет вторую.
+- Gemini, модель сильнее: из семейства Gemini 4 на бесплатном ключе отвечает только `gemini-4-hydrogen`, остальным и Pro нужен платный тариф. Запуск: `--model gemini-4-hydrogen`. Полного прогона на ней у нас нет: 27.11 серверы отвечали ошибками, и квота кончилась на шаге 4. Но этот один шаг дал 39 замечаний против 22 у `gemini-3.6-flash` и закрыл 13 дефектов эталона, почти столько же, сколько весь прогон на `gemini-3.6-flash` (14). Неполный отчёт с причиной в первых строках лежит в [examples/gemini-hydrogen-partial.report.md](examples/gemini-hydrogen-partial.report.md).
 - Anthropic: модель по умолчанию `claude-haiku-5-5`. Отчёт в `reports/` сделан этой же командой с флагом `--model claude-opus-5-5`.
 - OpenAI, Ollama на своей машине или любой OpenAI-совместимый адрес (`LLM_BASE_URL`, `LLM_API_KEY`, `LLM_MODEL`).
 
@@ -516,7 +517,7 @@ input/requirements.md    документ, выданный организато
 docs/requirements.md     тот же документ по пути из репозитория задания
 docs/eval/               эталон дефектов и оценки прогонов на разных моделях
 reports/                 отчёт агента по выданному документу
-examples/                отчёты по двум другим документам, прогон на бесплатном Gemini, демо «автор ответил»
+examples/                отчёты по двум другим документам, прогоны на бесплатном Gemini, демо «автор ответил»
   answered/              демо «автор ответил»: ответы, копия документа, отчёт и сравнение
 ```
 
