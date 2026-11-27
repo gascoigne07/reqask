@@ -196,6 +196,19 @@ def _load_pdf(path: Path):
         raise LoadError(f"Не удалось разобрать PDF: {type(exc).__name__}: {exc}") from exc
 
 
+def _row_cells(row) -> list[str]:
+    """Тексты ячеек строки таблицы DOCX. Объединённая ячейка идёт один раз, знак | экранируется."""
+    cells: list[str] = []
+    previous = None
+    for cell in row.cells:
+        # python-docx отдаёт объединённую по горизонтали ячейку столько раз, сколько колонок она занимает.
+        if previous is not None and cell._tc is previous:
+            continue
+        previous = cell._tc
+        cells.append(" ".join(cell.text.split()).replace("|", "\\|"))
+    return cells
+
+
 def _load_docx(path: Path) -> list[tuple[str, int | None]]:
     import docx
     from docx.table import Table
@@ -220,9 +233,11 @@ def _load_docx(path: Path) -> list[tuple[str, int | None]]:
             rows.append((text, None))
         elif child.tag.endswith("}tbl"):
             table = Table(child, document)
-            for row in table.rows:
-                cells = [" ".join(cell.text.split()) for cell in row.cells]
+            for number, row in enumerate(table.rows):
+                cells = _row_cells(row)
                 rows.append(("| " + " | ".join(cells) + " |", None))
+                if number == 0:
+                    rows.append(("| " + " | ".join(["---"] * len(cells)) + " |", None))
             rows.append(("", None))
     return rows
 

@@ -72,3 +72,44 @@ def test_check_ids_keeps_order_without_duplicates(tmp_path):
     pipe._check_ids(doc, [])
     assert pipe.quality.ids_in_document == 2
     assert pipe.quality.ids_missing == ["FR-1", "FR-2"]
+
+
+# ---------- DOCX: таблицы ----------
+
+def test_docx_table_merged_cells_pipe_and_separator(tmp_path):
+    import docx
+
+    d = docx.Document()
+    d.add_paragraph("Перед таблицей")
+    table = d.add_table(rows=3, cols=3)
+    top = table.cell(0, 0).merge(table.cell(0, 2))
+    top.text = "Общий заголовок"
+    for i, text in enumerate(["Поле", "Значение", "Примечание"]):
+        table.cell(1, i).text = text
+    table.cell(2, 0).text = "mode"
+    table.cell(2, 1).text = "a|b"
+    table.cell(2, 2).text = "два   слова"
+    path = tmp_path / "t.docx"
+    d.save(str(path))
+    texts = [line.text for line in load_document(path).lines]
+    assert texts[1:6] == [
+        "| Общий заголовок |",
+        "| --- |",
+        "| Поле | Значение | Примечание |",
+        "| mode | a\\|b | два слова |",
+        "",
+    ]
+
+
+def test_docx_separator_is_table_separator_for_loader(tmp_path):
+    import docx
+
+    d = docx.Document()
+    table = d.add_table(rows=2, cols=2)
+    for r in range(2):
+        for c in range(2):
+            table.cell(r, c).text = f"x{r}{c}"
+    path = tmp_path / "t.docx"
+    d.save(str(path))
+    doc = load_document(path)
+    assert [doc.is_content(i) for i in (1, 2, 3)] == [True, False, True]
