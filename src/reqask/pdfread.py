@@ -247,14 +247,28 @@ def _drop_headers(pages: list[list[PdfLine]]) -> int:
         return text[:2] + [line for line in text[-2:] if all(line is not t for t in text[:2])]
 
     counts: dict[str, int] = {}
+    variants: dict[str, set[str]] = {}
+    template: set[str] = set()
     table_counts: dict[str, int] = {}
     for page in with_text:
         for key in {_header_key(line.text) for line in edges(page)}:
             counts[key] = counts.get(key, 0) + 1
+        for line in edges(page):
+            variants.setdefault(_header_key(line.text), set()).add(" ".join(line.text.split()).casefold())
+        text = [line for line in page if line.text and line.kind == "text"]
+        for side in (text[:2], text[-2:]):
+            keys = [_header_key(line.text) for line in side]
+            if len(keys) == 2 and keys[0] == keys[1]:
+                template.add(keys[0])
         for key in {_table_key(page, block) for block in _edge_tables(page)}:
             table_counts[key] = table_counts.get(key, 0) + 1
-    repeated = {k for k, v in counts.items() if v >= need}
+    # Строка шаблона (REQ-1 ... within 2 seconds): с краю страницы подряд две строки одного вида,
+    # а текст меняется. У настоящего колонтитула две подряд одинаковые строки с краю не бывают,
+    # а дословный повтор (название, «Confidential») доверия не теряет.
+    suspicious = {key for key in template if len(variants[key]) > 1}
+    repeated = {k for k, v in counts.items() if v >= need and k not in suspicious}
     repeated_tables = {k for k, v in table_counts.items() if v >= need}
+    plan: list[tuple[list[PdfLine], set[int]]] = []
     removed = 0
     for page in with_text:
         drop = {id(line) for line in edges(page) if _header_key(line.text) in repeated}
@@ -267,7 +281,14 @@ def _drop_headers(pages: list[list[PdfLine]]) -> int:
             b = b + 1 if b + 1 < len(page) and not page[b + 1].text else b
             drop.update(id(line) for line in page[a : b + 1])
         if drop:
-            page[:] = [line for line in page if id(line) not in drop]
+            plan.append((page, drop))
+    # Предохранитель: если после снятия не осталось бы ни одной строки содержания, колонтитулами
+    # назвали весь документ. Это ошибка распознавания, строки остаются.
+    gone = {i for _, drop in plan for i in drop}
+    if not any(_has_text(line) and id(line) not in gone for page in with_text for line in page):
+        return 0
+    for page, drop in plan:
+        page[:] = [line for line in page if id(line) not in drop]
     return removed
 
 

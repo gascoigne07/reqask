@@ -303,6 +303,8 @@ def load_document(path: str | Path) -> Document:
     ext = path.suffix.lower()
     if ext == ".pdf" or data[:5] == b"%PDF-":
         pdf = _load_pdf(path)
+        if not any(line.text.strip() and not set(line.text) <= set("|- ") for line in pdf.lines):
+            raise LoadError(f"В документе нет текста: {path}")
         lines = [Line(no=i, text=line.text, page=line.page, kind=line.kind, level=line.level)
                  for i, line in enumerate(pdf.lines, start=1)]
         return Document(path=path, fmt="pdf", lines=lines, sha256=hashlib.sha256(data).hexdigest(),
