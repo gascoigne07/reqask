@@ -1,0 +1,1362 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="content-security-policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'">
+<meta name="color-scheme" content="light dark">
+<title>Отчёт о проверке требований: requirements.answered.md</title>
+<style>
+:root {
+  color-scheme: light dark;
+  --bg: #ffffff; --fg: #1a1b1d; --muted: #5b6066; --ln: #6c7178; --rule: #dadcdf; --strong: #1a1b1d;
+  --quote-bg: #f5f5f2; --link: #1f4e8c; --crit: #b42318; --major: #8a5300; --mark: #fff0b3;
+  --serif: Charter, "Bitstream Charter", "Sitka Text", Cambria, Georgia, serif;
+  --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, Roboto, "Helvetica Neue", Arial, sans-serif;
+  --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  --measure: 37em; --gutter: 0px; --gap: 1.25rem;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #161719; --fg: #e6e4e0; --muted: #a6aab0; --ln: #8f949b; --rule: #34373b; --strong: #e6e4e0;
+    --quote-bg: #212326; --link: #93bbf5; --crit: #ff8b7e; --major: #e3ad52; --mark: #4d4214;
+  }
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--bg); color: var(--fg); font: 17px/1.58 var(--serif);
+  font-kerning: normal; overflow-wrap: break-word; }
+a { color: var(--link); text-decoration-thickness: 1px; text-underline-offset: 0.16em; }
+.doc a[href^="#"] { white-space: nowrap; }
+a:focus-visible, button:focus-visible, summary:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+code { font: 0.84em var(--mono); overflow-wrap: anywhere; }
+p, ul, ol { margin: 0.55em 0; }
+ul, ol { padding-left: 1.35em; }
+li { margin: 0.25em 0; }
+
+/* раскладка: узкий экран по умолчанию */
+.page { padding: 0 16px 3rem; max-width: calc(var(--measure) + 32px); margin: 0 auto; }
+.doc-head { padding: 1.8rem 0 0.6rem; }
+h1 { font: 600 1.6rem/1.2 var(--serif); margin: 0 0 0.5rem; letter-spacing: -0.005em; }
+.h1-kind { display: block; font: 600 0.72rem/1.4 var(--sans); letter-spacing: 0.09em; text-transform: uppercase;
+  color: var(--muted); margin-bottom: 0.45rem; }
+.colon { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+.h1-doc { overflow-wrap: anywhere; }
+.sub { font: 0.82rem/1.5 var(--sans); color: var(--muted); margin: 0; }
+
+.toc { font: 0.86rem/1.4 var(--sans); border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule);
+  padding: 0.6rem 0; margin: 1.2rem 0 0.4rem; }
+.toc ul { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 0.15rem 1rem; }
+.toc li { margin: 0; }
+.toc a { color: var(--fg); text-decoration: none; display: inline-block; padding: 0.2rem 0; }
+.toc a:hover { color: var(--link); text-decoration: underline; }
+.tools { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 0.95rem; margin-top: 0.4rem; }
+.tools[hidden] { display: none; }
+.tools-label { color: var(--muted); }
+.tools button { font: inherit; color: var(--link); background: none; border: 0; padding: 0.3rem 0; cursor: pointer;
+  text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 0.18em; }
+.tools button[aria-pressed="true"] { color: var(--fg); font-weight: 700; text-decoration: none; }
+
+/* заголовки */
+h2 { font: 600 1.45rem/1.25 var(--serif); margin: 3rem 0 0.9rem; padding-top: 0.55rem;
+  border-top: 1px solid var(--strong); }
+h3 { font: 600 1.14rem/1.35 var(--serif); margin: 2rem 0 0.5rem; }
+.first h2 { font: 600 0.72rem/1.4 var(--sans); letter-spacing: 0.09em; text-transform: uppercase;
+  border: 0; padding: 0; margin: 2rem 0 0.4rem; }
+
+/* вердикт и числа */
+.verdict { --v: var(--muted); border-top: 4px solid var(--v); padding-top: 0.75rem; margin: 1.4rem 0 1.6rem; }
+.v-bad { --v: var(--crit); } .v-warn { --v: var(--major); } .v-ok { --v: var(--fg); }
+.verdict .label { display: block; font: 600 0.72rem/1.4 var(--sans); letter-spacing: 0.09em;
+  text-transform: uppercase; color: var(--muted); }
+.decision { display: block; font: 600 2.1rem/1.12 var(--serif); color: var(--v); margin: 0.2rem 0 0.5rem;
+  letter-spacing: -0.012em; text-wrap: balance; }
+.verdict-note { margin: 0.3rem 0; color: var(--muted); }
+.ready { font: 0.88rem/1.5 var(--sans); display: flex; flex-wrap: wrap; gap: 0.1rem 1.6rem; margin: 0.5rem 0 0; }
+.ready div { display: flex; gap: 0.35em; }
+.ready dt::after { content: ":"; }
+.ready dd { margin: 0; font-weight: 700; }
+.stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem 0.75rem; margin: 0 0 1.4rem; }
+.stat b { display: block; font: 600 1.85rem/1.05 var(--serif); font-variant-numeric: lining-nums tabular-nums; }
+.stat span { display: block; font: 0.74rem/1.3 var(--sans); color: var(--muted); margin-top: 0.25rem; }
+.stat.hot b { color: var(--crit); }
+.incomplete { border-top: 2px solid var(--major); border-bottom: 1px solid var(--rule); padding: 0.5rem 0;
+  margin: 1.2rem 0 0; }
+.incomplete strong { color: var(--major); }
+.incomplete a { color: inherit; }
+.warn-line { color: var(--crit); }
+
+/* списки с идентификатором в поле */
+.idlist { list-style: none; padding: 0; margin: 0.3rem 0 1rem; }
+.idlist > li { position: relative; margin: 0; padding: 0.5rem 0 0.5rem 3.7rem; border-top: 1px solid var(--rule); }
+.idlist > li > .bid, .idlist > li > .qid { position: absolute; left: 0; top: 0.72rem; }
+.bid, .qid, .eid { font: 600 0.8rem/1.3 var(--mono); font-variant-numeric: tabular-nums; letter-spacing: 0; white-space: nowrap; }
+.idlist a.bid, .idlist a.qid { text-decoration: none; }
+.bid.sev-critical { color: var(--crit); }
+.idlist .qid { color: var(--fg); }
+.entry a.qid, p a.qid { font: inherit; }
+.where { font-family: var(--sans); font-size: 0.86em; color: var(--muted); }
+.sep { color: var(--muted); }
+ol.blockers li { margin: 0.4rem 0; }
+
+/* записи: замечания, требования, вопросы */
+.entry { position: relative; border-top: 1px solid var(--rule); padding: 0.95rem 0 1rem; }
+.entry[hidden] { display: none; }
+.entry > p { margin: 0.4em 0; }
+.eh { position: relative; display: block; font: 600 1rem/1.45 var(--serif); margin: 0 0 0.3rem; }
+.gut { display: inline; margin-right: 0.15em; }
+.gut .eid { margin-right: 0.55em; }
+.lvl { font: 700 0.68rem/1.3 var(--sans); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted);
+  white-space: nowrap; }
+.gut .lvl { margin-right: 0.6em; }
+.lvl-critical { color: var(--crit); }
+.lvl-major { color: var(--major); }
+.req { margin-top: 2.6rem; }
+.req > .eh { font-size: 1.08rem; border-top: 1px solid var(--strong); padding-top: 0.55rem; margin: 0 0 0.6rem; }
+.req > .eh .et { font-weight: 600; }
+.k { font: 600 0.7rem/1.4 var(--sans); letter-spacing: 0.07em; text-transform: uppercase; color: var(--muted);
+  margin-right: 0.3em; }
+p.k-block { margin: 0.8em 0 0.25em; }
+.problem { font-weight: 400; }
+.note, .meta, .moved, .legend { font: 0.84rem/1.5 var(--sans); color: var(--muted); }
+.checks { font: 0.84rem/1.7 var(--sans); margin: 0.6rem 0; }
+.ck { white-space: nowrap; margin-right: 0.85em; color: var(--muted); }
+.st-fail { color: var(--crit); font-weight: 700; }
+.st-unknown { color: var(--major); font-weight: 700; }
+.mark { font-family: var(--sans); }
+.mark.st-pass, .mark.st-na { color: var(--muted); }
+.check-notes { font-size: 0.94em; }
+.rewrite { background: var(--quote-bg); padding: 0.65rem 0.95rem; margin: 0.4rem 0 0.4rem; }
+.rewrite strong { display: block; font: 600 0.7rem/1.4 var(--sans); letter-spacing: 0.07em; text-transform: uppercase;
+  color: var(--muted); margin-bottom: 0.2rem; }
+.q .eid { font-size: 1.05rem; color: var(--fg); }
+.q .eh { font: 0.86rem/1.6 var(--sans); color: var(--muted); }
+.q .eh .lvl { font-size: 0.66rem; }
+.qtext { font-weight: 700; margin-top: 0.2rem; }
+ol.options { padding-left: 1.5em; margin: 0.2em 0 0.6em; }
+ol.options li { margin: 0.45em 0; }
+ol.options li::marker { font: 600 0.85em var(--sans); color: var(--muted); }
+.cons { display: block; color: var(--muted); font-size: 0.94em; }
+.cons .k { color: inherit; }
+.rec-mark { font: 700 0.66rem/1 var(--sans); letter-spacing: 0.08em; text-transform: uppercase; color: var(--fg);
+  border-bottom: 1px solid currentColor; margin-left: 0.25em; white-space: nowrap; }
+
+/* строки документа: номер в жёлобе, текст справа */
+.src { display: grid; grid-template-columns: max-content minmax(0, 1fr); align-items: baseline;
+  background: var(--quote-bg); margin: 0.6em 0 0.8em; padding: 0.4rem 0; font-size: 0.94em; line-height: 1.5; }
+.src .n { font: 0.72rem/1.5 var(--mono); font-variant-numeric: tabular-nums; color: var(--ln); text-align: right;
+  min-width: 2.1rem; padding: 0.1rem 0.5rem 0.1rem 0.5rem; border-right: 1px solid var(--rule);
+  align-self: stretch; -webkit-user-select: none; user-select: none; }
+.src .t { white-space: pre-wrap; overflow-wrap: anywhere; padding: 0.1rem 0.9rem; min-width: 0; }
+.src-note { font: 0.8rem var(--sans); color: var(--muted); white-space: normal; }
+.quote { background: var(--quote-bg); padding: 0 0.2em; box-decoration-break: clone; -webkit-box-decoration-break: clone; }
+.ln { font: 0.8em var(--mono); color: var(--ln); white-space: nowrap; }
+
+/* таблицы: только линейки */
+.table-wrap { margin: 0.7rem 0 1.3rem; overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font: 0.84rem/1.45 var(--sans); font-variant-numeric: tabular-nums; }
+th { font: 600 0.68rem/1.4 var(--sans); letter-spacing: 0.07em; text-transform: uppercase; color: var(--muted);
+  text-align: left; vertical-align: bottom; padding: 0.35rem 0.9rem 0.35rem 0; border-bottom: 1px solid var(--strong); }
+td { text-align: left; vertical-align: top; padding: 0.45rem 0.9rem 0.45rem 0; border-bottom: 1px solid var(--rule); }
+th:last-child, td:last-child { padding-right: 0; }
+table.kv td:first-child { white-space: nowrap; color: var(--muted); }
+table.kv th:first-child { width: 11.5em; }
+table.steps td:nth-child(2) { min-width: 9.5em; }
+table.num td:last-child, table.num th:last-child { text-align: right; }
+table.steps td:nth-child(1), table.steps td:nth-child(3), table.steps td:nth-child(4), table.steps td:nth-child(5),
+table.steps th:nth-child(1), table.steps th:nth-child(3), table.steps th:nth-child(4), table.steps th:nth-child(5),
+table.seg td:nth-child(1), table.seg td:nth-child(2), table.seg td:nth-child(4),
+table.seg th:nth-child(1), table.seg th:nth-child(2), table.seg th:nth-child(4) { white-space: nowrap; }
+table.steps td:nth-child(4), table.steps td:nth-child(5), table.steps th:nth-child(4), table.steps th:nth-child(5) {
+  text-align: right; }
+table.steps td:nth-child(1), table.seg td:nth-child(1) { font-family: var(--mono); font-size: 0.95em; }
+.st-bad { color: var(--crit); font-weight: 700; }
+.st-warn { color: var(--major); font-weight: 700; }
+details { margin: 0.7rem 0; }
+summary { cursor: pointer; font: 600 0.86rem/1.5 var(--sans); padding: 0.25rem 0; }
+.set-fail { color: var(--crit); }
+.set-partial { color: var(--major); }
+.removed { list-style: none; padding: 0; }
+.removed > li { margin: 0; padding: 0.6rem 0; border-top: 1px solid var(--rule); }
+.removed > li > ul { font-size: 0.94em; }
+.decision-line { font-size: 1.3rem; }
+.decision-line.v-bad { color: var(--crit); }
+.decision-line.v-warn { color: var(--major); }
+.rule { color: var(--muted); }
+.dead { font-weight: inherit; }
+
+/* переход по ссылке */
+[id] { scroll-margin-top: 1rem; }
+.entry:target > .eh .eid, .req:target > .eh .eid { background: var(--fg); color: var(--bg); padding: 0 0.3em; }
+li:target, span:target, strong:target { background: var(--mark); }
+
+/* узкий экран: строки нарезки и журнала становятся записями */
+@media (max-width: 639px) {
+  table.seg, table.steps, table.seg tbody, table.steps tbody { display: block; }
+  table.seg thead, table.steps thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  table.seg tr, table.steps tr { display: block; padding: 0.5rem 0; border-bottom: 1px solid var(--rule); }
+  table.seg td, table.steps td { display: inline; padding: 0; border: 0; white-space: normal; }
+  table.seg td:nth-child(-n+2), table.steps td:nth-child(-n+2) { margin-right: 0.5em; }
+  table.seg td:nth-child(2) { color: var(--muted); }
+  table.seg td:nth-child(3), table.seg td:nth-child(5), table.steps td:nth-child(2), table.steps td:last-child { display: block; }
+  table.seg td:nth-child(3) { color: var(--muted); }
+  table.steps td:nth-child(2) { display: inline; font-weight: 600; }
+  table.steps td:nth-child(2)::after { content: "\A"; white-space: pre; }
+  table.steps td:nth-child(3) { margin-right: 0.9em; }
+  table.seg td:nth-child(4)::before, table.steps td:nth-child(4)::before, table.steps td:nth-child(5)::before {
+    content: attr(data-h) ": "; color: var(--muted); }
+  table.steps td:nth-child(4), table.steps td:nth-child(5) { margin-right: 0.9em; }
+  table.kv:not(.num), table.kv:not(.num) thead, table.kv:not(.num) tbody, table.kv:not(.num) tr,
+  table.kv:not(.num) td { display: block; }
+  table.kv:not(.num) th { display: none; }
+  table.kv:not(.num) th:first-child { display: block; width: auto; }
+  table.kv:not(.num) td { border: 0; padding: 0; }
+  table.kv:not(.num) td:first-child { white-space: normal; font-size: 0.92em; padding-top: 0.5rem; }
+  table.kv:not(.num) td:last-child { padding-bottom: 0.5rem; border-bottom: 1px solid var(--rule); }
+}
+
+/* широкий экран: идентификаторы висят в левом поле */
+@media (min-width: 800px) {
+  :root { --gutter: 7rem; }
+  .page { max-width: calc(var(--measure) + var(--gutter) + 4rem); padding: 0 2rem 4rem; }
+  .doc-head, .doc, .toc { margin-left: var(--gutter); }
+  .doc { max-width: var(--measure); }
+  .doc-head { padding-top: 3rem; max-width: var(--measure); }
+  h1 { font-size: 2rem; }
+  .part > h2 { margin-left: calc(-1 * var(--gutter)); padding-left: var(--gutter); }
+  .req > .eh { margin-left: calc(-1 * var(--gutter)); padding-left: var(--gutter); }
+  .gut { position: absolute; right: calc(100% + var(--gap)); top: 0.1rem; width: calc(var(--gutter) - var(--gap));
+    display: flex; flex-direction: column; align-items: flex-end; gap: 0.15rem; margin: 0; text-align: right; }
+  .req > .eh > .gut { right: calc(100% - var(--gutter) + var(--gap)); top: 0.62rem; }
+  .gut .eid, .gut .lvl { margin: 0; }
+  .q .eh .gut { top: -0.05rem; }
+  .idlist > li { padding-left: 0; }
+  .idlist > li > .bid, .idlist > li > .qid { left: auto; right: calc(100% + var(--gap)); top: 0.68rem; }
+  .decision { font-size: 2.5rem; }
+  .src .n { min-width: 2.7rem; padding: 0.1rem 0.65rem 0.1rem 0.7rem; }
+  .stats { display: flex; flex-wrap: wrap; gap: 0.8rem 0; }
+  .stat { padding: 0 1.15rem; border-left: 1px solid var(--rule); }
+  .stat:first-child { padding-left: 0; border-left: 0; }
+  .stat b { font-size: 2rem; }
+}
+
+/* от 1100 px: оглавление слева, липкое */
+@media (min-width: 1100px) {
+  .page { display: grid; grid-template-columns: 12rem minmax(0, calc(var(--gutter) + var(--measure)));
+    grid-template-rows: auto 1fr; column-gap: 2rem; justify-content: center; max-width: none; }
+  .doc-head { grid-column: 2; grid-row: 1; }
+  .doc { grid-column: 2; grid-row: 2; }
+  .toc { grid-column: 1; grid-row: 1 / span 2; align-self: start; position: sticky; top: 0; max-height: 100vh;
+    overflow-y: auto; margin: 0; padding: 3.3rem 0 2rem; border: 0; }
+  .toc ul { display: block; }
+  .toc li { border-top: 1px solid var(--rule); }
+  .toc li:first-child { border-top: 1px solid var(--strong); }
+  .toc a { display: block; padding: 0.32rem 0; }
+  .tools { flex-direction: column; align-items: flex-start; gap: 0; margin-top: 1.4rem; padding-top: 0.5rem;
+    border-top: 1px solid var(--strong); }
+  .tools-label { padding: 0.3rem 0 0.1rem; }
+  .tools button { padding: 0.18rem 0; }
+}
+
+@media print {
+  :root { --bg: #fff; --fg: #000; --muted: #444; --ln: #555; --rule: #bbb; --strong: #000; --quote-bg: #f2f2f0;
+    --link: #000; --crit: #a3150b; --major: #6b4000; --mark: transparent; --gutter: 6rem; }
+  @page { margin: 16mm 14mm; }
+  body { font-size: 10.5pt; }
+  .toc, .tools { display: none; }
+  .page { display: block; max-width: none; padding: 0; }
+  .doc-head, .doc { margin-left: var(--gutter); max-width: none; padding-top: 0; }
+  a { color: inherit; text-decoration: none; }
+  .entry, .src, tr, .verdict, .stats, .idlist > li, .removed > li { break-inside: avoid; }
+  h2, h3, .eh, p.k-block { break-after: avoid; }
+  .entry[hidden] { display: block; }
+  .table-wrap { overflow: visible; }
+  details::details-content { content-visibility: visible; display: contents; }
+  .entry:target > .eh .eid, .req:target > .eh .eid { background: none; color: inherit; padding: 0; }
+}
+</style>
+</head>
+<body>
+<div class="page">
+<header class="doc-head">
+<h1><span class="h1-kind">Отчёт о проверке требований<span class="colon">:</span></span> <span class="h1-doc">requirements.answered.md</span></h1>
+<p class="sub">Отчёт сформирован агентом reqask автоматически по ISO/IEC/IEEE 29148:2018 и IEEE 830. Модель: claude-opus-5-5. Дата: 2026-11-27 06:04:26 +0500.</p>
+</header>
+<nav class="toc" aria-label="Оглавление"><ul><li><a href="#first">Итог</a></li><li><a href="#passport">1. Паспорт прогона</a></li><li><a href="#segmentation">2. Нарезка</a></li><li><a href="#requirements">3. Требования</a></li><li><a href="#set-review">4. Набор целиком</a></li><li><a href="#summary">5. Сводка</a></li><li><a href="#verdict">6. Вердикт</a></li><li><a href="#questions">7. Вопросы</a></li><li><a href="#appendix-a">Приложение А</a></li><li><a href="#appendix-b">Приложение Б</a></li></ul>
+<div class="tools" id="tools" hidden><span class="tools-label">Замечания:</span><button type="button" data-sev="" aria-pressed="true">все</button><button type="button" data-sev="critical" aria-pressed="false">CRITICAL</button><button type="button" data-sev="major" aria-pressed="false">MAJOR</button><button type="button" data-sev="minor" aria-pressed="false">MINOR</button><button type="button" data-act="open">развернуть всё</button></div>
+</nav>
+<main class="doc">
+<section class="first" id="first">
+<div class="verdict v-bad">
+<div class="verdict-main"><span class="label">Вердикт</span><strong class="decision">Не рекомендуется начинать</strong></div>
+<dl class="ready">
+<div><dt>Готовность к разработке</dt><dd class="r-bad">Нет</dd></div>
+<div><dt>Готовность к тестированию</dt><dd class="r-bad">Нет</dd></div>
+</dl></div>
+<div class="stats">
+<div class="stat" data-k="reqs"><b>50</b><span>Требований</span></div>
+<div class="stat" data-k="with-defects"><b>30</b><span>с дефектами</span></div>
+<div class="stat hot" data-k="critical"><b>1</b><span>CRITICAL</span></div>
+<div class="stat" data-k="major"><b>42</b><span>MAJOR</span></div>
+<div class="stat" data-k="minor"><b>13</b><span>MINOR</span></div>
+<div class="stat" data-k="questions"><b>15</b><span>Вопросов автору</span></div>
+</div>
+<p>Отметка «замечаний не найдено» не доказывает, что требование верное. Что агент не проверяет: <a href="#limits">раздел 6</a>.</p>
+<h2>Блокеры</h2>
+<ul class="blockers idlist">
+<li><a href="#s-01" class="bid sev-critical">S-01</a> <span class="li-t"><span class="where"><a href="#req-35">REQ-35</a>, <a href="#req-41">REQ-41</a>, <a href="#req-42">REQ-42</a>, <a href="#req-40">REQ-40</a></span> <span class="sep">·</span> Код 200 объявлен успешным, но возвращается и при отклонении с result ERROR</span></li>
+</ul>
+<h2>Главные вопросы автору ТЗ</h2>
+<ul class="topq idlist">
+<li><a href="#q-01" class="qid">Q-01</a> <span class="li-t"><span class="where">архитектору:</span> Порог вне диапазона и неактивная карта: строка 163 даёт 200 с result ERROR, строка 151 считает 200 успехом. Как это сочетается?</span></li>
+<li><a href="#q-02" class="qid">Q-02</a> <span class="li-t"><span class="where">заказчику (бизнес):</span> За какое время после сохранения порога по Ф-4 push должен быть передан на отправку, если расходы уже не ниже порога?</span></li>
+<li><a href="#q-03" class="qid">Q-03</a> <span class="li-t"><span class="where">заказчику (бизнес):</span> Если расходы достигли порога, пока уведомление выключено (в том числе при сохранении порога с enabled 0), отправляется ли push при последующем включении?</span></li>
+<li><a href="#q-04" class="qid">Q-04</a> <span class="li-t"><span class="where">заказчику (бизнес):</span> На какую сумму возврат по Ф-2 уменьшает расходы месяца исходной покупки?</span></li>
+<li><a href="#q-05" class="qid">Q-05</a> <span class="li-t"><span class="where">архитектору:</span> Какой компонент отправляет push сразу после сохранения порога по Ф-4, если накопленные расходы уже не ниже нового порога?</span></li>
+</ul>
+<p>Все вопросы в <a href="#questions">разделе 7</a>, для отправки автору: файл <code>report.questions.md</code>.</p>
+</section>
+<section class="part" id="passport">
+<h2>1. Паспорт прогона</h2>
+<div class="table-wrap"><table class="kv">
+<thead><tr><th scope="col">Прогон</th><th scope="col">Значение</th></tr></thead><tbody>
+<tr><td>Документ</td><td>requirements.answered.md, формат md, строк 198</td></tr>
+<tr><td>SHA-256 документа</td><td><code>3af3197b9fb78b173809b2dfe8168433b8de62a0e6f38c421271d4578daad7ac</code></td></tr>
+<tr><td>Дата и время</td><td>2026-11-27 06:04:26 +0500</td></tr>
+<tr><td>Длительность</td><td>740.7 с</td></tr>
+<tr><td>Модель</td><td>claude-opus-5-5 (провайдер: anthropic)</td></tr>
+<tr><td>Версия агента</td><td>0.1.0, коммит 286641c</td></tr>
+<tr><td>Режим</td><td>живой прогон; формат ответа JSON: parse</td></tr>
+<tr><td>Стандарты</td><td>ISO/IEC/IEEE 29148:2018 п. 5.2.5 и 5.2.6; IEEE Std 830-1998 п. 4.3</td></tr>
+<tr><td>Обращений к модели</td><td>16, из кэша 0, повторов при сбоях 0</td></tr>
+<tr><td>Токены</td><td>вход 217878, выход 86203, всего 304081</td></tr>
+</tbody></table></div>
+<div class="table-wrap"><table class="kv">
+<thead><tr><th scope="col">Самопроверка прогона</th><th scope="col">Значение</th></tr></thead><tbody>
+<tr><td>Покрытие нарезкой</td><td>строк с текстом 95, в требованиях 53 (56%), отмечены как не требования 42 (заголовки, вводный текст, шаблоны, см. раздел 2), не разобраны 0</td></tr>
+<tr><td>Идентификаторы с буквами (вида «ФТ-3»)</td><td>разных в документе 4, в нарезке 4, потерянных нет</td></tr>
+<tr><td>Цитаты</td><td>точных 100, нечётких 0, не найдено 1; замечаний в карантине 0, противоречий только с вопросом 0, свёрнуто в системные 0, отброшено без опоры на текст 0 (ни найденной цитаты, ни ссылки на требование или раздел; в отчёт не вошли)</td></tr>
+<tr><td>Критик</td><td>проверено CRITICAL и MAJOR 63: оставлено 42, понижено 1, снято 1, слито 19, без решения 0, решений отклонено кодом 0</td></tr>
+<tr><td>Ответы модели</td><td>исправлений JSON 0, отброшено дефектов проверкой 0, оценок 0; оценок не вернула модель 0, pass заменён на fail по дефекту 0; CRITICAL и MAJOR без вопроса 0; уровень поднят кодом по виду расхождения 0</td></tr>
+<tr><td>Обрезки ответа</td><td>обрезано по лимиту длины 0; делений куска нарезки или порции пополам 0; повторов после обрезки 0</td></tr>
+<tr><td>Сводные вопросы</td><td>от модели; отброшено проверкой 0, слито дублей 0, добавлено кодом для CRITICAL 0</td></tr>
+<tr><td>Шаги</td><td>выполнено 8, частично 0, не выполнено 0</td></tr>
+<tr><td>Правила</td><td>подсказок словаря 1, подтверждено моделью 1 (100%)</td></tr>
+</tbody></table></div>
+<details class="journal"><summary>Журнал шагов</summary>
+<div class="table-wrap"><table class="steps">
+<thead><tr><th scope="col">Шаг</th><th scope="col">Что</th><th scope="col">Итог</th><th scope="col">Вызовов</th><th scope="col">Секунд</th><th scope="col">Результат</th></tr></thead><tbody>
+<tr><td data-h="Шаг">0</td><td data-h="Что">Чтение документа</td><td data-h="Итог">выполнен</td><td data-h="Вызовов">0</td><td data-h="Секунд">0.0</td><td data-h="Результат">строк 198, формат md</td></tr>
+<tr><td data-h="Шаг">3</td><td data-h="Что">Нарезка требований (198 строк)</td><td data-h="Итог">выполнен</td><td data-h="Вызовов">1</td><td data-h="Секунд">41.1</td><td data-h="Результат">требований 50, пропущено фрагментов 53</td></tr>
+<tr><td data-h="Шаг">4</td><td data-h="Что">Проверка каждого требования</td><td data-h="Итог">выполнен</td><td data-h="Вызовов">10</td><td data-h="Секунд">414.3</td><td data-h="Результат">дефектов 50, без проверки 0</td></tr>
+<tr><td data-h="Шаг">5</td><td data-h="Что">Набор требований целиком (три прохода)</td><td data-h="Итог">выполнен</td><td data-h="Вызовов">3</td><td data-h="Секунд">167.9</td><td data-h="Результат">замечаний 26, из них граничных случаев 6, анализов по критериям 8</td></tr>
+<tr><td data-h="Шаг">6</td><td data-h="Что">Нумерация и свёртка замечаний, итог сверки цитат</td><td data-h="Итог">выполнен</td><td data-h="Вызовов">0</td><td data-h="Секунд">0.0</td><td data-h="Результат">замечаний 76, свёрнуто в системные 0; сверка цитат на шагах 4 и 5: точных 100, нечётких 0, не найдено 1; в карантине 0, противоречий только с вопросом 0, отброшено без опоры 0</td></tr>
+<tr><td data-h="Шаг">7</td><td data-h="Что">Критик</td><td data-h="Итог">выполнен</td><td data-h="Вызовов">1</td><td data-h="Секунд">42.1</td><td data-h="Результат">проверено 63 (групп кандидатов на слияние 22): оставлено 42, понижено 1, снято 1, слито 19, без решения 0, отклонено кодом 0</td></tr>
+<tr><td data-h="Шаг">8</td><td data-h="Что">Итог и сводные вопросы</td><td data-h="Итог">выполнен</td><td data-h="Вызовов">1</td><td data-h="Секунд">75.3</td><td data-h="Результат">решение: Не рекомендуется начинать; вопросов 15</td></tr>
+<tr><td data-h="Шаг">9</td><td data-h="Что">Отчёт</td><td data-h="Итог">выполнен</td><td data-h="Вызовов">0</td><td data-h="Секунд">0.0</td><td data-h="Результат">записаны: answered1.md, answered1.questions.md, answered1.json, answered1.html</td></tr>
+</tbody></table></div>
+</details>
+</section>
+<section class="part" id="segmentation">
+<h2>2. Нарезка на требования</h2>
+<p>Выделено требований: <strong>50</strong>. Номер из документа стоит у 17 требований: у 4 это идентификатор с буквами (вида «ФТ-3»), у 13 номер пункта списка. Разных идентификаторов с буквами код нашёл в документе 4, это число стоит в паспорте. Границы заданы номерами строк, текст требований вырезан из документа кодом. Дословный текст каждого требования стоит в разделе 3.</p>
+<details><summary>Таблица нарезки: 50 требований</summary>
+<div class="table-wrap"><table class="seg">
+<thead><tr><th scope="col">ID</th><th scope="col">ID в документе</th><th scope="col">Раздел</th><th scope="col">Строки</th><th scope="col">Суть</th></tr></thead><tbody>
+<tr><td data-h="ID"><a href="#req-01">REQ-01</a></td><td data-h="ID в документе">без номера</td><td data-h="Раздел">Часть A. Новый функционал / Архитектура решения</td><td data-h="Строки">26</td><td data-h="Суть">Приложение работает через сервис настроек, процессинг передаёт данные в учёт расходов и push</td></tr>
+<tr><td data-h="ID"><a href="#req-02">REQ-02</a></td><td data-h="ID в документе">без номера</td><td data-h="Раздел">Часть A. Новый функционал / Дизайн процесса UI</td><td data-h="Строки">29</td><td data-h="Суть">Экран уведомлений: переключатель, поле порога, сумма за месяц, кнопка, сообщение ошибки</td></tr>
+<tr><td data-h="ID"><a href="#req-03">REQ-03</a></td><td data-h="ID в документе">без номера</td><td data-h="Раздел">Требования к изменениям / BPMN схема процесса</td><td data-h="Строки">34</td><td data-h="Суть">Покупка, пересчёт расходов, проверка порога, отправка push при достижении</td></tr>
+<tr><td data-h="ID"><a href="#req-04">REQ-04</a></td><td data-h="ID в документе">Ф-1</td><td data-h="Раздел">Требования к изменениям / Функциональные требования</td><td data-h="Строки">37</td><td data-h="Суть">Держатель активной карты KZT задаёт порог 1 000-1 000 000 ₸, по умолчанию выключено</td></tr>
+<tr><td data-h="ID"><a href="#req-05">REQ-05</a></td><td data-h="ID в документе">Ф-2</td><td data-h="Раздел">Требования к изменениям / Функциональные требования</td><td data-h="Строки">38</td><td data-h="Суть">Правила учёта расходов месяца: покупки, валюта, возвраты, исключение переводов и наличных</td></tr>
+<tr><td data-h="ID"><a href="#req-06">REQ-06</a></td><td data-h="ID в документе">Ф-3</td><td data-h="Раздел">Требования к изменениям / Функциональные требования</td><td data-h="Строки">39</td><td data-h="Суть">Push при достижении порога, не более одного за месяц на порог</td></tr>
+<tr><td data-h="ID"><a href="#req-07">REQ-07</a></td><td data-h="ID в документе">Ф-4</td><td data-h="Раздел">Требования к изменениям / Функциональные требования</td><td data-h="Строки">40</td><td data-h="Суть">Смена порога сохраняет накопления; push сразу, если сумма уже достигла порога</td></tr>
+<tr><td data-h="ID"><a href="#req-08">REQ-08</a></td><td data-h="ID в документе">без номера</td><td data-h="Раздел">Часть A. Новый функционал / Sequence Diagram</td><td data-h="Строки">43</td><td data-h="Суть">Взаимодействие процессинга, сервиса расходов, настроек и push с повтором при недоступности</td></tr>
+<tr><td data-h="ID"><a href="#req-09">REQ-09</a></td><td data-h="ID в документе">без номера</td><td data-h="Раздел">Часть A. Новый функционал / Нефункциональные требования</td><td data-h="Строки">46</td><td data-h="Суть">Передача push на отправку в течение минуты после события</td></tr>
+<tr><td data-h="ID"><a href="#req-10">REQ-10</a></td><td data-h="ID в документе">без номера</td><td data-h="Раздел">Часть A. Новый функционал / Требования к данным</td><td data-h="Строки">49</td><td data-h="Суть">Состав хранимых данных: карта, месяц, операция, сумма в тиынах, признак, порог</td></tr>
+<tr><td data-h="ID"><a href="#req-11">REQ-11</a></td><td data-h="ID в документе">без номера</td><td data-h="Раздел">Часть A. Новый функционал / Требования к интеграции</td><td data-h="Строки">52</td><td data-h="Суть">Настройки через REST API; повторная доставка события сохраняет исходный итог</td></tr>
+<tr><td data-h="ID"><a href="#req-12">REQ-12</a></td><td data-h="ID в документе">без номера</td><td data-h="Раздел">Часть A. Новый функционал / Критерии приемки</td><td data-h="Строки">63</td><td data-h="Суть">Покупка доводит расходы до порога: итог 50 000 ₸ и один push</td></tr>
+<tr><td data-h="ID"><a href="#req-13">REQ-13</a></td><td data-h="ID в документе">без номера</td><td data-h="Раздел">Часть A. Новый функционал / Критерии приемки</td><td data-h="Строки">64</td><td data-h="Суть">Покупка конца января, проведённая в феврале, учитывается в январе</td></tr>
+<tr><td data-h="ID"><a href="#req-14">REQ-14</a></td><td data-h="ID в документе">без номера</td><td data-h="Раздел">Часть A. Новый функционал / Критерии приемки</td><td data-h="Строки">65</td><td data-h="Суть">Перевод не увеличивает счётчик расходов</td></tr>
+<tr><td data-h="ID"><a href="#req-15">REQ-15</a></td><td data-h="ID в документе">без номера</td><td data-h="Раздел">Часть B. REST API / Общие параметры</td><td data-h="Строки">103</td><td data-h="Суть">Метод сохраняет порог, чтение отдельным методом getLimit</td></tr>
+<tr><td data-h="ID"><a href="#req-16">REQ-16</a></td><td data-h="ID в документе">без номера</td><td data-h="Раздел">Часть B. REST API / Общие параметры</td><td data-h="Строки">104</td><td data-h="Суть">Тип запроса PUT</td></tr>
+<tr><td data-h="ID"><a href="#req-17">REQ-17</a></td><td data-h="ID в документе">без номера</td><td data-h="Раздел">Часть B. REST API / Общие параметры</td><td data-h="Строки">105</td><td data-h="Суть">Авторизация Bearer по сессии владельца карты</td></tr>
+<tr><td data-h="ID"><a href="#req-18">REQ-18</a></td><td data-h="ID в документе">без номера</td><td data-h="Раздел">Часть B. REST API / Общие параметры</td><td data-h="Строки">106</td><td data-h="Суть">Контроллер AlertsController</td></tr>
+<tr><td data-h="ID"><a href="#req-19">REQ-19</a></td><td data-h="ID в документе">без номера</td><td data-h="Раздел">Часть B. REST API / Общие параметры</td><td data-h="Строки">108</td><td data-h="Суть">URL Dev /alerts/saveLimit, Prod не указан</td></tr>
+<tr><td data-h="ID"><a href="#req-20">REQ-20</a></td><td data-h="ID в документе">без номера</td><td data-h="Раздел">Часть B. REST API / Общие параметры</td><td data-h="Строки">109</td><td data-h="Суть">Пример curl-запроса сохранения порога</td></tr>
+<tr><td data-h="ID"><a href="#req-21">REQ-21</a></td><td data-h="ID в документе">1</td><td data-h="Раздел">Часть B. REST API / Логика работы метода</td><td data-h="Строки">117</td><td data-h="Суть">Проверить пользовательскую сессию</td></tr>
+<tr><td data-h="ID"><a href="#req-22">REQ-22</a></td><td data-h="ID в документе">2</td><td data-h="Раздел">Часть B. REST API / Логика работы метода</td><td data-h="Строки">118</td><td data-h="Суть">Проверить принадлежность карты клиенту</td></tr>
+<tr><td data-h="ID"><a href="#req-23">REQ-23</a></td><td data-h="ID в документе">3</td><td data-h="Раздел">Часть B. REST API / Логика работы метода</td><td data-h="Строки">119</td><td data-h="Суть">Проверить сумму, переключатель, активность карты и валюту KZT</td></tr>
+<tr><td data-h="ID"><a href="#req-24">REQ-24</a></td><td data-h="ID в документе">4</td><td data-h="Раздел">Часть B. REST API / Логика работы метода</td><td data-h="Строки">120</td><td data-h="Суть">Заменить настройку и вернуть результат</td></tr>
+<tr><td data-h="ID"><a href="#req-25">REQ-25</a></td><td data-h="ID в документе">5</td><td data-h="Раздел">Часть B. REST API / Логика работы метода</td><td data-h="Строки">121</td><td data-h="Суть">При отклонении вернуть прежнее состояние и ERROR с message</td></tr>
+<tr><td data-h="ID"><a href="#req-26">REQ-26</a></td><td data-h="ID в документе">1</td><td data-h="Раздел">Часть B. REST API / Особые правила</td><td data-h="Строки">124</td><td data-h="Суть">Порог целым числом тенге, границы включены</td></tr>
+<tr><td data-h="ID"><a href="#req-27">REQ-27</a></td><td data-h="ID в документе">2</td><td data-h="Раздел">Часть B. REST API / Особые правила</td><td data-h="Строки">125</td><td data-h="Суть">Повторное сохранение заменяет действующую настройку</td></tr>
+<tr><td data-h="ID"><a href="#req-28">REQ-28</a></td><td data-h="ID в документе">3</td><td data-h="Раздел">Часть B. REST API / Особые правила</td><td data-h="Строки">126</td><td data-h="Суть">Изменение порога сохраняет накопленные расходы</td></tr>
+<tr><td data-h="ID"><a href="#req-29">REQ-29</a></td><td data-h="ID в документе">без номера</td><td data-h="Раздел">Часть B. REST API / Схема</td><td data-h="Строки">130</td><td data-h="Суть">Поток вызова: приложение, контроллер, хранилище настроек</td></tr>
+<tr><td data-h="ID"><a href="#req-30">REQ-30</a></td><td data-h="ID в документе">без номера</td><td data-h="Раздел">Параметры запроса / Параметры тела запроса</td><td data-h="Строки">142</td><td data-h="Суть">Параметр cardId: строка 1-64, обязательный</td></tr>
+<tr><td data-h="ID"><a href="#req-31">REQ-31</a></td><td data-h="ID в документе">без номера</td><td data-h="Раздел">Параметры запроса / Параметры тела запроса</td><td data-h="Строки">143</td><td data-h="Суть">Параметр amount: целое, 1 000-1 000 000, обязательный</td></tr>
+<tr><td data-h="ID"><a href="#req-32">REQ-32</a></td><td data-h="ID в документе">без номера</td><td data-h="Раздел">Параметры запроса / Параметры тела запроса</td><td data-h="Строки">144</td><td data-h="Суть">Параметр enabled: 0 или 1, обязательный</td></tr>
+<tr><td data-h="ID"><a href="#req-33">REQ-33</a></td><td data-h="ID в документе">без номера</td><td data-h="Раздел">Параметры запроса / Request body</td><td data-h="Строки">147</td><td data-h="Суть">Content-Type application/json</td></tr>
+<tr><td data-h="ID"><a href="#req-34">REQ-34</a></td><td data-h="ID в документе">без номера</td><td data-h="Раздел">Параметры запроса / Request body</td><td data-h="Строки">148</td><td data-h="Суть">Тело содержит параметры из таблицы</td></tr>
+<tr><td data-h="ID"><a href="#req-35">REQ-35</a></td><td data-h="ID в документе">без номера</td><td data-h="Раздел">Часть B. REST API / Ответ</td><td data-h="Строки">151</td><td data-h="Суть">Коды 200/201 успешные, 400 и выше неуспешные</td></tr>
+<tr><td data-h="ID"><a href="#req-36">REQ-36</a></td><td data-h="ID в документе">без номера</td><td data-h="Раздел">Часть B. REST API / Ответ</td><td data-h="Строки">155</td><td data-h="Суть">Поле result: OK или ERROR</td></tr>
+<tr><td data-h="ID"><a href="#req-37">REQ-37</a></td><td data-h="ID в документе">без номера</td><td data-h="Раздел">Часть B. REST API / Ответ</td><td data-h="Строки">156</td><td data-h="Суть">Поле amount строкой при успехе</td></tr>
+<tr><td data-h="ID"><a href="#req-38">REQ-38</a></td><td data-h="ID в документе">без номера</td><td data-h="Раздел">Часть B. REST API / Ответ</td><td data-h="Строки">157</td><td data-h="Суть">Поле enabled строкой «0» или «1»</td></tr>
+<tr><td data-h="ID"><a href="#req-39">REQ-39</a></td><td data-h="ID в документе">без номера</td><td data-h="Раздел">Часть B. REST API / Ответ</td><td data-h="Строки">158</td><td data-h="Суть">Поле message при ошибке</td></tr>
+<tr><td data-h="ID"><a href="#req-40">REQ-40</a></td><td data-h="ID в документе">200</td><td data-h="Раздел">Часть B. REST API / Статусы</td><td data-h="Строки">162</td><td data-h="Суть">200 при успешном выполнении</td></tr>
+<tr><td data-h="ID"><a href="#req-41">REQ-41</a></td><td data-h="ID в документе">400</td><td data-h="Раздел">Часть B. REST API / Статусы</td><td data-h="Строки">163</td><td data-h="Суть">400 при неверном запросе; вне диапазона и неактивная карта дают 200 ERROR</td></tr>
+<tr><td data-h="ID"><a href="#req-42">REQ-42</a></td><td data-h="ID в документе">без номера</td><td data-h="Раздел">Статусы / 200. Successful — Created</td><td data-h="Строки">167-171</td><td data-h="Суть">Примеры ответа 200 с OK и ERROR</td></tr>
+<tr><td data-h="ID"><a href="#req-43">REQ-43</a></td><td data-h="ID в документе">401</td><td data-h="Раздел">Статусы / 200. Successful — Created</td><td data-h="Строки">174</td><td data-h="Суть">401 при отсутствии авторизации</td></tr>
+<tr><td data-h="ID"><a href="#req-44">REQ-44</a></td><td data-h="ID в документе">403</td><td data-h="Раздел">Статусы / 200. Successful — Created</td><td data-h="Строки">175</td><td data-h="Суть">403 не возвращается, для чужой карты 404</td></tr>
+<tr><td data-h="ID"><a href="#req-45">REQ-45</a></td><td data-h="ID в документе">500</td><td data-h="Раздел">Статусы / 200. Successful — Created</td><td data-h="Строки">176</td><td data-h="Суть">500 при внутренней ошибке сервера</td></tr>
+<tr><td data-h="ID"><a href="#req-46">REQ-46</a></td><td data-h="ID в документе">без номера</td><td data-h="Раздел">Статусы / 400. Unsuccessful — Bad request</td><td data-h="Строки">180</td><td data-h="Суть">Пример ответа 400</td></tr>
+<tr><td data-h="ID"><a href="#req-47">REQ-47</a></td><td data-h="ID в документе">без номера</td><td data-h="Раздел">Статусы / 401. Unsuccessful — Unauthorized</td><td data-h="Строки">185</td><td data-h="Суть">Пример ответа 401</td></tr>
+<tr><td data-h="ID"><a href="#req-48">REQ-48</a></td><td data-h="ID в документе">без номера</td><td data-h="Раздел">Статусы / 404. Unsuccessful — Not found</td><td data-h="Строки">189</td><td data-h="Суть">404 для чужой и отсутствующей карты</td></tr>
+<tr><td data-h="ID"><a href="#req-49">REQ-49</a></td><td data-h="ID в документе">без номера</td><td data-h="Раздел">Статусы / 404. Unsuccessful — Not found</td><td data-h="Строки">190-192</td><td data-h="Суть">Пример ответа 404</td></tr>
+<tr><td data-h="ID"><a href="#req-50">REQ-50</a></td><td data-h="ID в документе">без номера</td><td data-h="Раздел">Статусы / 500. Unsuccessful — Internal server error</td><td data-h="Строки">197</td><td data-h="Суть">Пример ответа 500</td></tr>
+</tbody></table></div>
+</details>
+<p>Не вошли в требования (эти строки видит проверка набора в разделе 4):</p><ul>
+<li>заголовки: строки 1, 8, 10, 22, 25, 28, 31, 33, 36, 42, 45, 48, 51, 54, 56, 59, 67, 87, 95, 99, 116, 123, 128, 133, 135, 138, 146, 150, 160, 165, 178, 183, 188, 195</li>
+<li>вводный и поясняющий текст: строки 3-4, 23, 97, 136</li>
+<li>прочее: строки 6, 93</li>
+<li>шаблоны, шапки таблиц и пустые поля: строки 12-13, 57, 61-62, 89-91, 101-102, 110, 140-141, 153-154</li>
+<li>служебные сведения: строки 14-20, 68, 107, 111-114</li>
+<li>чек-листы: строки 70-85</li>
+</ul>
+</section>
+<section class="part" id="requirements">
+<h2>3. Проверка каждого требования</h2>
+<p class="legend">Отметки: <span class="mark st-pass">✓</span> замечаний не найдено, <span class="mark st-fail">✗</span> нарушен, <span class="mark st-na">○</span> не применим, <span class="mark st-unknown">?</span> нельзя оценить по тексту. Шесть основных критериев показаны всегда, уместность уровня, атомарность и корректность только при нарушении.</p>
+<p class="plain"><strong>Замечаний не найдено ни по одному применимому критерию (14):</strong> <span id="req-16">REQ-16 (строка 104)</span>, <span id="req-18">REQ-18 (строка 106)</span>, <span id="req-21">REQ-21 (строка 117)</span>, <span id="req-22">REQ-22 (строка 118)</span>, <span id="req-33">REQ-33 (строка 147)</span>, <span id="req-34">REQ-34 (строка 148)</span>, <span id="req-36">REQ-36 (строка 155)</span>, <span id="req-39">REQ-39 (строка 158)</span>, <span id="req-43">REQ-43 (строка 174)</span>, <span id="req-45">REQ-45 (строка 176)</span>, <span id="req-46">REQ-46 (строка 180)</span>, <span id="req-47">REQ-47 (строка 185)</span>, <span id="req-49">REQ-49 (строки 190-192)</span>, <span id="req-50">REQ-50 (строка 197)</span>.</p>
+<p><strong>Своих замечаний нет, но требование затронуто общими замечаниями (5):</strong></p><ul>
+<li><strong id="req-20">REQ-20 · строка 109 · Общие параметры</strong>: <a href="#s-18">S-18</a>.</li>
+<li><strong id="req-27">REQ-27 · 2 · строка 125 · Особые правила</strong>: <a href="#s-13">S-13</a>, <a href="#s-16">S-16</a>, <a href="#s-26">S-26</a>.</li>
+<li><strong id="req-31">REQ-31 · строка 143 · Параметры тела запроса</strong>: <a href="#s-18">S-18</a>, <a href="#s-23">S-23</a>.</li>
+<li><strong id="req-44">REQ-44 · 403 · строка 175 · 200. Successful — Created</strong>: <a href="#s-23">S-23</a>.</li>
+<li><strong id="req-48">REQ-48 · строка 189 · 404. Unsuccessful — Not found</strong>: <a href="#s-23">S-23</a>.</li>
+</ul>
+<p><strong>Дефект описан в общем замечании, на которое ссылается строка (8):</strong></p><ul>
+<li><strong id="req-15">REQ-15 · строка 103 · Общие параметры</strong>: слито критиком: <a href="#d-27">D-27</a> в <a href="#s-17">S-17</a>; <span class="mark st-fail" title="нарушен">✗</span> Полнота: Нет ссылки, где описан метод чтения /alerts/getLimit, хотя часть A требует чтения через этот документ.</li>
+<li><strong id="req-19">REQ-19 · строка 108 · Общие параметры</strong>: слито критиком: <a href="#d-29">D-29</a> в <a href="#s-04">S-04</a>; <span class="mark st-fail" title="нарушен">✗</span> Полнота: Адрес Prod не указан, стоит прочерк.</li>
+<li><strong id="req-28">REQ-28 · 3 · строка 126 · Особые правила</strong>: слито критиком: <a href="#d-36">D-36</a> в <a href="#d-32">D-32</a>; <span class="mark st-fail" title="нарушен">✗</span> Полнота: Нет сброса признака отправки и немедленного push при расходах не ниже нового порога (Ф-4).</li>
+<li><strong id="req-32">REQ-32 · строка 144 · Параметры тела запроса</strong>: слито критиком: <a href="#d-39">D-39</a> в <a href="#d-30">D-30</a>; <span class="mark st-fail" title="нарушен">✗</span> Полнота: Не задан ответ на значение вне 0 и 1: 400 или 200 с ERROR.</li>
+<li><strong id="req-37">REQ-37 · строка 156 · Ответ</strong>: слито критиком: <a href="#d-43">D-43</a> в <a href="#s-02">S-02</a>, <a href="#d-44">D-44</a> в <a href="#s-18">S-18</a>; <span class="mark st-fail" title="нарушен">✗</span> Полнота: Не сказано, возвращается ли amount при ERROR, хотя шаг 5 требует вернуть прежнее состояние; <span class="mark st-fail" title="нарушен">✗</span> Корректность: Порог в ответе string, в запросе integer, поле БД одно.</li>
+<li><strong id="req-38">REQ-38 · строка 157 · Ответ</strong>: слито критиком: <a href="#d-45">D-45</a> в <a href="#s-02">S-02</a>, <a href="#d-46">D-46</a> в <a href="#s-19">S-19</a>; <span class="mark st-fail" title="нарушен">✗</span> Полнота: Не указано, когда поле присутствует: при успехе, при ERROR или всегда; <span class="mark st-fail" title="нарушен">✗</span> Корректность: Признак в ответе string, в запросе integer при одном поле БД.</li>
+<li><strong id="req-40">REQ-40 · 200 · строка 162 · Статусы</strong>: слито критиком: <a href="#d-47">D-47</a> в <a href="#s-01">S-01</a>; <span class="mark st-fail" title="нарушен">✗</span> Однозначность: «Успешное выполнение» не охватывает 200 с result ERROR.</li>
+<li><strong id="req-41">REQ-41 · 400 · строка 163 · Статусы</strong>: слито критиком: <a href="#d-48">D-48</a> в <a href="#d-30">D-30</a>, <a href="#d-49">D-49</a> в <a href="#d-30">D-30</a>; <span class="mark st-fail" title="нарушен">✗</span> Однозначность: Неясно, enabled вне 0/1 это неверный формат (400) или бизнес-ошибка (200); <span class="mark st-fail" title="нарушен">✗</span> Полнота: Не указан код для карты не в KZT, хотя шаг 3 её проверяет.</li>
+</ul>
+<p><strong>Замечаний не найдено, есть пометки к оценкам (1):</strong></p><ul>
+<li><strong id="req-01">REQ-01 · строка 26 · Архитектура решения</strong>: снято критиком: <a href="#d-01">D-01</a>, см. <a href="#appendix-b">приложение Б</a>.</li>
+</ul>
+<section class="req" id="req-02">
+<h3 class="eh"><span class="gut"><span class="eid">REQ-02</span></span><span class="et">строка 29 · Дизайн процесса UI</span></h3>
+<div class="src" role="group" aria-label="Текст требования"><span class="n">29</span><span class="t">Карты → Расходы → Уведомления. На экране видны переключатель, поле «Порог, ₸», сумма за месяц и кнопка «Сохранить». При ошибке ввода сообщение появляется под полем.</span></div>
+<p class="checks"><span class="k">Оценки:</span> <span class="ck st-pass" title="Необходимость: нарушений не найдено">✓ Необх.</span> <span class="ck st-pass" title="Однозначность: нарушений не найдено">✓ Однозн.</span> <span class="ck st-fail" title="Полнота: нарушен">✗ Полн.</span> <span class="ck st-pass" title="Осуществимость: нарушений не найдено">✓ Осущ.</span> <span class="ck st-pass" title="Проверяемость: нарушений не найдено">✓ Пров.</span> <span class="ck st-pass" title="Непротиворечивость: нарушений не найдено">✓ Непрот.</span></p>
+<article class="entry sev-major" data-sev="major" id="d-02">
+<header class="eh"><span class="gut"><span class="eid">D-02</span><span class="lvl lvl-major">MAJOR</span></span><span class="et">Полнота</span></header>
+<p class="problem">Не перечислены ошибки ввода и тексты сообщений. Не описано, как экран показывает отказ сервера: result ERROR для неактивной карты, 404, 401, 500 из части B.</p>
+<div class="src" role="group" aria-label="Цитата из документа"><span class="n">29</span><span class="t">При ошибке ввода сообщение появляется под полем.</span></div>
+<p><span class="k">Последствие:</span> Нельзя реализовать обработку ошибок на экране и написать тесты на негативные сценарии.</p>
+<p class="ask"><span class="k">Вопрос аналитику:</span> Где показывается ошибка, вернувшаяся от сервера (result ERROR, 404, 500): под полем «Порог, ₸» или отдельным сообщением на экране?</p>
+</article>
+<div class="rewrite"><strong>Готовая формулировка:</strong> Карты → Расходы → Уведомления. На экране видны переключатель уведомления, поле «Порог, ₸», сумма расходов за текущий месяц и кнопка «Сохранить». Если введено не целое число или значение вне диапазона от 1 000 до 1 000 000 ₸, под полем «Порог, ₸» появляется сообщение &lt;текст сообщения&gt;, настройка не сохраняется. Если сервер вернул ошибку, приложение показывает &lt;место и текст сообщения об ошибке сервера&gt;.</div>
+</section>
+<section class="req" id="req-03">
+<h3 class="eh"><span class="gut"><span class="eid">REQ-03</span></span><span class="et">строка 34 · BPMN схема процесса</span></h3>
+<div class="src" role="group" aria-label="Текст требования"><span class="n">34</span><span class="t">Проведение покупки → пересчёт расходов → проверка порога → при достижении отправка push → завершение.</span></div>
+<p class="checks"><span class="k">Оценки:</span> <span class="ck st-pass" title="Необходимость: нарушений не найдено">✓ Необх.</span> <span class="ck st-pass" title="Однозначность: нарушений не найдено">✓ Однозн.</span> <span class="ck st-fail" title="Полнота: нарушен">✗ Полн.</span> <span class="ck st-pass" title="Осуществимость: нарушений не найдено">✓ Осущ.</span> <span class="ck st-pass" title="Проверяемость: нарушений не найдено">✓ Пров.</span> <span class="ck st-pass" title="Непротиворечивость: нарушений не найдено">✓ Непрот.</span></p>
+<article class="entry sev-major" data-sev="major" id="d-03">
+<header class="eh"><span class="gut"><span class="eid">D-03</span><span class="lvl lvl-major">MAJOR</span></span><span class="et">Полнота</span></header>
+<p class="problem">Схема проверяет только достижение порога. Нет проверки включения уведомления и признака отправки за месяц (Ф-3), нет ветви «порог не достигнут».</p>
+<div class="src" role="group" aria-label="Цитата из документа"><span class="n">34</span><span class="t">проверка порога → при достижении отправка push</span></div>
+<p><span class="k">Последствие:</span> По схеме нельзя реализовать процесс без повторных push и push при выключенном уведомлении.</p>
+<p class="ask"><span class="k">Вопрос аналитику:</span> Признак отправки за месяц проверяется в шаге «проверка порога» сервиса расходов или отсекается на стороне сервиса push?</p>
+</article>
+<div class="rewrite"><strong>Готовая формулировка:</strong> Проведение покупки → пересчёт расходов → проверка: уведомление включено, расходы перешли от суммы ниже порога к сумме, равной порогу или выше, признак отправки для текущего порога в этом месяце не выставлен → если все условия выполнены, отправка push и установка признака отправки → завершение; если хотя бы одно условие не выполнено → завершение без push.</div>
+</section>
+<section class="req" id="req-04">
+<h3 class="eh"><span class="gut"><span class="eid">REQ-04</span></span><span class="et">Ф-1 · строка 37 · Функциональные требования</span></h3>
+<div class="src" role="group" aria-label="Текст требования"><span class="n">37</span><span class="t">* **Ф-1.** Держатель активной карты KZT задаёт целый порог от 1 000 до 1 000 000 ₸ включительно. По умолчанию уведомление выключено.</span></div>
+<p class="checks"><span class="k">Оценки:</span> <span class="ck st-pass" title="Необходимость: нарушений не найдено">✓ Необх.</span> <span class="ck st-pass" title="Однозначность: нарушений не найдено">✓ Однозн.</span> <span class="ck st-fail" title="Полнота: нарушен">✗ Полн.</span> <span class="ck st-fail" title="Атомарность: нарушен">✗ Атом.</span> <span class="ck st-pass" title="Осуществимость: нарушений не найдено">✓ Осущ.</span> <span class="ck st-pass" title="Проверяемость: нарушений не найдено">✓ Пров.</span> <span class="ck st-pass" title="Непротиворечивость: нарушений не найдено">✓ Непрот.</span></p>
+<ul class="check-notes"><li><span class="mark st-fail" title="нарушен">✗</span> Полнота: Не описано поведение, если карта перестала быть активной после настройки</li></ul>
+<article class="entry sev-minor" data-sev="minor" id="d-05">
+<header class="eh"><span class="gut"><span class="eid">D-05</span><span class="lvl lvl-minor">MINOR</span></span><span class="et">Атомарность</span></header>
+<p class="problem">В одном требовании два независимых правила: допустимый диапазон порога и начальное состояние переключателя.</p>
+<div class="src" role="group" aria-label="Цитата из документа"><span class="n">37</span><span class="t">По умолчанию уведомление выключено.</span></div>
+</article>
+<p class="moved">Слито критиком: <a href="#d-04">D-04</a> в <a href="#s-14">S-14</a>.</p>
+<div class="rewrite"><strong>Готовая формулировка:</strong> Ф-1а. Держатель активной карты в KZT задаёт целый порог расходов от 1 000 до 1 000 000 ₸ включительно. Если карта перестаёт быть активной, &lt;поведение уведомления по неактивной карте&gt;. Ф-1б. По умолчанию уведомление выключено.</div>
+</section>
+<section class="req" id="req-05">
+<h3 class="eh"><span class="gut"><span class="eid">REQ-05</span></span><span class="et">Ф-2 · строка 38 · Функциональные требования</span></h3>
+<div class="src" role="group" aria-label="Текст требования"><span class="n">38</span><span class="t">* **Ф-2.** Месяц определяется по дате совершения покупки в Алматы. В расходы входят проведённые покупки. Расходы считаются с начала месяца всегда, в том числе пока уведомление выключено. Для покупки в другой валюте в расходы идёт сумма списания с карты в тенге. Возврат уменьшает расходы месяца исходной покупки; если исходная покупка в учёте не найдена, возврат расходы не меняет. Переводы и снятие наличных исключаются.</span></div>
+<p class="checks"><span class="k">Оценки:</span> <span class="ck st-pass" title="Необходимость: нарушений не найдено">✓ Необх.</span> <span class="ck st-fail" title="Однозначность: нарушен">✗ Однозн.</span> <span class="ck st-fail" title="Полнота: нарушен">✗ Полн.</span> <span class="ck st-fail" title="Атомарность: нарушен">✗ Атом.</span> <span class="ck st-pass" title="Осуществимость: нарушений не найдено">✓ Осущ.</span> <span class="ck st-pass" title="Проверяемость: нарушений не найдено">✓ Пров.</span> <span class="ck st-pass" title="Непротиворечивость: нарушений не найдено">✓ Непрот.</span></p>
+<article class="entry sev-major" data-sev="major" id="d-06">
+<header class="eh"><span class="gut"><span class="eid">D-06</span><span class="lvl lvl-major">MAJOR</span></span><span class="et">Однозначность</span></header>
+<p class="problem">Термин «покупка» не определён: исключены только переводы и снятие наличных, а оплата услуг, комиссии, квази-кэш не отнесены ни к одной группе.</p>
+<div class="src" role="group" aria-label="Цитата из документа"><span class="n">38</span><span class="t">В расходы входят проведённые покупки.</span></div>
+<p><span class="k">Последствие:</span> Разработчик и тестировщик по-разному отберут операции для счётчика расходов.</p>
+<p class="ask"><span class="k">Вопрос заказчику (бизнес):</span> Входит ли в расходы оплата услуг в мобильном банке, или учитываются только покупки по карте в торговых точках? См. <a href="#q-14" class="qid">Q-14</a>.</p>
+</article>
+<article class="entry sev-major" data-sev="major" id="d-07">
+<header class="eh"><span class="gut"><span class="eid">D-07</span><span class="lvl lvl-major">MAJOR</span></span><span class="et">Полнота</span></header>
+<p class="problem">Не указано, на какую сумму уменьшаются расходы: сумму зачисления возврата в тенге или сумму исходного списания. Для валютной покупки они различаются из-за курса.</p>
+<div class="src" role="group" aria-label="Цитата из документа"><span class="n">38</span><span class="t">Возврат уменьшает расходы месяца исходной покупки</span></div>
+<p><span class="k">Последствие:</span> Нельзя однозначно рассчитать счётчик и написать тест на возврат валютной покупки.</p>
+<p class="ask"><span class="k">Вопрос заказчику (бизнес):</span> При возврате расходы уменьшаются на сумму зачисления возврата на карту в тенге или на сумму списания исходной покупки? См. <a href="#q-04" class="qid">Q-04</a>.</p>
+</article>
+<article class="entry sev-minor" data-sev="minor" id="d-08">
+<header class="eh"><span class="gut"><span class="eid">D-08</span><span class="lvl lvl-minor">MINOR</span></span><span class="et">Атомарность</span></header>
+<p class="problem">В одном пункте объединены правила месяца, состава расходов, валюты, возвратов и исключений.</p>
+<div class="src" role="group" aria-label="Цитата из документа"><span class="n">38</span><span class="t">Переводы и снятие наличных исключаются.</span></div>
+</article>
+<div class="rewrite"><strong>Готовая формулировка:</strong> Ф-2а. Месяц покупки определяется по дате её совершения по времени Алматы. Ф-2б. В расходы месяца входят проведённые покупки, к которым относятся &lt;типы операций, считающиеся покупкой&gt;; переводы и снятие наличных в расходы не входят. Ф-2в. Расходы считаются с начала месяца независимо от того, включено ли уведомление. Ф-2г. Для покупки в другой валюте в расходы идёт сумма списания с карты в тенге. Ф-2д. Возврат уменьшает расходы месяца исходной покупки на &lt;сумма уменьшения при возврате&gt;; если исходная покупка в учёте не найдена, возврат расходы не меняет.</div>
+</section>
+<section class="req" id="req-06">
+<h3 class="eh"><span class="gut"><span class="eid">REQ-06</span></span><span class="et">Ф-3 · строка 39 · Функциональные требования</span></h3>
+<div class="src" role="group" aria-label="Текст требования"><span class="n">39</span><span class="t">* **Ф-3.** Когда расходы переходят от суммы ниже порога к сумме, равной порогу или выше, клиент получает push. На карту приходится максимум один такой push за календарный месяц при одном значении порога; смена порога сбрасывает признак отправки (Ф-4), а выключение и повторное включение уведомления без смены порога его не сбрасывает. Правило действует и для запоздавшего события: если оно довело до порога расходы прошедшего месяца, push отправляется.</span></div>
+<p class="checks"><span class="k">Оценки:</span> <span class="ck st-pass" title="Необходимость: нарушений не найдено">✓ Необх.</span> <span class="ck st-fail" title="Однозначность: нарушен">✗ Однозн.</span> <span class="ck st-fail" title="Полнота: нарушен">✗ Полн.</span> <span class="ck st-fail" title="Атомарность: нарушен">✗ Атом.</span> <span class="ck st-pass" title="Осуществимость: нарушений не найдено">✓ Осущ.</span> <span class="ck st-fail" title="Проверяемость: нарушен">✗ Пров.</span> <span class="ck st-pass" title="Непротиворечивость: нарушений не найдено">✓ Непрот.</span></p>
+<ul class="check-notes"><li><span class="mark st-fail" title="нарушен">✗</span> Однозначность: Для запоздавшего события не ясно, с каким порогом сравнивать расходы прошедшего месяца</li><li><span class="mark st-fail" title="нарушен">✗</span> Полнота: Не описан переход через порог при выключенном уведомлении</li></ul>
+<article class="entry sev-minor" data-sev="minor" id="d-11">
+<header class="eh"><span class="gut"><span class="eid">D-11</span><span class="lvl lvl-minor">MINOR</span></span><span class="et">Атомарность</span></header>
+<p class="problem">В одном пункте условие отправки, ограничение частоты, сброс признака и обработка запоздавших событий.</p>
+<div class="src" role="group" aria-label="Цитата из документа"><span class="n">39</span><span class="t">Правило действует и для запоздавшего события</span></div>
+</article>
+<article class="entry sev-minor" data-sev="minor" id="d-12">
+<header class="eh"><span class="gut"><span class="eid">D-12</span><span class="lvl lvl-minor">MINOR</span></span><span class="et">Проверяемость</span></header>
+<p class="problem">Доставка push на устройство вне контроля системы; проверить можно только передачу push на отправку, как в L46.</p>
+<div class="src" role="group" aria-label="Цитата из документа"><span class="n">39</span><span class="t">клиент получает push</span></div>
+</article>
+<p class="moved">Слито критиком: <a href="#d-09">D-09</a> в <a href="#s-09">S-09</a>, <a href="#d-10">D-10</a> в <a href="#s-12">S-12</a>.</p>
+<div class="rewrite"><strong>Готовая формулировка:</strong> Ф-3а. Когда уведомление включено и расходы месяца переходят от суммы ниже порога к сумме, равной порогу или выше, сервис передаёт push на отправку. Ф-3б. Если такой переход произошёл при выключенном уведомлении, &lt;выставляется ли признак отправки&gt;. Ф-3в. По карте отправляется не более одного такого push за календарный месяц при одном значении порога; смена порога сбрасывает признак отправки (Ф-4), выключение и повторное включение уведомления без смены порога его не сбрасывает. Ф-3г. Если запоздавшее событие довело до порога расходы прошедшего месяца, push отправляется; расходы этого месяца сравниваются с &lt;порог, применяемый к прошедшему месяцу&gt;.</div>
+</section>
+<section class="req" id="req-07">
+<h3 class="eh"><span class="gut"><span class="eid">REQ-07</span></span><span class="et">Ф-4 · строка 40 · Функциональные требования</span></h3>
+<div class="src" role="group" aria-label="Текст требования"><span class="n">40</span><span class="t">* **Ф-4.** При изменении порога накопленная сумма сохраняется. Если она ниже нового порога, следующее достижение вызывает push независимо от истории предыдущей настройки. Если при сохранении она уже равна новому порогу или выше, push отправляется сразу после сохранения.</span></div>
+<p class="checks"><span class="k">Оценки:</span> <span class="ck st-pass" title="Необходимость: нарушений не найдено">✓ Необх.</span> <span class="ck st-fail" title="Однозначность: нарушен">✗ Однозн.</span> <span class="ck st-fail" title="Полнота: нарушен">✗ Полн.</span> <span class="ck st-pass" title="Осуществимость: нарушений не найдено">✓ Осущ.</span> <span class="ck st-pass" title="Проверяемость: нарушений не найдено">✓ Пров.</span> <span class="ck st-pass" title="Непротиворечивость: нарушений не найдено">✓ Непрот.</span></p>
+<article class="entry sev-major" data-sev="major" id="d-13">
+<header class="eh"><span class="gut"><span class="eid">D-13</span><span class="lvl lvl-major">MAJOR</span></span><span class="et">Однозначность</span></header>
+<p class="problem">Слово «сразу» не задаёт срок. Нефункциональное требование считает минуту от события процессинга, а сохранение порога таким событием не названо.</p>
+<div class="src" role="group" aria-label="Цитата из документа"><span class="n">40</span><span class="t">push отправляется сразу после сохранения</span></div>
+<p><span class="k">Последствие:</span> Нельзя проверить своевременность push после сохранения порога.</p>
+<p class="ask"><span class="k">Вопрос заказчику (бизнес):</span> За какое время после успешного сохранения порога push должен быть передан на отправку: в пределах той же минуты, что и для покупки, или задать отдельное значение, в секундах? См. <a href="#q-02" class="qid">Q-02</a>.</p>
+</article>
+<article class="entry sev-major" data-sev="major" id="d-14">
+<header class="eh"><span class="gut"><span class="eid">D-14</span><span class="lvl lvl-major">MAJOR</span></span><span class="et">Полнота</span></header>
+<p class="problem">Не сказано, отправляется ли push, если порог меняют при выключенном уведомлении (enabled = 0), и сбрасывается ли признак отправки при сохранении того же значения порога.</p>
+<div class="src" role="group" aria-label="Цитата из документа"><span class="n">40</span><span class="t">Если при сохранении она уже равна новому порогу или выше</span></div>
+<p><span class="k">Последствие:</span> Нельзя реализовать и протестировать сохранение порога с выключенным переключателем.</p>
+<p class="ask"><span class="k">Вопрос заказчику (бизнес):</span> Отправляется ли push сразу после сохранения, если новый порог уже достигнут, а уведомление сохранено выключенным? См. <a href="#q-03" class="qid">Q-03</a>.</p>
+</article>
+<div class="rewrite"><strong>Готовая формулировка:</strong> Ф-4. При изменении значения порога накопленная сумма расходов за месяц сохраняется, а признак отправки сбрасывается. Сохранение прежнего значения порога признак отправки &lt;сбрасывает / не сбрасывает&gt;. Если накопленная сумма ниже нового порога, следующее достижение порога вызывает push независимо от истории предыдущей настройки. Если при сохранении накопленная сумма уже равна новому порогу или выше и уведомление включено, push передаётся на отправку в течение &lt;N секунд&gt; после успешного сохранения. Если уведомление выключено, push при сохранении &lt;не отправляется / отправляется после включения&gt;.</div>
+</section>
+<section class="req" id="req-08">
+<h3 class="eh"><span class="gut"><span class="eid">REQ-08</span></span><span class="et">строка 43 · Sequence Diagram</span></h3>
+<div class="src" role="group" aria-label="Текст требования"><span class="n">43</span><span class="t">Процессинг → сервис расходов: проведена покупка. Сервис расходов → настройки: получить порог карты; если сервис настроек недоступен, сервис расходов повторяет проверку порога позже. Сервис расходов → push: передать последние четыре цифры карты и накопленные расходы за месяц при достижении порога.</span></div>
+<p class="checks"><span class="k">Оценки:</span> <span class="ck st-pass" title="Необходимость: нарушений не найдено">✓ Необх.</span> <span class="ck st-fail" title="Однозначность: нарушен">✗ Однозн.</span> <span class="ck st-fail" title="Полнота: нарушен">✗ Полн.</span> <span class="ck st-pass" title="Осуществимость: нарушений не найдено">✓ Осущ.</span> <span class="ck st-pass" title="Проверяемость: нарушений не найдено">✓ Пров.</span> <span class="ck st-pass" title="Непротиворечивость: нарушений не найдено">✓ Непрот.</span></p>
+<ul class="check-notes"><li><span class="mark st-fail" title="нарушен">✗</span> Однозначность: «Повторяет проверку порога позже» без интервала и числа попыток</li></ul>
+<article class="entry sev-major" data-sev="major" id="d-16">
+<header class="eh"><span class="gut"><span class="eid">D-16</span><span class="lvl lvl-major">MAJOR</span></span><span class="et">Полнота</span></header>
+<p class="problem">Для решения об отправке по Ф-1 и Ф-3 нужен признак включения уведомления, но в диаграмме запрашивается только порог.</p>
+<div class="src" role="group" aria-label="Цитата из документа"><span class="n">43</span><span class="t">Сервис расходов → настройки: получить порог карты</span></div>
+<p><span class="k">Последствие:</span> Нельзя реализовать проверку, что уведомление включено, перед отправкой push.</p>
+<p class="ask"><span class="k">Вопрос архитектору:</span> Получает ли сервис расходов признак включения уведомления от сервиса настроек вместе с порогом?</p>
+</article>
+<p class="moved">Слито критиком: <a href="#d-15">D-15</a> в <a href="#s-06">S-06</a>.</p>
+<div class="rewrite"><strong>Готовая формулировка:</strong> Процессинг → сервис расходов: проведена покупка. Сервис расходов → настройки: получить порог карты и признак включения уведомления; если сервис настроек недоступен, сервис расходов повторяет запрос каждые &lt;N секунд&gt;, не более &lt;N попыток&gt;, после чего &lt;действие после исчерпания попыток&gt;. Сервис расходов → push: при достижении порога и включённом уведомлении передать последние четыре цифры карты и накопленные расходы за месяц.</div>
+</section>
+<section class="req" id="req-09">
+<h3 class="eh"><span class="gut"><span class="eid">REQ-09</span></span><span class="et">строка 46 · Нефункциональные требования</span></h3>
+<div class="src" role="group" aria-label="Текст требования"><span class="n">46</span><span class="t">Сервис передаёт push на отправку в течение минуты после получения события.</span></div>
+<p class="checks"><span class="k">Оценки:</span> <span class="ck st-pass" title="Необходимость: нарушений не найдено">✓ Необх.</span> <span class="ck st-fail" title="Однозначность: нарушен">✗ Однозн.</span> <span class="ck st-fail" title="Полнота: нарушен">✗ Полн.</span> <span class="ck st-pass" title="Осуществимость: нарушений не найдено">✓ Осущ.</span> <span class="ck st-pass" title="Проверяемость: нарушений не найдено">✓ Пров.</span> <span class="ck st-pass" title="Непротиворечивость: нарушений не найдено">✓ Непрот.</span></p>
+<article class="entry sev-major" data-sev="major" id="d-17">
+<header class="eh"><span class="gut"><span class="eid">D-17</span><span class="lvl lvl-major">MAJOR</span></span><span class="et">Однозначность</span></header>
+<p class="problem">«Сервис» и «событие» не определены: это может быть сервис расходов и событие покупки, а может быть сохранение порога по Ф-4.</p>
+<div class="src" role="group" aria-label="Цитата из документа"><span class="n">46</span><span class="t">в течение минуты после получения события</span></div>
+<p><span class="k">Последствие:</span> Нельзя определить точку начала замера и проверяемый компонент.</p>
+<p class="ask"><span class="k">Вопрос аналитику:</span> От какого события отсчитывается минута: получения сервисом расходов события о покупке от процессинга или также сохранения порога? См. <a href="#q-02" class="qid">Q-02</a>.</p>
+</article>
+<article class="entry sev-major" data-sev="major" id="d-18">
+<header class="eh"><span class="gut"><span class="eid">D-18</span><span class="lvl lvl-major">MAJOR</span></span><span class="et">Полнота</span></header>
+<p class="problem">Не указаны доля событий, для которой действует предел, и нагрузка. Не сказано, действует ли предел при повторах из-за недоступного сервиса настроек.</p>
+<div class="src" role="group" aria-label="Цитата из документа"><span class="n">46</span><span class="t">Сервис передаёт push на отправку</span></div>
+<p><span class="k">Последствие:</span> Нельзя провести нагрузочное тестирование с однозначным критерием успеха.</p>
+<p class="ask"><span class="k">Вопрос заказчику (бизнес):</span> Для какой доли событий должен соблюдаться предел в одну минуту: для всех или задать процентиль (например, 99%)? См. <a href="#q-06" class="qid">Q-06</a>.</p>
+</article>
+<div class="rewrite"><strong>Готовая формулировка:</strong> Сервис расходов передаёт push в сервис уведомлений не позднее 60 секунд после получения события о проведённой покупке от карточного процессинга для &lt;доля событий, %&gt; событий при нагрузке до &lt;N событий в секунду&gt;. Предел не действует, пока сервис настроек недоступен.</div>
+</section>
+<section class="req" id="req-10">
+<h3 class="eh"><span class="gut"><span class="eid">REQ-10</span></span><span class="et">строка 49 · Требования к данным</span></h3>
+<div class="src" role="group" aria-label="Текст требования"><span class="n">49</span><span class="t">Хранить идентификатор карты, месяц, идентификатор операции, сумму покупки в тиынах, признак отправки и порог в тенге.</span></div>
+<p class="checks"><span class="k">Оценки:</span> <span class="ck st-pass" title="Необходимость: нарушений не найдено">✓ Необх.</span> <span class="ck st-pass" title="Однозначность: нарушений не найдено">✓ Однозн.</span> <span class="ck st-fail" title="Полнота: нарушен">✗ Полн.</span> <span class="ck st-pass" title="Осуществимость: нарушений не найдено">✓ Осущ.</span> <span class="ck st-pass" title="Проверяемость: нарушений не найдено">✓ Пров.</span> <span class="ck st-fail" title="Корректность: нарушен">✗ Корр.</span> <span class="ck st-pass" title="Непротиворечивость: нарушений не найдено">✓ Непрот.</span></p>
+<article class="entry sev-major" data-sev="major" id="d-19">
+<header class="eh"><span class="gut"><span class="eid">D-19</span><span class="lvl lvl-major">MAJOR</span></span><span class="et">Полнота</span></header>
+<p class="problem">Для Ф-1 и Ф-2 нужны признак включения уведомления, тип операции и ссылка возврата на исходную покупку, их в перечне нет.</p>
+<div class="src" role="group" aria-label="Цитата из документа"><span class="n">49</span><span class="t">признак отправки и порог в тенге</span></div>
+<p><span class="k">Последствие:</span> Нельзя реализовать учёт возвратов и проверку включения по хранимым данным.</p>
+<p class="ask"><span class="k">Вопрос аналитику:</span> Хранится ли для возврата идентификатор исходной покупки, по которому ищется месяц её учёта?</p>
+</article>
+<article class="entry sev-major" data-sev="major" id="d-20">
+<header class="eh"><span class="gut"><span class="eid">D-20</span><span class="lvl lvl-major">MAJOR</span></span><span class="et">Корректность</span></header>
+<p class="problem">Сумма покупки хранится в тиынах, а порог, с которым сравниваются расходы, в тенге. Верно ли, что единицы должны различаться?</p>
+<div class="src" role="group" aria-label="Цитата из документа"><span class="n">49</span><span class="t">сумму покупки в тиынах</span></div>
+<p><span class="k">Последствие:</span> Возможна ошибка сравнения расходов с порогом в 100 раз.</p>
+<p class="ask"><span class="k">Вопрос аналитику:</span> В какой единице сравниваются расходы с порогом: в тиынах с пересчётом порога или в тенге с округлением расходов? См. <a href="#q-15" class="qid">Q-15</a>.</p>
+</article>
+<div class="rewrite"><strong>Готовая формулировка:</strong> Хранить идентификатор карты, месяц учёта, идентификатор операции, тип операции (покупка или возврат), идентификатор исходной покупки для возврата, сумму операции в &lt;единица суммы&gt;, порог в &lt;единица суммы&gt;, признак включения уведомления и признак отправки push.</div>
+</section>
+<section class="req" id="req-11">
+<h3 class="eh"><span class="gut"><span class="eid">REQ-11</span></span><span class="et">строка 52 · Требования к интеграции</span></h3>
+<div class="src" role="group" aria-label="Текст требования"><span class="n">52</span><span class="t">Приложение читает и сохраняет настройки через дочерний документ «Уведомление о расходах по карте — REST API». Повторная доставка одного события процессинга сохраняет исходный итог.</span></div>
+<p class="checks"><span class="k">Оценки:</span> <span class="ck st-pass" title="Необходимость: нарушений не найдено">✓ Необх.</span> <span class="ck st-fail" title="Однозначность: нарушен">✗ Однозн.</span> <span class="ck st-fail" title="Полнота: нарушен">✗ Полн.</span> <span class="ck st-fail" title="Атомарность: нарушен">✗ Атом.</span> <span class="ck st-pass" title="Осуществимость: нарушений не найдено">✓ Осущ.</span> <span class="ck st-pass" title="Проверяемость: нарушений не найдено">✓ Пров.</span> <span class="ck st-pass" title="Непротиворечивость: нарушений не найдено">✓ Непрот.</span></p>
+<ul class="check-notes"><li><span class="mark st-fail" title="нарушен">✗</span> Полнота: Метод чтения /alerts/getLimit в дочернем документе не описан</li></ul>
+<article class="entry sev-major" data-sev="major" id="d-22">
+<header class="eh"><span class="gut"><span class="eid">D-22</span><span class="lvl lvl-major">MAJOR</span></span><span class="et">Однозначность</span></header>
+<p class="problem">Не определено, что такое «итог» (сумма расходов, признак отправки) и по какому ключу событие считается повторным.</p>
+<div class="src" role="group" aria-label="Цитата из документа"><span class="n">52</span><span class="t">сохраняет исходный итог</span></div>
+<p><span class="k">Последствие:</span> Нельзя реализовать дедупликацию и написать тест на повторную доставку.</p>
+<p class="ask"><span class="k">Вопрос архитектору:</span> По какому полю событие процессинга считается повторным: по идентификатору операции или по иному ключу?</p>
+</article>
+<article class="entry sev-minor" data-sev="minor" id="d-23">
+<header class="eh"><span class="gut"><span class="eid">D-23</span><span class="lvl lvl-minor">MINOR</span></span><span class="et">Атомарность</span></header>
+<p class="problem">Второе предложение задаёт отдельное требование к обработке событий процессинга.</p>
+<div class="src" role="group" aria-label="Цитата из документа"><span class="n">52</span><span class="t">Повторная доставка одного события процессинга</span></div>
+</article>
+<p class="moved">Слито критиком: <a href="#d-21">D-21</a> в <a href="#s-17">S-17</a>.</p>
+<div class="rewrite"><strong>Готовая формулировка:</strong> Приложение сохраняет настройки методом PUT /alerts/saveLimit и читает их методом /alerts/getLimit по документу «Уведомление о расходах по карте — REST API» (метод чтения описан в &lt;документ с описанием метода чтения&gt;). Повторная доставка события процессинга с тем же &lt;ключ дедупликации&gt; не изменяет расходы месяца и не вызывает повторный push.</div>
+</section>
+<section class="req" id="req-12">
+<h3 class="eh"><span class="gut"><span class="eid">REQ-12</span></span><span class="et">строка 63 · Критерии приемки</span></h3>
+<div class="src" role="group" aria-label="Текст требования"><span class="n">63</span><span class="t">| Расходы 48 500 ₸, порог 50 000 ₸ | Провести покупку на 1 500 ₸ | Итог 50 000 ₸ и один push |</span></div>
+<p class="checks"><span class="k">Оценки:</span> <span class="ck st-pass" title="Необходимость: нарушений не найдено">✓ Необх.</span> <span class="ck st-pass" title="Однозначность: нарушений не найдено">✓ Однозн.</span> <span class="ck st-fail" title="Полнота: нарушен">✗ Полн.</span> <span class="ck st-pass" title="Осуществимость: нарушений не найдено">✓ Осущ.</span> <span class="ck st-pass" title="Проверяемость: нарушений не найдено">✓ Пров.</span> <span class="ck st-pass" title="Непротиворечивость: нарушений не найдено">✓ Непрот.</span></p>
+<article class="entry sev-major" data-sev="major" id="d-24">
+<header class="eh"><span class="gut"><span class="eid">D-24</span><span class="lvl lvl-major">MAJOR</span></span><span class="et">Полнота</span></header>
+<p class="problem">По Ф-1 уведомление по умолчанию выключено, а по Ф-3 push отправляется один раз в месяц. В исходных условиях нет состояния переключателя и признака отправки.</p>
+<div class="src" role="group" aria-label="Цитата из документа"><span class="n">63</span><span class="t">Расходы 48 500 ₸, порог 50 000 ₸</span></div>
+<p><span class="k">Последствие:</span> Тест может дать разный результат в зависимости от неуказанного состояния.</p>
+<p class="ask"><span class="k">Вопрос тестировщику:</span> Включено ли уведомление в исходных условиях этого сценария?</p>
+</article>
+<div class="rewrite"><strong>Готовая формулировка:</strong> | Карта активна, KZT; уведомление включено; push в текущем месяце не отправлялся; расходы 48 500 ₸, порог 50 000 ₸ | Провести покупку на 1 500 ₸ | Итог 50 000 ₸ и один push |</div>
+</section>
+<section class="req" id="req-13">
+<h3 class="eh"><span class="gut"><span class="eid">REQ-13</span></span><span class="et">строка 64 · Критерии приемки</span></h3>
+<div class="src" role="group" aria-label="Текст требования"><span class="n">64</span><span class="t">| Покупка 31 января в 23:58 на 4 000 ₸ | Провести 1 февраля в 00:03 по Алматы | Январский счётчик вырос на 4 000 ₸, февральский не изменился |</span></div>
+<p class="checks"><span class="k">Оценки:</span> <span class="ck st-pass" title="Необходимость: нарушений не найдено">✓ Необх.</span> <span class="ck st-fail" title="Однозначность: нарушен">✗ Однозн.</span> <span class="ck st-pass" title="Полнота: нарушений не найдено">✓ Полн.</span> <span class="ck st-pass" title="Осуществимость: нарушений не найдено">✓ Осущ.</span> <span class="ck st-pass" title="Проверяемость: нарушений не найдено">✓ Пров.</span> <span class="ck st-pass" title="Непротиворечивость: нарушений не найдено">✓ Непрот.</span></p>
+<article class="entry sev-major" data-sev="major" id="d-25">
+<header class="eh"><span class="gut"><span class="eid">D-25</span><span class="lvl lvl-major">MAJOR</span></span><span class="et">Однозначность</span></header>
+<p class="problem">Для времени покупки не указан часовой пояс; уточнение «по Алматы» стоит в колонке действия и может относиться только ко времени проведения. По Ф-2 месяц зависит от даты покупки в Алматы, поэтому от пояса зависит ожидаемый результат.</p>
+<div class="src" role="group" aria-label="Цитата из документа"><span class="n">64</span><span class="t">Покупка 31 января в 23:58 на 4 000 ₸</span></div>
+<p><span class="k">Последствие:</span> Тестировщик может задать время покупки в UTC или времени устройства и получить февральский месяц, критерий станет невоспроизводимым.</p>
+<p class="ask"><span class="k">Вопрос аналитику:</span> Время покупки 31 января 23:58 задано по Алматы или в другом часовом поясе (например, UTC)?</p>
+</article>
+<div class="rewrite"><strong>Готовая формулировка:</strong> | Покупка совершена 31 января в 23:58 по Алматы на 4 000 ₸ | Провести покупку 1 февраля в 00:03 по Алматы | Январский счётчик вырос на 4 000 ₸, февральский не изменился |</div>
+</section>
+<section class="req" id="req-14">
+<h3 class="eh"><span class="gut"><span class="eid">REQ-14</span></span><span class="et">строка 65 · Критерии приемки</span></h3>
+<div class="src" role="group" aria-label="Текст требования"><span class="n">65</span><span class="t">| Расходы 19 900 ₸, порог 20 000 ₸ | Перевести 500 ₸ | Счётчик показывает 19 900 ₸ |</span></div>
+<p class="checks"><span class="k">Оценки:</span> <span class="ck st-pass" title="Необходимость: нарушений не найдено">✓ Необх.</span> <span class="ck st-pass" title="Однозначность: нарушений не найдено">✓ Однозн.</span> <span class="ck st-fail" title="Полнота: нарушен">✗ Полн.</span> <span class="ck st-pass" title="Осуществимость: нарушений не найдено">✓ Осущ.</span> <span class="ck st-pass" title="Проверяемость: нарушений не найдено">✓ Пров.</span> <span class="ck st-pass" title="Непротиворечивость: нарушений не найдено">✓ Непрот.</span></p>
+<article class="entry sev-major" data-sev="major" id="d-26">
+<header class="eh"><span class="gut"><span class="eid">D-26</span><span class="lvl lvl-major">MAJOR</span></span><span class="et">Полнота</span></header>
+<p class="problem">Ожидаемый результат проверяет только счётчик и не фиксирует отсутствие push, хотя перевод 500 ₸ при учёте довёл бы расходы до порога 20 000 ₸. В исходных условиях не сказано, включено ли уведомление.</p>
+<div class="src" role="group" aria-label="Цитата из документа"><span class="n">65</span><span class="t">Счётчик показывает 19 900 ₸</span></div>
+<p><span class="k">Последствие:</span> Нельзя проверить, что исключённая операция не вызывает push, при выключенном уведомлении тест пройдёт при любой реализации порога.</p>
+<p class="ask"><span class="k">Вопрос тестировщику:</span> В этом критерии уведомление должно быть включено, а ожидаемый результат включать «push не отправлен»?</p>
+</article>
+<div class="rewrite"><strong>Готовая формулировка:</strong> | Уведомление включено, расходы 19 900 ₸, порог 20 000 ₸ | Перевести 500 ₸ с карты | Счётчик показывает 19 900 ₸, push не отправлен |</div>
+</section>
+<section class="req" id="req-17">
+<h3 class="eh"><span class="gut"><span class="eid">REQ-17</span></span><span class="et">строка 105 · Общие параметры</span></h3>
+<div class="src" role="group" aria-label="Текст требования"><span class="n">105</span><span class="t">| **Authorization** | Bearer, сессия владельца карты |</span></div>
+<p class="checks"><span class="k">Оценки:</span> <span class="ck st-pass" title="Необходимость: нарушений не найдено">✓ Необх.</span> <span class="ck st-fail" title="Однозначность: нарушен">✗ Однозн.</span> <span class="ck st-pass" title="Полнота: нарушений не найдено">✓ Полн.</span> <span class="ck st-pass" title="Осуществимость: нарушений не найдено">✓ Осущ.</span> <span class="ck st-pass" title="Проверяемость: нарушений не найдено">✓ Пров.</span> <span class="ck st-pass" title="Непротиворечивость: нарушений не найдено">✓ Непрот.</span></p>
+<article class="entry sev-major" data-sev="major" id="d-28">
+<header class="eh"><span class="gut"><span class="eid">D-28</span><span class="lvl lvl-major">MAJOR</span></span><span class="et">Однозначность</span></header>
+<p class="problem">Термин «владелец карты» не определён и отличается от «держателя активной карты» в Ф-1. Для дополнительной карты владелец счёта и держатель могут быть разными людьми.</p>
+<div class="src" role="group" aria-label="Цитата из документа"><span class="n">105</span><span class="t">Bearer, сессия владельца карты</span></div>
+<p><span class="k">Последствие:</span> Нельзя однозначно реализовать проверку принадлежности карты и тесты на 404 для дополнительных карт.</p>
+<p class="ask"><span class="k">Вопрос заказчику (бизнес):</span> Чья сессия даёт право сохранить порог по дополнительной карте: держателя этой карты или владельца основного счёта?</p>
+</article>
+<div class="rewrite"><strong>Готовая формулировка:</strong> | **Authorization** | Bearer-токен сессии &lt;роль клиента, которому принадлежит карта&gt; |</div>
+</section>
+<section class="req" id="req-23">
+<h3 class="eh"><span class="gut"><span class="eid">REQ-23</span></span><span class="et">3 · строка 119 · Логика работы метода</span></h3>
+<div class="src" role="group" aria-label="Текст требования"><span class="n">119</span><span class="t">3. Проверить сумму, переключатель и что карта активна и выпущена в KZT.</span></div>
+<p class="checks"><span class="k">Оценки:</span> <span class="ck st-pass" title="Необходимость: нарушений не найдено">✓ Необх.</span> <span class="ck st-pass" title="Однозначность: нарушений не найдено">✓ Однозн.</span> <span class="ck st-fail" title="Полнота: нарушен">✗ Полн.</span> <span class="ck st-pass" title="Осуществимость: нарушений не найдено">✓ Осущ.</span> <span class="ck st-pass" title="Проверяемость: нарушений не найдено">✓ Пров.</span> <span class="ck st-pass" title="Непротиворечивость: нарушений не найдено">✓ Непрот.</span></p>
+<article class="entry sev-major" data-sev="major" id="d-30">
+<header class="eh"><span class="gut"><span class="eid">D-30</span><span class="lvl lvl-major">MAJOR</span></span><span class="et">Полнота</span></header>
+<p class="problem">Строка 163 задаёт 200 с ERROR только для порога вне диапазона и неактивной карты. Для enabled вне 0/1 (например, 2) и для карты не в KZT неясно: это 400 «неверный формат» или 200 с result ERROR.</p>
+<div class="src" role="group" aria-label="Цитата из документа"><span class="n">119</span><span class="t">Проверить сумму, переключатель</span><span class="n">144</span><span class="t">1 знак | Да | 0 или 1</span><span class="n">163</span><span class="t">нет обязательного параметра или неверный формат</span><span class="n">163</span><span class="t">Порог вне диапазона и неактивная карта дают 200 с result ERROR.</span></div>
+<p><span class="k">Последствие:</span> Нельзя однозначно реализовать и проверить ответ метода на эти отказы.</p>
+<p class="note">Тот же дефект: <a href="#req-32">REQ-32</a>, <a href="#req-41">REQ-41</a>.</p>
+<p class="note">Критик слил сюда: <a href="#d-39">D-39</a>, <a href="#d-48">D-48</a>, <a href="#d-49">D-49</a>, их текст в <a href="#appendix-b">приложении Б</a>.</p>
+<p class="ask"><span class="k">Вопрос аналитику:</span> Какой ответ на enabled вне 0 и 1: статус 400 или статус 200 с result ERROR? См. <a href="#q-07" class="qid">Q-07</a>.</p>
+<p class="fix"><span class="k">Как исправить:</span> Для каждой проверки шага указать код ответа и текст message при отказе.</p>
+</article>
+</section>
+<section class="req" id="req-24">
+<h3 class="eh"><span class="gut"><span class="eid">REQ-24</span></span><span class="et">4 · строка 120 · Логика работы метода</span></h3>
+<div class="src" role="group" aria-label="Текст требования"><span class="n">120</span><span class="t">4. Заменить настройку и вернуть результат сохранения.</span></div>
+<p class="checks"><span class="k">Оценки:</span> <span class="ck st-pass" title="Необходимость: нарушений не найдено">✓ Необх.</span> <span class="ck st-fail" title="Однозначность: нарушен">✗ Однозн.</span> <span class="ck st-fail" title="Полнота: нарушен">✗ Полн.</span> <span class="ck st-pass" title="Осуществимость: нарушений не найдено">✓ Осущ.</span> <span class="ck st-pass" title="Проверяемость: нарушений не найдено">✓ Пров.</span> <span class="ck st-pass" title="Непротиворечивость: нарушений не найдено">✓ Непрот.</span></p>
+<article class="entry sev-major" data-sev="major" id="d-31">
+<header class="eh"><span class="gut"><span class="eid">D-31</span><span class="lvl lvl-major">MAJOR</span></span><span class="et">Однозначность</span></header>
+<p class="problem">Не сказано, с каким HTTP-кодом возвращается успешный результат: в строке 151 успешными названы 200 и 201, раздел статусов описывает только 200, а пример озаглавлен «Successful — Created».</p>
+<div class="src" role="group" aria-label="Цитата из документа"><span class="n">120</span><span class="t">вернуть результат сохранения</span><span class="n">151</span><span class="t">Если результат 200 или 201</span></div>
+<p><span class="k">Последствие:</span> Разработчик и тестировщик могут по-разному выбрать код ответа для первого сохранения и для замены настройки.</p>
+<p class="note">Тот же дефект: <a href="#req-35">REQ-35</a>.</p>
+<p class="note">Критик слил сюда: <a href="#d-41">D-41</a>, их текст в <a href="#appendix-b">приложении Б</a>.</p>
+<p class="ask"><span class="k">Вопрос архитектору:</span> Какой HTTP-код возвращает успешное сохранение: всегда 200 или 201 при первом создании настройки и 200 при замене? См. <a href="#q-08" class="qid">Q-08</a>.</p>
+</article>
+<article class="entry sev-major" data-sev="major" id="d-32">
+<header class="eh"><span class="gut"><span class="eid">D-32</span><span class="lvl lvl-major">MAJOR</span></span><span class="et">Полнота</span></header>
+<p class="problem">Шаг не описывает последствия замены, заданные в Ф-3 и Ф-4: при смене порога сбрасывается признак отправки, а при накопленных расходах не ниже нового порога push отправляется сразу после сохранения; смена только переключателя признак не сбрасывает.</p>
+<div class="src" role="group" aria-label="Цитата из документа"><span class="n">120</span><span class="t">Заменить настройку и вернуть</span><span class="n">126</span><span class="t">Изменение порога сохраняет накопленные расходы</span></div>
+<p><span class="k">Последствие:</span> Нельзя реализовать и проверить метод так, чтобы он соответствовал Ф-3 и Ф-4 части A.</p>
+<p class="note">Тот же дефект: <a href="#req-28">REQ-28</a>.</p>
+<p class="note">Критик слил сюда: <a href="#d-36">D-36</a>, их текст в <a href="#appendix-b">приложении Б</a>.</p>
+<p class="ask"><span class="k">Вопрос архитектору:</span> Кто инициирует немедленный push после сохранения порога, если расходы уже не ниже нового порога: метод saveLimit или сервис расходов по событию изменения настройки? См. <a href="#q-05" class="qid">Q-05</a>.</p>
+</article>
+<div class="rewrite"><strong>Готовая формулировка:</strong> 4. Заменить действующую настройку карты значениями amount и enabled. Если amount отличается от прежнего порога, сбросить признак отправки push за текущий месяц; если при этом накопленные расходы месяца равны новому порогу или выше и уведомление включено, инициировать отправку push через &lt;компонент, инициирующий push&gt;. Если изменён только enabled, признак отправки не менять. Вернуть HTTP &lt;код успешного ответа&gt; с телом {&quot;result&quot;:&quot;OK&quot;,&quot;amount&quot;:&lt;порог&gt;,&quot;enabled&quot;:&lt;признак&gt;}.</div>
+</section>
+<section class="req" id="req-25">
+<h3 class="eh"><span class="gut"><span class="eid">REQ-25</span></span><span class="et">5 · строка 121 · Логика работы метода</span></h3>
+<div class="src" role="group" aria-label="Текст требования"><span class="n">121</span><span class="t">5. При отклонении суммы или карты вернуть прежнее состояние и результат ERROR с описанием в message.</span></div>
+<p class="checks"><span class="k">Оценки:</span> <span class="ck st-pass" title="Необходимость: нарушений не найдено">✓ Необх.</span> <span class="ck st-fail" title="Однозначность: нарушен">✗ Однозн.</span> <span class="ck st-fail" title="Полнота: нарушен">✗ Полн.</span> <span class="ck st-pass" title="Осуществимость: нарушений не найдено">✓ Осущ.</span> <span class="ck st-pass" title="Проверяемость: нарушений не найдено">✓ Пров.</span> <span class="ck st-pass" title="Непротиворечивость: нарушений не найдено">✓ Непрот.</span></p>
+<ul class="check-notes"><li><span class="mark st-fail" title="нарушен">✗</span> Однозначность: «Вернуть прежнее состояние» читается двумя способами: откат хранилища или прежние поля в ответе</li></ul>
+<article class="entry sev-major" data-sev="major" id="d-34">
+<header class="eh"><span class="gut"><span class="eid">D-34</span><span class="lvl lvl-major">MAJOR</span></span><span class="et">Полнота</span></header>
+<p class="problem">Не указано, какие проверки карты дают ERROR (чужая карта по строке 175 даёт 404), и не описан отказ по переключателю, который проверяется на шаге 3.</p>
+<div class="src" role="group" aria-label="Цитата из документа"><span class="n">121</span><span class="t">При отклонении суммы или карты</span></div>
+<p><span class="k">Последствие:</span> Нельзя определить ответ при недопустимом enabled и разграничить ERROR и 404 при реализации и тестировании.</p>
+<p class="ask"><span class="k">Вопрос аналитику:</span> Какой ответ возвращается при недопустимом значении enabled (например, 2): 400 или 200 с result ERROR? См. <a href="#q-07" class="qid">Q-07</a>.</p>
+</article>
+<p class="moved">Слито критиком: <a href="#d-33">D-33</a> в <a href="#s-02">S-02</a>.</p>
+<div class="rewrite"><strong>Готовая формулировка:</strong> 5. Если сумма вне диапазона 1 000-1 000 000 ₸, карта неактивна или выпущена не в KZT, сохранённая настройка не изменяется, метод возвращает HTTP 200 с result ERROR и описанием причины в message; состав ответа: &lt;поля ответа при ERROR&gt;. При недопустимом значении enabled возвращается &lt;код ответа&gt;. Для карты, не принадлежащей клиенту, возвращается 404.</div>
+</section>
+<section class="req" id="req-26">
+<h3 class="eh"><span class="gut"><span class="eid">REQ-26</span></span><span class="et">1 · строка 124 · Особые правила</span></h3>
+<div class="src" role="group" aria-label="Текст требования"><span class="n">124</span><span class="t">1. Целое число тенге, обе границы включены.</span></div>
+<p class="checks"><span class="k">Оценки:</span> <span class="ck st-pass" title="Необходимость: нарушений не найдено">✓ Необх.</span> <span class="ck st-fail" title="Однозначность: нарушен">✗ Однозн.</span> <span class="ck st-pass" title="Полнота: нарушений не найдено">✓ Полн.</span> <span class="ck st-pass" title="Осуществимость: нарушений не найдено">✓ Осущ.</span> <span class="ck st-pass" title="Проверяемость: нарушений не найдено">✓ Пров.</span> <span class="ck st-pass" title="Непротиворечивость: нарушений не найдено">✓ Непрот.</span></p>
+<article class="entry sev-minor" data-sev="minor" id="d-35">
+<header class="eh"><span class="gut"><span class="eid">D-35</span><span class="lvl lvl-minor">MINOR</span></span><span class="et">Однозначность</span></header>
+<p class="problem">Правило не называет параметр и значения границ; они восстанавливаются только по строке 143 (amount, 1 000-1 000 000).</p>
+<div class="src" role="group" aria-label="Цитата из документа"><span class="n">124</span><span class="t">обе границы включены</span></div>
+<p class="fix"><span class="k">Как исправить:</span> Переписать: «amount: целое число тенге от 1 000 до 1 000 000 включительно».</p>
+</article>
+</section>
+<section class="req" id="req-29">
+<h3 class="eh"><span class="gut"><span class="eid">REQ-29</span></span><span class="et">строка 130 · Схема</span></h3>
+<div class="src" role="group" aria-label="Текст требования"><span class="n">130</span><span class="t">Приложение → AlertsController → хранилище настроек → AlertsController → приложение.</span></div>
+<p class="checks"><span class="k">Оценки:</span> <span class="ck st-pass" title="Необходимость: нарушений не найдено">✓ Необх.</span> <span class="ck st-pass" title="Однозначность: нарушений не найдено">✓ Однозн.</span> <span class="ck st-fail" title="Полнота: нарушен">✗ Полн.</span> <span class="ck st-pass" title="Осуществимость: нарушений не найдено">✓ Осущ.</span> <span class="ck st-pass" title="Проверяемость: нарушений не найдено">✓ Пров.</span> <span class="ck st-pass" title="Непротиворечивость: нарушений не найдено">✓ Непрот.</span></p>
+<article class="entry sev-major" data-sev="major" id="d-37">
+<header class="eh"><span class="gut"><span class="eid">D-37</span><span class="lvl lvl-major">MAJOR</span></span><span class="et">Полнота</span></header>
+<p class="problem">Схема не показывает, откуда контроллер берёт принадлежность, статус и валюту карты (шаги 2 и 3), и не показывает обращение к учёту расходов для push по Ф-4.</p>
+<div class="src" role="group" aria-label="Цитата из документа"><span class="n">130</span><span class="t">AlertsController → хранилище настроек → AlertsController</span></div>
+<p><span class="k">Последствие:</span> Нельзя спроектировать интеграции метода и оценить срок работ.</p>
+<p class="ask"><span class="k">Вопрос архитектору:</span> Из какой системы AlertsController получает принадлежность, статус и валюту карты: карточный процессинг или иной справочник?</p>
+</article>
+<div class="rewrite"><strong>Готовая формулировка:</strong> Приложение → AlertsController → &lt;источник данных о карте&gt; (принадлежность, статус, валюта) → хранилище настроек → &lt;сервис расходов&gt; (при смене порога) → AlertsController → приложение.</div>
+</section>
+<section class="req" id="req-30">
+<h3 class="eh"><span class="gut"><span class="eid">REQ-30</span></span><span class="et">строка 142 · Параметры тела запроса</span></h3>
+<div class="src" role="group" aria-label="Текст требования"><span class="n">142</span><span class="t">| `cardId` | string | 1–64 | Да | Карта клиента | Идентификатор карты | `card_id` |</span></div>
+<p class="checks"><span class="k">Оценки:</span> <span class="ck st-pass" title="Необходимость: нарушений не найдено">✓ Необх.</span> <span class="ck st-fail" title="Однозначность: нарушен">✗ Однозн.</span> <span class="ck st-pass" title="Полнота: нарушений не найдено">✓ Полн.</span> <span class="ck st-pass" title="Осуществимость: нарушений не найдено">✓ Осущ.</span> <span class="ck st-pass" title="Проверяемость: нарушений не найдено">✓ Пров.</span> <span class="ck st-pass" title="Непротиворечивость: нарушений не найдено">✓ Непрот.</span></p>
+<article class="entry sev-major" data-sev="major" id="d-38">
+<header class="eh"><span class="gut"><span class="eid">D-38</span><span class="lvl lvl-major">MAJOR</span></span><span class="et">Однозначность</span></header>
+<p class="problem">Не указано, в чём измеряется размер 1-64 (символы или байты), и какой набор символов допустим в идентификаторе карты.</p>
+<div class="src" role="group" aria-label="Цитата из документа"><span class="n">142</span><span class="t">| string | 1–64 | Да |</span></div>
+<p><span class="k">Последствие:</span> Нельзя однозначно реализовать валидацию cardId и проверить границы, ведущие к 400.</p>
+<p class="ask"><span class="k">Вопрос архитектору:</span> Размер cardId 1-64 измеряется в символах или в байтах UTF-8?</p>
+</article>
+<div class="rewrite"><strong>Готовая формулировка:</strong> | `cardId` | string | 1–64 &lt;единица длины&gt;, символы: &lt;допустимый набор символов&gt; | Да | Карта клиента | Идентификатор карты | `card_id` |</div>
+</section>
+<section class="req" id="req-35">
+<h3 class="eh"><span class="gut"><span class="eid">REQ-35</span></span><span class="et">строка 151 · Ответ</span></h3>
+<div class="src" role="group" aria-label="Текст требования"><span class="n">151</span><span class="t">Если результат 200 или 201 — успешный. Если результат 400, 401 и далее — неуспешный.</span></div>
+<p class="checks"><span class="k">Оценки:</span> <span class="ck st-pass" title="Необходимость: нарушений не найдено">✓ Необх.</span> <span class="ck st-fail" title="Однозначность: нарушен">✗ Однозн.</span> <span class="ck st-fail" title="Полнота: нарушен">✗ Полн.</span> <span class="ck st-pass" title="Осуществимость: нарушений не найдено">✓ Осущ.</span> <span class="ck st-pass" title="Проверяемость: нарушений не найдено">✓ Пров.</span> <span class="ck st-fail" title="Корректность: нарушен">✗ Корр.</span> <span class="ck st-pass" title="Непротиворечивость: нарушений не найдено">✓ Непрот.</span></p>
+<ul class="check-notes"><li><span class="mark st-fail" title="нарушен">✗</span> Полнота: Код 201 назван успешным, но условие его возврата нигде не описано</li><li><span class="mark st-fail" title="нарушен">✗</span> Корректность: 200 считается успехом, хотя по строке 163 возможен 200 с result ERROR</li></ul>
+<article class="entry sev-major" data-sev="major" id="d-40">
+<header class="eh"><span class="gut"><span class="eid">D-40</span><span class="lvl lvl-major">MAJOR</span></span><span class="et">Однозначность</span></header>
+<p class="problem">«и далее» не перечисляет коды: неясно, относятся ли сюда 404 и 500 и как трактовать прочие коды.</p>
+<div class="src" role="group" aria-label="Цитата из документа"><span class="n">151</span><span class="t">Если результат 400, 401 и далее — неуспешный</span></div>
+<p><span class="k">Последствие:</span> Клиент не может однозначно реализовать разбор ответа, тестировщик не знает полный набор кодов.</p>
+<p class="ask"><span class="k">Вопрос аналитику:</span> Неуспешными считаются только 400, 401, 404, 500 или любой код вне 2xx?</p>
+</article>
+<p class="moved">Слито критиком: <a href="#d-41">D-41</a> в <a href="#d-31">D-31</a>, <a href="#d-42">D-42</a> в <a href="#s-01">S-01</a>.</p>
+<div class="rewrite"><strong>Готовая формулировка:</strong> Сохранение успешно, если метод вернул &lt;код успеха&gt; и result = OK. Ответ 200 с result = ERROR означает отклонение суммы или карты. Коды 400, 401, 404, 500 означают неуспешный запрос; другие коды метод не возвращает.</div>
+</section>
+<section class="req" id="req-42">
+<h3 class="eh"><span class="gut"><span class="eid">REQ-42</span></span><span class="et">строки 167-171 · 200. Successful — Created</span></h3>
+<div class="src" role="group" aria-label="Текст требования"><span class="n">167</span><span class="t">{&quot;result&quot;:&quot;OK&quot;,&quot;amount&quot;:&quot;50000&quot;,&quot;enabled&quot;:&quot;1&quot;}</span><span class="n">168</span><span class="t">```</span><span class="n">169</span><span class="t">или</span><span class="n">170</span><span class="t">```json</span><span class="n">171</span><span class="t">{&quot;result&quot;:&quot;ERROR&quot;,&quot;message&quot;:&quot;Проверьте сумму&quot;}</span></div>
+<p class="checks"><span class="k">Оценки:</span> <span class="ck st-pass" title="Необходимость: нарушений не найдено">✓ Необх.</span> <span class="ck st-pass" title="Однозначность: нарушений не найдено">✓ Однозн.</span> <span class="ck st-pass" title="Полнота: нарушений не найдено">✓ Полн.</span> <span class="ck st-na" title="Осуществимость: не применим">○ Осущ.</span> <span class="ck st-pass" title="Проверяемость: нарушений не найдено">✓ Пров.</span> <span class="ck st-fail" title="Непротиворечивость: нарушен">✗ Непрот.</span></p>
+<ul class="check-notes"><li><span class="mark st-na" title="не применим">○</span> Осуществимость: Пример ответа, а не самостоятельная возможность</li></ul>
+<article class="entry sev-minor" data-sev="minor" id="d-50">
+<header class="eh"><span class="gut"><span class="eid">D-50</span><span class="lvl lvl-minor">MINOR</span></span><span class="et">Непротиворечивость</span></header>
+<p class="problem">Пример ошибки стоит под заголовком «Successful — Created», хотя настройка не создана, а код 200, не 201.</p>
+<div class="src" role="group" aria-label="Цитата из документа"><span class="n">171</span><span class="t">{&quot;result&quot;:&quot;ERROR&quot;,&quot;message&quot;:&quot;Проверьте сумму&quot;}</span></div>
+<p class="fix"><span class="k">Как исправить:</span> Переименовать раздел в «200. OK» и подписать второй пример как бизнес-отклонение.</p>
+</article>
+</section>
+</section>
+<section class="part" id="set-review">
+<h2>4. Проверка набора требований целиком</h2>
+<h3>4.1. Системная полнота</h3>
+<p><strong>Анализ.</strong></p><ul class="analysis">
+<li>Полнота набора (ISO 29148 п. 5.2.6; IEEE 830 п. 4.3.3): <strong class="set-partial">частично</strong>. Основной сценарий покупки и правила учёта описаны. Но раздел тестирования содержит заглушку, Prod URL и Swagger не заданы, а чек-лист и блок согласующих пусты. Не описаны недоступность сервиса push, одновременные события одной карты, отправка push при сохранении порога по Ф-4, достижение порога при выключенном уведомлении, сроки хранения данных и аудит.</li>
+<li>Валидируемость (ISO 29148 п. 5.2.6): <strong class="set-partial">частично</strong>. Цель «узнать в момент покупки» измерима через НФТ «в течение минуты». Три критерия приёмки покрывают только Ф-2 (граница месяца, переводы) и базовое достижение порога. Не покрыты Ф-1, Ф-4, ограничение одного push за месяц, возвраты, валюта, запоздавшие и повторные события, а также статусы API.</li>
+<li>Прослеживаемость (IEEE 830 п. 4.3.8): <strong class="set-partial">частично</strong>. Идентификаторы есть только у Ф-1..Ф-4. Требования к данным, интеграции, НФТ и вся часть B не имеют идентификаторов. Источники требований не указаны, версия и дата документа не заполнены, согласующие не указаны.</li>
+</ul>
+<article class="entry sev-major" data-sev="major" id="s-03">
+<header class="eh"><span class="gut"><span class="eid">S-03</span><span class="lvl lvl-major">MAJOR</span></span><span class="et">Раздел тестирования требований содержит заглушку</span></header>
+<p class="meta">Пробел · Полнота набора · раздел «Требования к тестированию».</p>
+<div class="src" role="group" aria-label="Цитаты из документа"><span class="n">56</span><span class="t">#### Тестирование требований</span><span class="n">57</span><span class="t">заполняются тестировщиками</span></div>
+<p class="problem"><span class="k">Что не так:</span> Вместо содержания раздела стоит пометка о будущем заполнении. <span class="k">Последствие:</span> Нельзя определить объём проверок до начала разработки и оценить тестируемость набора.</p>
+<p class="ask"><span class="k">Вопрос тестировщику:</span> Что входит в обязательный объём проверок: только три строки критериев приёмки или полный набор сценариев по Ф-1..Ф-4 и статусам API?</p>
+<p class="fix"><span class="k">Как исправить:</span> Заполнить раздел тестовыми сценариями по Ф-1..Ф-4 и статусам API либо сослаться на отдельный тест-план.</p>
+</article>
+<article class="entry sev-major" data-sev="major" id="s-04">
+<header class="eh"><span class="gut"><span class="eid">S-04</span><span class="lvl lvl-major">MAJOR</span></span><span class="et">Не заданы Prod URL и Swagger метода сохранения порога</span></header>
+<p class="meta">Пробел · Полнота набора · <a href="#req-19">REQ-19</a> · раздел «Часть B. Общие параметры».</p>
+<div class="src" role="group" aria-label="Цитаты из документа"><span class="n">108</span><span class="t">| **Request URL** | Dev: `/alerts/saveLimit` . Prod: — |</span><span class="n">110</span><span class="t">| **Swagger** | — |</span></div>
+<p class="problem"><span class="k">Что не так:</span> Вместо промышленного адреса и ссылки на Swagger стоят прочерки. <span class="k">Последствие:</span> Нельзя настроить вызов из приложения в промышленной среде и сверить контракт.</p>
+<p class="note">Критик слил сюда: <a href="#d-29">D-29</a>, их текст в <a href="#appendix-b">приложении Б</a>.</p>
+<p class="ask"><span class="k">Вопрос архитектору:</span> Какой адрес метода сохранения порога в промышленной среде?</p>
+<p class="fix"><span class="k">Как исправить:</span> Указать Prod URL и ссылку на спецификацию Swagger.</p>
+</article>
+<article class="entry sev-major" data-sev="major" id="s-05">
+<header class="eh"><span class="gut"><span class="eid">S-05</span><span class="lvl lvl-major">MAJOR</span></span><span class="et">Не определено, кто отправляет push сразу после сохранения порога</span></header>
+<p class="meta">Пробел · Полнота набора · <a href="#req-07">REQ-07</a>, <a href="#req-24">REQ-24</a>, <a href="#req-29">REQ-29</a> · раздел «Часть B. Логика работы метода; Sequence Diagram».</p>
+<div class="src" role="group" aria-label="Цитаты из документа"><span class="n">40</span><span class="t">Если при сохранении она уже равна новому порогу или выше, push отправляется сразу после сохранения.</span><span class="n">120</span><span class="t">4. Заменить настройку и вернуть результат сохранения.</span><span class="n">130</span><span class="t">Приложение → AlertsController → хранилище настроек → AlertsController → приложение.</span></div>
+<p class="problem"><span class="k">Что не так:</span> Ф-4 требует push сразу после сохранения порога. Логика метода и его схема заканчиваются сохранением настройки, а Sequence Diagram описывает push только по событию покупки. <span class="k">Последствие:</span> Нельзя реализовать и проверить немедленную отправку push при смене порога.</p>
+<p class="ask"><span class="k">Вопрос архитектору:</span> Какой компонент отправляет push сразу после сохранения порога по Ф-4: AlertsController или сервис расходов по событию смены порога? См. <a href="#q-05" class="qid">Q-05</a>.</p>
+<p class="fix"><span class="k">Как исправить:</span> Добавить в логику метода или в Sequence Diagram шаг проверки накопленной суммы и передачи push после сохранения.</p>
+</article>
+<article class="entry sev-major" data-sev="major" id="s-06">
+<header class="eh"><span class="gut"><span class="eid">S-06</span><span class="lvl lvl-major">MAJOR</span></span><span class="et">Не ограничен повтор проверки порога при недоступности сервиса настроек</span></header>
+<p class="meta">Пробел · Полнота набора · <a href="#req-08">REQ-08</a>, <a href="#req-09">REQ-09</a> · раздел «Sequence Diagram».</p>
+<div class="src" role="group" aria-label="Цитаты из документа"><span class="n">43</span><span class="t">Процессинг → сервис расходов: проведена покупка. Сервис расходов → настройки: получить порог карты; если сервис настроек недоступен, сервис расходов повторяет проверку порога позже. Сервис расходов → push: передать последние четыре цифры карты и накопленные расходы за месяц при достижении порога.</span><span class="n">46</span><span class="t">Сервис передаёт push на отправку в течение минуты после получения события.</span></div>
+<p class="problem"><span class="k">Что не так:</span> «Позже» не задаёт интервал, число попыток и итог при длительной недоступности. Связь с требованием «в течение минуты» не указана. <span class="k">Последствие:</span> Нельзя проверить выполнение НФТ при сбое сервиса настроек и определить, теряется ли push.</p>
+<p class="note">Критик слил сюда: <a href="#d-15">D-15</a>, их текст в <a href="#appendix-b">приложении Б</a>.</p>
+<p class="ask"><span class="k">Вопрос архитектору:</span> Сколько времени сервис расходов повторяет проверку порога при недоступности сервиса настроек: укладывается в минуту из НФТ или повторяет до восстановления без ограничения? См. <a href="#q-06" class="qid">Q-06</a>.</p>
+<p class="fix"><span class="k">Как исправить:</span> Задать интервал и предел повторов, а также поведение после исчерпания попыток.</p>
+</article>
+<article class="entry sev-major" data-sev="major" id="s-07">
+<header class="eh"><span class="gut"><span class="eid">S-07</span><span class="lvl lvl-major">MAJOR</span></span><span class="et">Не описана недоступность сервиса push</span></header>
+<p class="meta">Пробел · Полнота набора · <a href="#req-06">REQ-06</a>, <a href="#req-08">REQ-08</a> · раздел «Sequence Diagram».</p>
+<div class="src" role="group" aria-label="Цитата из документа"><span class="n">43</span><span class="t">Процессинг → сервис расходов: проведена покупка. Сервис расходов → настройки: получить порог карты; если сервис настроек недоступен, сервис расходов повторяет проверку порога позже. Сервис расходов → push: передать последние четыре цифры карты и накопленные расходы за месяц при достижении порога.</span></div>
+<p class="problem"><span class="k">Что не так:</span> Не сказано, что происходит, если передать push не удалось, и когда выставляется признак отправки: до передачи или после. <span class="k">Последствие:</span> Клиент может не получить push, а повторное достижение уже не вызовет его из-за правила одного push за месяц.</p>
+<p class="ask"><span class="k">Вопрос архитектору:</span> Когда выставляется признак отправки: после успешной передачи в сервис push или до неё, независимо от результата? См. <a href="#q-12" class="qid">Q-12</a>.</p>
+<p class="fix"><span class="k">Как исправить:</span> Описать повторную передачу push и момент установки признака отправки.</p>
+</article>
+<article class="entry sev-major" data-sev="major" id="s-08">
+<header class="eh"><span class="gut"><span class="eid">S-08</span><span class="lvl lvl-major">MAJOR</span></span><span class="et">Не описана одновременная обработка событий одной карты</span></header>
+<p class="meta">Пробел · Полнота набора · <a href="#req-06">REQ-06</a>, <a href="#req-07">REQ-07</a>, <a href="#req-11">REQ-11</a> · раздел «Требования к интеграции».</p>
+<div class="src" role="group" aria-label="Цитата из документа"><span class="n">52</span><span class="t">Приложение читает и сохраняет настройки через дочерний документ «Уведомление о расходах по карте — REST API». Повторная доставка одного события процессинга сохраняет исходный итог.</span></div>
+<p class="problem"><span class="k">Что не так:</span> Описана только повторная доставка одного события. Не описаны параллельные покупки одной карты и смена порога во время обработки покупки. <span class="k">Последствие:</span> Возможны двойной push или пропуск push при гонке обновления счётчика и признака отправки.</p>
+<p class="ask"><span class="k">Вопрос архитектору:</span> Как обрабатываются одновременные события одной карты: строго последовательно по карте или параллельно с блокировкой счётчика и признака отправки?</p>
+<p class="fix"><span class="k">Как исправить:</span> Задать порядок обработки событий карты и смены порога.</p>
+</article>
+<article class="entry sev-major" data-sev="major" id="s-09">
+<header class="eh"><span class="gut"><span class="eid">S-09</span><span class="lvl lvl-major">MAJOR</span></span><span class="et">Не определено поведение при достижении порога, пока уведомление выключено</span></header>
+<p class="meta">Пробел · Полнота набора · <a href="#req-05">REQ-05</a>, <a href="#req-06">REQ-06</a>, <a href="#req-07">REQ-07</a> · раздел «Функциональные требования».</p>
+<div class="src" role="group" aria-label="Цитаты из документа"><span class="n">39</span><span class="t">* **Ф-3.** Когда расходы переходят от суммы ниже порога к сумме, равной порогу или выше, клиент получает push. На карту приходится максимум один такой push за календарный месяц при одном значении порога; смена порога сбрасывает признак отправки (Ф-4), а выключение и повторное включение уведомлени...</span><span class="n">39</span><span class="t">а выключение и повторное включение уведомления без смены порога его не сбрасывает</span></div>
+<p class="problem"><span class="k">Что не так:</span> Расходы считаются и при выключенном уведомлении, но не сказано, отправляется ли push при включении, если порог уже пройден. Также не сказано, действует ли Ф-4 при сохранении с enabled=0. <span class="k">Последствие:</span> Нельзя однозначно реализовать и проверить включение уведомления после пересечения порога.</p>
+<p class="note">Критик слил сюда: <a href="#d-09">D-09</a>, их текст в <a href="#appendix-b">приложении Б</a>.</p>
+<p class="ask"><span class="k">Вопрос заказчику (бизнес):</span> Если порог пройден, пока уведомление выключено, push отправляется сразу при включении или только при следующем пересечении порога? См. <a href="#q-03" class="qid">Q-03</a>.</p>
+<p class="fix"><span class="k">Как исправить:</span> Дополнить Ф-3 и Ф-4 правилом для выключенного уведомления.</p>
+</article>
+<article class="entry sev-major" data-sev="major" id="s-10">
+<header class="eh"><span class="gut"><span class="eid">S-10</span><span class="lvl lvl-major">MAJOR</span></span><span class="et">Нет требований к сроку хранения данных и аудиту изменений настроек</span></header>
+<p class="meta">Пробел · Полнота набора · <a href="#req-10">REQ-10</a> · раздел «Нефункциональные требования».</p>
+<div class="src" role="group" aria-label="Цитата из документа"><span class="n">49</span><span class="t">Хранить идентификатор карты, месяц, идентификатор операции, сумму покупки в тиынах, признак отправки и порог в тенге.</span></div>
+<p class="problem"><span class="k">Что не так:</span> Хранятся данные операций по карте, но не заданы срок хранения, защита данных, журналирование изменений порога и нагрузка. <span class="k">Последствие:</span> Нельзя спроектировать хранилище и пройти проверку информационной безопасности.</p>
+<p class="ask"><span class="k">Вопрос специалисту по безопасности:</span> Сколько хранятся записи операций и накоплений по карте: задать срок, например 13 месяцев?</p>
+<p class="fix"><span class="k">Как исправить:</span> Добавить НФТ по сроку хранения, защите данных карты, аудиту и нагрузке.</p>
+</article>
+<article class="entry sev-major" data-sev="major" id="s-11">
+<header class="eh"><span class="gut"><span class="eid">S-11</span><span class="lvl lvl-major">MAJOR</span></span><span class="et">Возврат больше суммы исходной покупки</span></header>
+<p class="meta">Пробел · Полнота набора · <a href="#req-05">REQ-05</a>, <a href="#req-10">REQ-10</a> · раздел «Функциональные требования, Ф-2».</p>
+<div class="src" role="group" aria-label="Цитаты из документа"><span class="n">38</span><span class="t">Возврат уменьшает расходы месяца исходной покупки; если исходная покупка в учёте не найдена, возврат расходы не меняет.</span><span class="n">38</span><span class="t">Для покупки в другой валюте в расходы идёт сумма списания с карты в тенге.</span></div>
+<p class="problem"><span class="k">Что не так:</span> Не описано, что происходит, если сумма возврата в тенге больше суммы исходной покупки (например, из-за разницы курса при валютной покупке) или больше расходов месяца: может ли счётчик стать отрицательным и уменьшается ли он больше, чем на сумму покупки. <span class="k">Последствие:</span> Нельзя однозначно реализовать пересчёт счётчика и проверить его итог после такого возврата; от итога зависит момент push.</p>
+<p class="ask"><span class="k">Вопрос заказчику (бизнес):</span> На сколько уменьшаются расходы месяца, если возврат больше исходной покупки: на всю сумму возврата или не больше суммы исходной покупки? См. <a href="#q-04" class="qid">Q-04</a>.</p>
+<p class="fix"><span class="k">Как исправить:</span> Задать правило ограничения уменьшения расходов при возврате.</p>
+</article>
+<article class="entry sev-major" data-sev="major" id="s-12">
+<header class="eh"><span class="gut"><span class="eid">S-12</span><span class="lvl lvl-major">MAJOR</span></span><span class="et">Порог для запоздавшего события прошедшего месяца после смены порога</span></header>
+<p class="meta">Пробел · Полнота набора · <a href="#req-06">REQ-06</a>, <a href="#req-07">REQ-07</a>, <a href="#req-10">REQ-10</a> · раздел «Функциональные требования, Ф-3».</p>
+<div class="src" role="group" aria-label="Цитаты из документа"><span class="n">39</span><span class="t">Правило действует и для запоздавшего события: если оно довело до порога расходы прошедшего месяца, push отправляется.</span><span class="n">49</span><span class="t">Хранить идентификатор карты, месяц, идентификатор операции, сумму покупки в тиынах, признак отправки и порог в тенге.</span></div>
+<p class="problem"><span class="k">Что не так:</span> Не описано, с каким значением порога сравниваются расходы прошедшего месяца, если порог изменили после конца этого месяца, но до прихода запоздавшего события. <span class="k">Последствие:</span> Нельзя реализовать проверку порога для запоздавших событий и составить тест: результат (push или нет) зависит от выбора значения.</p>
+<p class="note">Критик слил сюда: <a href="#d-10">D-10</a>, их текст в <a href="#appendix-b">приложении Б</a>.</p>
+<p class="ask"><span class="k">Вопрос заказчику (бизнес):</span> С каким порогом сравниваются расходы прошедшего месяца при запоздавшем событии: с порогом, действовавшим в конце того месяца, или с текущим порогом? См. <a href="#q-10" class="qid">Q-10</a>.</p>
+<p class="fix"><span class="k">Как исправить:</span> Указать, какой порог применяется к расходам прошедшего месяца.</p>
+</article>
+<article class="entry sev-major" data-sev="major" id="s-13">
+<header class="eh"><span class="gut"><span class="eid">S-13</span><span class="lvl lvl-major">MAJOR</span></span><span class="et">Повторное сохранение того же значения порога</span></header>
+<p class="meta">Пробел · Полнота набора · <a href="#req-06">REQ-06</a>, <a href="#req-07">REQ-07</a>, <a href="#req-27">REQ-27</a> · раздел «Функциональные требования, Ф-3, Ф-4».</p>
+<div class="src" role="group" aria-label="Цитаты из документа"><span class="n">39</span><span class="t">смена порога сбрасывает признак отправки (Ф-4), а выключение и повторное включение уведомления без смены порога его не сбрасывает</span><span class="n">125</span><span class="t">2. Повторное сохранение заменяет действующую настройку.</span></div>
+<p class="problem"><span class="k">Что не так:</span> Не описано, считается ли сменой порога сохранение того же значения amount, что уже действует: сбрасывается ли признак отправки и отправляется ли push сразу после сохранения при расходах не ниже порога. <span class="k">Последствие:</span> Клиент может получать повторные push за месяц, просто нажимая «Сохранить»; поведение нельзя проверить тестом.</p>
+<p class="ask"><span class="k">Вопрос заказчику (бизнес):</span> Сбрасывает ли признак отправки сохранение порога с тем же значением, что уже действует: да или нет? См. <a href="#q-09" class="qid">Q-09</a>.</p>
+<p class="fix"><span class="k">Как исправить:</span> Явно указать, что сохранение равного значения не является сменой порога, либо обратное.</p>
+</article>
+<article class="entry sev-major" data-sev="major" id="s-14">
+<header class="eh"><span class="gut"><span class="eid">S-14</span><span class="lvl lvl-major">MAJOR</span></span><span class="et">Карта стала неактивной при включённом уведомлении</span></header>
+<p class="meta">Пробел · Полнота набора · <a href="#req-04">REQ-04</a>, <a href="#req-06">REQ-06</a>, <a href="#req-23">REQ-23</a> · раздел «Функциональные требования, Ф-1, Ф-3».</p>
+<div class="src" role="group" aria-label="Цитаты из документа"><span class="n">37</span><span class="t">* **Ф-1.** Держатель активной карты KZT задаёт целый порог от 1 000 до 1 000 000 ₸ включительно. По умолчанию уведомление выключено.</span><span class="n">119</span><span class="t">3. Проверить сумму, переключатель и что карта активна и выпущена в KZT.</span></div>
+<p class="problem"><span class="k">Что не так:</span> Активность карты проверяется только при сохранении настройки. Не описано, продолжают ли учитываться расходы и отправляться push, если карта стала неактивной после сохранения порога (например, на неё пришло запоздавшее событие или возврат). <span class="k">Последствие:</span> Нельзя определить, нужно ли проверять статус карты в сервисе расходов перед отправкой push.</p>
+<p class="note">Критик слил сюда: <a href="#d-04">D-04</a>, их текст в <a href="#appendix-b">приложении Б</a>.</p>
+<p class="ask"><span class="k">Вопрос заказчику (бизнес):</span> Отправляется ли push по карте, которая стала неактивной после сохранения порога: да или нет? См. <a href="#q-11" class="qid">Q-11</a>.</p>
+<p class="fix"><span class="k">Как исправить:</span> Задать поведение учёта и уведомлений для карты, ставшей неактивной.</p>
+</article>
+<article class="entry sev-major" data-sev="major" id="s-15">
+<header class="eh"><span class="gut"><span class="eid">S-15</span><span class="lvl lvl-major">MAJOR</span></span><span class="et">Округление расходов в тиынах при показе в тенге</span></header>
+<p class="meta">Пробел · Полнота набора · <a href="#req-02">REQ-02</a>, <a href="#req-08">REQ-08</a>, <a href="#req-10">REQ-10</a> · раздел «Дизайн процесса UI; Sequence Diagram».</p>
+<div class="src" role="group" aria-label="Цитаты из документа"><span class="n">29</span><span class="t">Карты → Расходы → Уведомления. На экране видны переключатель, поле «Порог, ₸», сумма за месяц и кнопка «Сохранить». При ошибке ввода сообщение появляется под полем.</span><span class="n">43</span><span class="t">Сервис расходов → push: передать последние четыре цифры карты и накопленные расходы за месяц при достижении порога.</span></div>
+<p class="problem"><span class="k">Что не так:</span> Расходы хранятся в тиынах, а на экране и в push показываются в тенге. Не описано, показываются ли тиыны или сумма округляется, и по какому правилу. <span class="k">Последствие:</span> Нельзя реализовать вывод суммы и проверить текст push и экрана; клиент может увидеть сумму ниже порога в push о его достижении.</p>
+<p class="ask"><span class="k">Вопрос заказчику (бизнес):</span> Как выводится сумма расходов с тиынами на экране и в push: с двумя знаками тиынов, с округлением вниз до тенге или с математическим округлением?</p>
+<p class="fix"><span class="k">Как исправить:</span> Задать формат вывода суммы расходов на экране и в push.</p>
+</article>
+<article class="entry sev-major" data-sev="major" id="s-16">
+<header class="eh"><span class="gut"><span class="eid">S-16</span><span class="lvl lvl-major">MAJOR</span></span><span class="et">Одновременное сохранение порога одной карты из двух сессий</span></header>
+<p class="meta">Пробел · Полнота набора · <a href="#req-24">REQ-24</a>, <a href="#req-27">REQ-27</a>, <a href="#req-07">REQ-07</a> · раздел «Часть B, Логика работы метода».</p>
+<div class="src" role="group" aria-label="Цитаты из документа"><span class="n">120</span><span class="t">4. Заменить настройку и вернуть результат сохранения.</span><span class="n">125</span><span class="t">2. Повторное сохранение заменяет действующую настройку.</span></div>
+<p class="problem"><span class="k">Что не так:</span> Не описано, что происходит при двух одновременных запросах saveLimit с разными значениями по одной карте: какое значение остаётся, сколько раз сбрасывается признак отправки и сколько push отправляется сразу после сохранения. <span class="k">Последствие:</span> Возможны два push за месяц или расхождение порога в ответе и в хранилище; поведение нельзя проверить.</p>
+<p class="ask"><span class="k">Вопрос архитектору:</span> Какое значение остаётся при одновременном сохранении порога одной карты: последнее по времени получения запроса или второй запрос отклоняется с ошибкой?</p>
+<p class="fix"><span class="k">Как исправить:</span> Задать правило разрешения одновременных изменений настройки.</p>
+</article>
+<article class="entry sev-major" data-sev="major" id="s-20">
+<header class="eh"><span class="gut"><span class="eid">S-20</span><span class="lvl lvl-major">MAJOR</span></span><span class="et">Критерии приёмки не покрывают Ф-1, Ф-4 и большую часть Ф-2, Ф-3</span></header>
+<p class="meta">Пробел · Валидируемость · <a href="#req-04">REQ-04</a>, <a href="#req-05">REQ-05</a>, <a href="#req-06">REQ-06</a>, <a href="#req-07">REQ-07</a>, <a href="#req-09">REQ-09</a>, <a href="#req-11">REQ-11</a> · раздел «Критерии приемки».</p>
+<div class="src" role="group" aria-label="Цитата из документа"><span class="n">59</span><span class="t">### Критерии приемки</span></div>
+<p class="problem"><span class="k">Что не так:</span> Нет критериев для границ порога, смены порога с немедленным push, одного push за месяц, возвратов, валютных покупок, запоздавших и повторных событий, срока в одну минуту. <span class="k">Последствие:</span> Нельзя подтвердить выполнение большей части требований при приёмке.</p>
+<p class="ask"><span class="k">Вопрос заказчику (бизнес):</span> Через какое время после ответа OK на сохранение порога ниже накопленной суммы push считается отправленным вовремя: в пределах минуты из НФТ или иной срок? См. <a href="#q-02" class="qid">Q-02</a>.</p>
+<p class="fix"><span class="k">Как исправить:</span> Добавить строки критериев приёмки на каждое правило Ф-1..Ф-4, НФТ и идемпотентность.</p>
+</article>
+<article class="entry sev-minor" data-sev="minor" id="s-25">
+<header class="eh"><span class="gut"><span class="eid">S-25</span><span class="lvl lvl-minor">MINOR</span></span><span class="et">Версия, дата и согласование документа не заполнены</span></header>
+<p class="meta">Прочее · Прослеживаемость · раздел «Ревью требований; Блок согласующих».</p>
+<div class="src" role="group" aria-label="Цитата из документа"><span class="n">68</span><span class="t">Документ (версия/дата) в источнике не заполнен. Пункты чек-листа приведены как в шаблоне, отметки не проставлены.</span></div>
+<p class="problem"><span class="k">Что не так:</span> Нет версии и даты, чек-лист ревью не отмечен, согласующие не указаны.</p>
+<p class="fix"><span class="k">Как исправить:</span> Указать версию и дату, заполнить чек-лист и блок согласующих.</p>
+</article>
+<article class="entry sev-minor" data-sev="minor" id="s-26">
+<header class="eh"><span class="gut"><span class="eid">S-26</span><span class="lvl lvl-minor">MINOR</span></span><span class="et">У большей части требований нет идентификаторов</span></header>
+<p class="meta">Прочее · Прослеживаемость · <a href="#req-09">REQ-09</a>, <a href="#req-10">REQ-10</a>, <a href="#req-11">REQ-11</a>, <a href="#req-26">REQ-26</a>, <a href="#req-27">REQ-27</a>, <a href="#req-28">REQ-28</a>.</p>
+<div class="src" role="group" aria-label="Цитаты из документа"><span class="n">46</span><span class="t">Сервис передаёт push на отправку в течение минуты после получения события.</span><span class="n">124</span><span class="t">1. Целое число тенге, обе границы включены.</span></div>
+<p class="problem"><span class="k">Что не так:</span> Идентификаторы есть только у Ф-1..Ф-4. НФТ, требования к данным и интеграции, а также правила части B не пронумерованы уникально и не ссылаются на Ф-пункты.</p>
+<p class="fix"><span class="k">Как исправить:</span> Присвоить уникальные идентификаторы и указать связь правил части B с Ф-1..Ф-4.</p>
+</article>
+<h3>4.2. Взаимная непротиворечивость</h3>
+<p><strong>Анализ.</strong></p><ul class="analysis">
+<li>Согласованность (ISO 29148 п. 5.2.6; IEEE 830 п. 4.3.4): <strong class="set-fail">нарушен</strong>. Сравнил описание статусов, таблицы параметров запроса и ответа, примеры ответов и логику метода части B, а также названия систем части A. Расходятся смысл кода 200 и наличие result ERROR, состав ответа при отклонении, типы полей amount и enabled в запросе и ответе, названия смежных сервисов.</li>
+<li>Понятность (ISO 29148 п. 5.2.6): <strong class="set-partial">частично</strong>. Связи приложения, процессинга, сервиса расходов, настроек и push описаны в архитектуре и Sequence Diagram. Однако часть A отсылает чтение настроек к дочернему документу, а он описывает только сохранение и отсылает чтение к неописанному методу getLimit.</li>
+</ul>
+<article class="entry sev-critical" data-sev="critical" id="s-01">
+<header class="eh"><span class="gut"><span class="eid">S-01</span><span class="lvl lvl-critical">CRITICAL</span></span><span class="et">Код 200 объявлен успешным, но возвращается и при отклонении с result ERROR</span></header>
+<p class="meta">Противоречие · Согласованность · <a href="#req-35">REQ-35</a>, <a href="#req-41">REQ-41</a>, <a href="#req-42">REQ-42</a>, <a href="#req-40">REQ-40</a> · раздел «Часть B. Ответ, Статусы».</p>
+<div class="src" role="group" aria-label="Цитаты из документа"><span class="n">151</span><span class="t">Если результат 200 или 201 — успешный. Если результат 400, 401 и далее — неуспешный.</span><span class="n">163</span><span class="t">Порог вне диапазона и неактивная карта дают 200 с result ERROR.</span><span class="n">171</span><span class="t">{&quot;result&quot;:&quot;ERROR&quot;,&quot;message&quot;:&quot;Проверьте сумму&quot;}</span><span class="n">162</span><span class="t">в случае успешного выполнения метода</span></div>
+<p class="problem"><span class="k">Что не так:</span> По строке 151 код 200 означает успешный результат, а по строке 163 и примеру тот же код 200 возвращается, когда порог не сохранён. <span class="k">Последствие:</span> Приложение, определяющее исход по HTTP-коду, покажет успешное сохранение при отклонённом пороге; тесты по двум местам дадут разный ожидаемый результат.</p>
+<p class="note">Критик слил сюда: <a href="#d-42">D-42</a>, <a href="#d-47">D-47</a>, их текст в <a href="#appendix-b">приложении Б</a>.</p>
+<p class="ask"><span class="k">Вопрос архитектору:</span> Что верно для порога вне диапазона и неактивной карты: ответ 200 с result ERROR (строка 163) или неуспешный код 400 и выше (строка 151)? См. <a href="#q-01" class="qid">Q-01</a>.</p>
+<p class="fix"><span class="k">Как исправить:</span> Однозначно определить признак успеха: либо код 200 с обязательной проверкой result, либо отдельный код 4xx для бизнес-отклонения, и привести строку 151 в соответствие.</p>
+</article>
+<article class="entry sev-major" data-sev="major" id="s-02">
+<header class="eh"><span class="gut"><span class="eid">S-02</span><span class="lvl lvl-major">MAJOR</span></span><span class="et">При отклонении логика требует вернуть прежнее состояние, а ответ и пример его не содержат</span></header>
+<p class="meta">Противоречие · Согласованность · <a href="#req-25">REQ-25</a>, <a href="#req-37">REQ-37</a>, <a href="#req-42">REQ-42</a>, <a href="#req-38">REQ-38</a> · раздел «Часть B. Логика работы метода, Ответ».</p>
+<div class="src" role="group" aria-label="Цитаты из документа"><span class="n">121</span><span class="t">5. При отклонении суммы или карты вернуть прежнее состояние и результат ERROR с описанием в message.</span><span class="n">156</span><span class="t">| `amount` | string | При успехе | Порог в тенге | `limit_kzt` |</span><span class="n">171</span><span class="t">{&quot;result&quot;:&quot;ERROR&quot;,&quot;message&quot;:&quot;Проверьте сумму&quot;}</span><span class="n">157</span><span class="t">string | «0» или «1» | Признак включения</span></div>
+<p class="problem"><span class="k">Что не так:</span> Шаг 5 требует при отклонении вернуть прежнее состояние настройки, но таблица ответа отдаёт amount только при успехе, а пример ERROR не содержит ни amount, ни enabled. <span class="k">Последствие:</span> Нельзя реализовать и проверить состав ответа при отклонении; приложение не знает, какое значение порога показать после ошибки.</p>
+<p class="note">Критик слил сюда: <a href="#d-33">D-33</a>, <a href="#d-43">D-43</a>, <a href="#d-45">D-45</a>, их текст в <a href="#appendix-b">приложении Б</a>.</p>
+<p class="note">Критик понизил уровень с CRITICAL: Строку 121 можно понять как отказ от изменения настройки, тогда пример строки 171 не противоречит; это двусмысленность.</p>
+<p class="ask"><span class="k">Вопрос аналитику:</span> При ответе ERROR возвращаются amount и enabled прежней настройки (строка 121) или только result и message (строки 156 и 171)? См. <a href="#q-13" class="qid">Q-13</a>.</p>
+<p class="fix"><span class="k">Как исправить:</span> Определить, возвращаются ли amount и enabled прежней настройки в ответе ERROR, и согласовать шаг 5, таблицу ответа и пример.</p>
+</article>
+<article class="entry sev-major" data-sev="major" id="s-17">
+<header class="eh"><span class="gut"><span class="eid">S-17</span><span class="lvl lvl-major">MAJOR</span></span><span class="et">Чтение настроек отнесено к дочернему документу, который чтение не описывает</span></header>
+<p class="meta">Прочее · Понятность · <a href="#req-11">REQ-11</a>, <a href="#req-15">REQ-15</a> · раздел «Требования к интеграции; Часть B. Общие параметры».</p>
+<div class="src" role="group" aria-label="Цитаты из документа"><span class="n">52</span><span class="t">Приложение читает и сохраняет настройки через дочерний документ «Уведомление о расходах по карте — REST API».</span><span class="n">103</span><span class="t">| **Description** | Сохранение порога. Чтение порога выполняет отдельный метод `/alerts/getLimit`, он описывается отдельно |</span></div>
+<p class="problem"><span class="k">Что не так:</span> Часть A утверждает, что чтение настроек описано в части B, а часть B описывает только сохранение и отсылает к методу getLimit, описания которого в комплекте нет. <span class="k">Последствие:</span> Нельзя реализовать загрузку экрана уведомлений (текущий порог, переключатель, сумма за месяц) и проверить интеграцию приложения с сервисом настроек.</p>
+<p class="note">Критик слил сюда: <a href="#d-21">D-21</a>, <a href="#d-27">D-27</a>, их текст в <a href="#appendix-b">приложении Б</a>.</p>
+<p class="ask"><span class="k">Вопрос аналитику:</span> В каком документе описан метод /alerts/getLimit, через который приложение читает порог?</p>
+<p class="fix"><span class="k">Как исправить:</span> Добавить описание /alerts/getLimit в комплект или дать ссылку на конкретный документ с его описанием и исправить строку 52.</p>
+</article>
+<article class="entry sev-major" data-sev="major" id="s-18">
+<header class="eh"><span class="gut"><span class="eid">S-18</span><span class="lvl lvl-major">MAJOR</span></span><span class="et">Порог amount в запросе integer, в ответе string</span></header>
+<p class="meta">Противоречие · Согласованность · <a href="#req-31">REQ-31</a>, <a href="#req-37">REQ-37</a>, <a href="#req-20">REQ-20</a>, <a href="#req-42">REQ-42</a> · раздел «Часть B. Параметры тела запроса, Ответ».</p>
+<div class="src" role="group" aria-label="Цитаты из документа"><span class="n">143</span><span class="t">| `amount` | integer | 32 bit | Да | 1 000–1 000 000 | Порог в тенге | `limit_kzt` |</span><span class="n">156</span><span class="t">| `amount` | string | При успехе | Порог в тенге | `limit_kzt` |</span></div>
+<p class="problem"><span class="k">Что не так:</span> Одно поле с одним полем БД limit_kzt в запросе задано числом, в ответе строкой (пример &quot;50000&quot;). <span class="k">Последствие:</span> Клиент и сервер по-разному сериализуют одно значение; автотесты сравнения запроса и ответа будут падать.</p>
+<p class="note">Критик слил сюда: <a href="#d-44">D-44</a>, их текст в <a href="#appendix-b">приложении Б</a>.</p>
+<p class="ask"><span class="k">Вопрос архитектору:</span> Какой тип у amount в ответе: integer, как в запросе (строка 143), или string, как в таблице ответа (строка 156)?</p>
+<p class="fix"><span class="k">Как исправить:</span> Задать единый тип amount в запросе и ответе.</p>
+</article>
+<article class="entry sev-major" data-sev="major" id="s-19">
+<header class="eh"><span class="gut"><span class="eid">S-19</span><span class="lvl lvl-major">MAJOR</span></span><span class="et">Признак enabled в запросе integer, в ответе string</span></header>
+<p class="meta">Противоречие · Согласованность · <a href="#req-32">REQ-32</a>, <a href="#req-38">REQ-38</a>, <a href="#req-42">REQ-42</a> · раздел «Часть B. Параметры тела запроса, Ответ».</p>
+<div class="src" role="group" aria-label="Цитаты из документа"><span class="n">144</span><span class="t">| `enabled` | integer | 1 знак | Да | 0 или 1 | Признак включения | `enabled` |</span><span class="n">157</span><span class="t">| `enabled` | string | «0» или «1» | Признак включения | `enabled` |</span></div>
+<p class="problem"><span class="k">Что не так:</span> Одно поле enabled передаётся числом 0/1, а возвращается строкой «0»/«1». <span class="k">Последствие:</span> Приложение не может одинаково разбирать признак включения в запросе и ответе.</p>
+<p class="note">Критик слил сюда: <a href="#d-46">D-46</a>, их текст в <a href="#appendix-b">приложении Б</a>.</p>
+<p class="ask"><span class="k">Вопрос архитектору:</span> Какой тип у enabled в ответе: integer, как в запросе (строка 144), или string, как в таблице ответа (строка 157)?</p>
+<p class="fix"><span class="k">Как исправить:</span> Задать единый тип enabled в запросе и ответе.</p>
+</article>
+<article class="entry sev-minor" data-sev="minor" id="s-21">
+<header class="eh"><span class="gut"><span class="eid">S-21</span><span class="lvl lvl-minor">MINOR</span></span><span class="et">Смежные сервисы названы по-разному в разных разделах</span></header>
+<p class="meta">Противоречие · Согласованность · <a href="#req-01">REQ-01</a>, <a href="#req-08">REQ-08</a> · раздел «Общие сведения, Архитектура решения, Sequence Diagram».</p>
+<div class="src" role="group" aria-label="Цитаты из документа"><span class="n">19</span><span class="t">| **Влияние на ИС** | Мобильный банк, карточный процессинг, сервис уведомлений |</span><span class="n">26</span><span class="t">Мобильное приложение → сервис настроек. Карточный процессинг → учёт расходов → сервис push.</span><span class="n">43</span><span class="t">Процессинг → сервис расходов: проведена покупка. Сервис расходов → настройки: получить порог карты; если сервис настроек недоступен, сервис расходов повторяет проверку порога позже. Сервис расходов → push: передать последние четыре цифры карты и накопленные расходы за месяц при достижении порога.</span></div>
+<p class="problem"><span class="k">Что не так:</span> Один компонент назван «учёт расходов» и «сервис расходов», другой «сервис уведомлений» и «сервис push»; сервис настроек и сервис расходов не перечислены во влиянии на ИС.</p>
+<p class="fix"><span class="k">Как исправить:</span> Унифицировать названия компонентов и дополнить перечень затронутых ИС.</p>
+</article>
+<h3>4.3. Осуществимость и стандарты</h3>
+<p><strong>Анализ.</strong></p><ul class="analysis">
+<li>Осуществимость набора (ISO 29148 п. 5.2.6): <strong class="set-partial">частично</strong>. Документ ссылается на REST (метод PUT), коды HTTP, JSON (application/json), авторизацию Bearer, curl, BPMN и Sequence Diagram. Расхождение с HTTP (200 при result ERROR) уже учтено первым проходом. Сверх того 201 объявлен успешным, но нигде не возвращается, а заголовок 200 назван «Created». Повтор проверки порога «позже» без границы может не уложиться в минуту из НФТ.</li>
+<li>Ранжированность (IEEE 830 п. 4.3.5): <strong class="set-fail">нарушен</strong>. Ни у одного требования частей A и B нет приоритета или признака стабильности.</li>
+<li>Модифицируемость (IEEE 830 п. 4.3.7): <strong class="set-partial">частично</strong>. Функциональные требования записаны отдельными пунктами Ф-1..Ф-4. Однако диапазон порога и сохранение накоплений продублированы в части B без ссылок на Ф-1 и Ф-4. Правило 404 для чужой карты записано дважды (строки 175 и 189).</li>
+</ul>
+<p>Дефекты корректности в отдельных требованиях: <a href="#d-20">D-20</a>.</p>
+<article class="entry sev-minor" data-sev="minor" id="s-22">
+<header class="eh"><span class="gut"><span class="eid">S-22</span><span class="lvl lvl-minor">MINOR</span></span><span class="et">Код 201 объявлен успешным, но не используется, а 200 назван Created</span></header>
+<p class="meta">Прочее · Осуществимость набора · <a href="#req-35">REQ-35</a>, <a href="#req-40">REQ-40</a> · раздел «Часть B. Статусы».</p>
+<div class="src" role="group" aria-label="Цитаты из документа"><span class="n">151</span><span class="t">Если результат 200 или 201 — успешный. Если результат 400, 401 и далее — неуспешный.</span><span class="n">165</span><span class="t">#### 200. Successful — Created</span></div>
+<p class="problem"><span class="k">Что не так:</span> 201 нигде не возвращается, а заголовок примера 200 использует название статуса 201.</p>
+<p class="ask"><span class="k">Вопрос архитектору:</span> Какой HTTP-код возвращает успешное сохранение порога методом saveLimit? См. <a href="#q-08" class="qid">Q-08</a>.</p>
+<p class="fix"><span class="k">Как исправить:</span> Убрать 201 из перечня успешных кодов и исправить заголовок на «200. Successful — OK».</p>
+</article>
+<article class="entry sev-minor" data-sev="minor" id="s-23">
+<header class="eh"><span class="gut"><span class="eid">S-23</span><span class="lvl lvl-minor">MINOR</span></span><span class="et">Правила части A продублированы в части B без ссылок</span></header>
+<p class="meta">Прочее · Модифицируемость · <a href="#req-04">REQ-04</a>, <a href="#req-07">REQ-07</a>, <a href="#req-26">REQ-26</a>, <a href="#req-28">REQ-28</a>, <a href="#req-31">REQ-31</a>, <a href="#req-44">REQ-44</a>, <a href="#req-48">REQ-48</a> · раздел «Часть B. Особые правила».</p>
+<div class="src" role="group" aria-label="Цитаты из документа"><span class="n">126</span><span class="t">3. Изменение порога сохраняет накопленные расходы.</span><span class="n">143</span><span class="t">| `amount` | integer | 32 bit | Да | 1 000–1 000 000 | Порог в тенге | `limit_kzt` |</span><span class="n">175</span><span class="t">**403.** Не возвращается: для чужой карты возвращается 404.</span></div>
+<p class="problem"><span class="k">Что не так:</span> Диапазон порога и сохранение накоплений повторены текстом без ссылок на Ф-1 и Ф-4. Правило 404 для чужой карты записано в двух местах.</p>
+<p class="fix"><span class="k">Как исправить:</span> Заменить повторы ссылками на Ф-1 и Ф-4, правило 404 оставить в одном месте.</p>
+</article>
+<article class="entry sev-minor" data-sev="minor" id="s-24">
+<header class="eh"><span class="gut"><span class="eid">S-24</span><span class="lvl lvl-minor">MINOR</span></span><span class="et">У требований нет приоритетов</span></header>
+<p class="meta">Прочее · Ранжированность · <a href="#req-04">REQ-04</a>, <a href="#req-05">REQ-05</a>, <a href="#req-06">REQ-06</a>, <a href="#req-07">REQ-07</a>, <a href="#req-09">REQ-09</a> · раздел «Функциональные требования».</p>
+<div class="src" role="group" aria-label="Цитата из документа"><span class="n">36</span><span class="t">#### Функциональные требования</span></div>
+<p class="problem"><span class="k">Что не так:</span> Ни у Ф-1..Ф-4, ни у НФТ и требований части B нет важности или стабильности.</p>
+<p class="fix"><span class="k">Как исправить:</span> Проставить приоритет каждому требованию.</p>
+</article>
+</section>
+<section class="part" id="summary">
+<h2>5. Сводка</h2>
+<div class="table-wrap"><table class="kv num">
+<thead><tr><th scope="col">Показатель</th><th scope="col">Значение</th></tr></thead><tbody>
+<tr><td>Требований всего</td><td>50</td></tr>
+<tr><td>без своих замечаний</td><td>20</td></tr>
+<tr><td>из них затронуты замечаниями по набору</td><td>5</td></tr>
+<tr><td>из них с пометками к оценкам</td><td>1</td></tr>
+<tr><td>с дефектами</td><td>30</td></tr>
+<tr><td>Замечаний всего</td><td>56</td></tr>
+<tr><td>в отдельных требованиях</td><td>30</td></tr>
+<tr><td>по набору</td><td>26</td></tr>
+<tr><td>CRITICAL (критичный)</td><td>1</td></tr>
+<tr><td>MAJOR (существенный)</td><td>42</td></tr>
+<tr><td>MINOR (незначительный)</td><td>13</td></tr>
+<tr><td>Вопросов автору</td><td>15</td></tr>
+</tbody></table></div>
+<h3>Блокеры</h3>
+<p><strong>Противоречия</strong></p>
+<ol class="blockers" start="1">
+<li><a href="#s-01" class="bid sev-critical">S-01</a> <span class="li-t"><span class="where"><a href="#req-35">REQ-35</a>, <a href="#req-41">REQ-41</a>, <a href="#req-42">REQ-42</a>, <a href="#req-40">REQ-40</a></span> <span class="sep">·</span> Код 200 объявлен успешным, но возвращается и при отклонении с result ERROR</span></li>
+</ol>
+</section>
+<section class="part" id="verdict">
+<h2>6. Вердикт</h2>
+<p class="decision-line v-bad"><strong>Не рекомендуется начинать.</strong></p>
+<p class="rule">Правило. «Не рекомендуется начинать», если есть хотя бы одно замечание CRITICAL, которое не снято критиком и не ушло в карантин из-за ненайденной цитаты. «Условно допускается», если CRITICAL нет, но есть MAJOR. «Допускается», если есть только MINOR или замечаний нет. Готовность к тестированию считается отдельно: «Нет», если есть CRITICAL по проверяемости, однозначности, полноте, согласованности или валидируемости; «Да, с оговорками», если есть другие CRITICAL или MAJOR; иначе «Да». Если отчёт неполный, а CRITICAL не найден, решение «Не вынесен», готовность «Не определена».</p>
+<p>Документ не готов к разработке: противоречив контракт метода saveLimit. Код 200 объявлен успешным, но возвращается и с result ERROR (S-01, D-31, D-40). Типы и состав ответа расходятся с запросом и логикой метода (S-02, S-18, S-19, D-30, D-34). Бизнес-правила учёта расходов и отправки push оставляют без ответа возвраты, состав покупок, единицы сравнения, выключенное уведомление и запоздавшие события (D-06, D-07, S-11, D-20, S-09, S-12, S-13). Взаимодействие сервисов неполно: неясно, кто шлёт push после сохранения порога, что делать при отказе сервиса push и сколько повторять запрос к настройкам (S-05, D-32, S-06, S-07). Тестировать нечего: раздел тестирования пуст, а три критерия приёмки не фиксируют исходные условия и не покрывают Ф-1 и Ф-4 (S-03, S-20, D-24, D-25, D-26).</p>
+<p>Что исправить в первую очередь:</p><ol>
+<li>Свести в разделе «Ответ» и «Статусы» единую таблицу: HTTP-код, значение result и случай для каждого исхода saveLimit. (<a href="#s-01">S-01</a>, <a href="#d-31">D-31</a>, <a href="#d-40">D-40</a>, <a href="#s-22">S-22</a>, <a href="#d-50">D-50</a>)</li>
+<li>Выровнять таблицу ответа с запросом по типам amount и enabled и описать состав ответа и код при каждом виде отклонения. (<a href="#s-02">S-02</a>, <a href="#s-18">S-18</a>, <a href="#s-19">S-19</a>, <a href="#d-30">D-30</a>, <a href="#d-34">D-34</a>)</li>
+<li>Дополнить Sequence Diagram и схему метода: немедленный push после сохранения, источник данных карты, сбой сервиса push, предел повторов, параллельные события. (<a href="#s-05">S-05</a>, <a href="#d-32">D-32</a>, <a href="#s-06">S-06</a>, <a href="#s-07">S-07</a>, <a href="#d-16">D-16</a>, <a href="#d-37">D-37</a>, <a href="#s-08">S-08</a>, <a href="#s-16">S-16</a>)</li>
+<li>Переписать Ф-2 и Ф-3 отдельными требованиями: состав покупок, сумма возврата, единица сравнения, выключенное уведомление, неактивная карта, запоздавшие события. (<a href="#d-06">D-06</a>, <a href="#d-07">D-07</a>, <a href="#s-11">S-11</a>, <a href="#d-20">D-20</a>, <a href="#s-15">S-15</a>, <a href="#d-19">D-19</a>, <a href="#s-12">S-12</a>, <a href="#s-09">S-09</a>, <a href="#s-13">S-13</a>, <a href="#s-14">S-14</a>, <a href="#d-14">D-14</a>)</li>
+<li>Заполнить раздел тестирования и дополнить критерии приёмки: состояние переключателя, признак отправки, часовой пояс, сценарии Ф-1 и Ф-4. (<a href="#s-03">S-03</a>, <a href="#s-20">S-20</a>, <a href="#d-24">D-24</a>, <a href="#d-25">D-25</a>, <a href="#d-26">D-26</a>, <a href="#d-03">D-03</a>)</li>
+<li>Переформулировать НФТ: от какого события отсчёт, доля событий и нагрузка, срок push после сохранения порога. (<a href="#d-13">D-13</a>, <a href="#d-17">D-17</a>, <a href="#d-18">D-18</a>)</li>
+<li>Заполнить Prod URL и Swagger, дать ссылку на описание getLimit, проставить идентификаторы, приоритеты, версию и согласующих. (<a href="#s-04">S-04</a>, <a href="#s-17">S-17</a>, <a href="#d-28">D-28</a>, <a href="#d-02">D-02</a>, <a href="#s-24">S-24</a>, <a href="#s-26">S-26</a>, <a href="#s-25">S-25</a>)</li>
+</ol>
+<h3 id="limits">Что агент не проверяет</h3><ul>
+<li>Отметка «замечаний не найдено» у критерия значит, что агент не нашёл по нему нарушений. Доказательством того, что требование верное, она не служит.</li>
+<li>Нужно ли требование и верно ли оно передаёт цель бизнеса, без автора ТЗ проверить нельзя: агент видит только текст документа. Необходимость и корректность оценены по этому тексту.</li>
+<li>Осуществимость по срокам, оборудованию, бюджету и людям не проверяется: таких данных агент не получает, критерии осуществимости оценены только по тексту требований.</li>
+<li>Цитаты сверяются с документом кодом, смысл замечания нет. Замечание с точной цитатой тоже может быть ошибочным.</li>
+<li>Часть дефектов агент пропускает. Состав замечаний меняется от прогона к прогону даже на том же документе: модель отвечает не одинаково.</li>
+<li>Отчёт не заменяет ревью человеком: решение о передаче в разработку принимает команда.</li>
+</ul>
+</section>
+<section class="part" id="questions">
+<h2>7. Вопросы к автору ТЗ</h2>
+<p>Вопросы собраны по адресату, а номера идут по важности, поэтому внутри раздела номера не подряд.</p>
+<h3>Вопросы заказчику (бизнес)</h3>
+<article class="entry q sev-major" id="q-02">
+<header class="eh"><span class="gut"><span class="eid">Q-02</span></span><span class="et">заказчику (бизнес) <span class="sep">·</span> <span class="lvl lvl-major">нужен до начала спринта</span></span></header>
+<p class="qtext">За какое время после сохранения порога по Ф-4 push должен быть передан на отправку, если расходы уже не ниже порога?</p>
+<p class="k k-block">Сейчас в документе:</p><div class="src" role="group" aria-label="Сейчас в документе"><span class="n">40</span><span class="t">push отправляется сразу после сохранения</span><span class="n">59</span><span class="t">### Критерии приемки</span><span class="n">46</span><span class="t">в течение минуты после получения события</span></div>
+<p><span class="k">Суть:</span> НФТ отсчитывает минуту от события, сохранение порога событием не названо.</p>
+<p class="k k-block">Варианты:</p><ol class="options">
+<li class="recommended"><span class="ans">В пределах минуты, как в НФТ строки 46.</span> <span class="rec-mark">рекомендуем</span> <span class="cons"><span class="k">Последствие:</span> тест проверяет передачу push не позже минуты после ответа OK.</span></li>
+<li><span class="ans">Задать отдельный предел, в секундах.</span> <span class="cons"><span class="k">Последствие:</span> нужен отдельный тест на срок push после сохранения.</span></li>
+</ol>
+<p class="rec"><span class="k">Рекомендуем:</span> вариант 1, потому что единый предел уже задан в НФТ и проверяется тем же способом.</p>
+<p><span class="k">Без ответа:</span> нельзя проверить «сразу после сохранения» в Ф-4.</p>
+<p class="note">Закрывает замечания: <a href="#d-13">D-13</a>, <a href="#s-20">S-20</a>, <a href="#d-17">D-17</a>.</p>
+</article>
+<article class="entry q sev-major" id="q-03">
+<header class="eh"><span class="gut"><span class="eid">Q-03</span></span><span class="et">заказчику (бизнес) <span class="sep">·</span> <span class="lvl lvl-major">нужен до начала спринта</span></span></header>
+<p class="qtext">Если расходы достигли порога, пока уведомление выключено (в том числе при сохранении порога с enabled 0), отправляется ли push при последующем включении?</p>
+<p class="k k-block">Сейчас в документе:</p><div class="src" role="group" aria-label="Сейчас в документе"><span class="n">39</span><span class="t">* **Ф-3.** Когда расходы переходят от суммы ниже порога к сумме, равной порогу или выше, клиент получает push. На карту приходится максимум один такой push за календарный месяц при одном значении порога; смена порога сбрасывает признак отправки (Ф-4), а выключение и повторное включение уведомлени...</span><span class="n">39</span><span class="t">а выключение и повторное включение уведомления без смены порога его не сбрасывает</span><span class="n">40</span><span class="t">Если при сохранении она уже равна новому порогу или выше</span></div>
+<p><span class="k">Суть:</span> Ф-2 считает расходы при выключенном уведомлении, но отправку при включении не описывает.</p>
+<p class="k k-block">Варианты:</p><ol class="options">
+<li><span class="ans">Да, сразу после включения, если признак отправки не выставлен.</span> <span class="cons"><span class="k">Последствие:</span> клиент получает push в момент включения уведомления.</span></li>
+<li><span class="ans">Нет, только при следующем пересечении порога.</span> <span class="cons"><span class="k">Последствие:</span> в этом месяце push может не прийти совсем.</span></li>
+</ol>
+<p><span class="k">Без ответа:</span> нельзя реализовать и проверить включение уведомления при достигнутом пороге.</p>
+<p class="note">Закрывает замечания: <a href="#s-09">S-09</a>, <a href="#d-14">D-14</a>.</p>
+</article>
+<article class="entry q sev-major" id="q-04">
+<header class="eh"><span class="gut"><span class="eid">Q-04</span></span><span class="et">заказчику (бизнес) <span class="sep">·</span> <span class="lvl lvl-major">нужен до начала спринта</span></span></header>
+<p class="qtext">На какую сумму возврат по Ф-2 уменьшает расходы месяца исходной покупки?</p>
+<p class="k k-block">Сейчас в документе:</p><div class="src" role="group" aria-label="Сейчас в документе"><span class="n">38</span><span class="t">Возврат уменьшает расходы месяца исходной покупки; если исходная покупка в учёте не найдена, возврат расходы не меняет.</span><span class="n">38</span><span class="t">Для покупки в другой валюте в расходы идёт сумма списания с карты в тенге.</span></div>
+<p><span class="k">Суть:</span> Сумма уменьшения и случай возврата больше покупки не заданы.</p>
+<p class="k k-block">Варианты:</p><ol class="options">
+<li><span class="ans">На сумму зачисления возврата в тенге.</span> <span class="cons"><span class="k">Последствие:</span> для валютных покупок и частичных возвратов учитывается фактически зачисленное.</span></li>
+<li><span class="ans">На сумму зачисления, но не больше исходной покупки.</span> <span class="cons"><span class="k">Последствие:</span> расходы месяца не уменьшаются сверх суммы исходной покупки.</span></li>
+<li><span class="ans">На сумму списания исходной покупки.</span> <span class="cons"><span class="k">Последствие:</span> частичный возврат и курсовая разница не учитываются.</span></li>
+</ol>
+<p><span class="k">Без ответа:</span> нельзя реализовать учёт возвратов и задать ожидаемые суммы в тестах.</p>
+<p class="note">Закрывает замечания: <a href="#d-07">D-07</a>, <a href="#s-11">S-11</a>.</p>
+</article>
+<article class="entry q sev-major" id="q-09">
+<header class="eh"><span class="gut"><span class="eid">Q-09</span></span><span class="et">заказчику (бизнес) <span class="sep">·</span> <span class="lvl lvl-major">нужен до начала спринта</span></span></header>
+<p class="qtext">Сбрасывает ли признак отправки по Ф-3 сохранение порога с тем же значением, что уже действует?</p>
+<p class="k k-block">Сейчас в документе:</p><div class="src" role="group" aria-label="Сейчас в документе"><span class="n">39</span><span class="t">смена порога сбрасывает признак отправки (Ф-4), а выключение и повторное включение уведомления без смены порога его не сбрасывает</span><span class="n">125</span><span class="t">2. Повторное сохранение заменяет действующую настройку.</span></div>
+<p><span class="k">Суть:</span> Ф-3 говорит о смене порога, строка 125 о любом повторном сохранении.</p>
+<p class="k k-block">Варианты:</p><ol class="options">
+<li class="recommended"><span class="ans">Нет, сбрасывает только другое значение порога.</span> <span class="rec-mark">рекомендуем</span> <span class="cons"><span class="k">Последствие:</span> повторное сохранение того же порога второй push не вызывает.</span></li>
+<li><span class="ans">Да, любое сохранение порога сбрасывает признак.</span> <span class="cons"><span class="k">Последствие:</span> повторное сохранение того же порога может дать второй push за месяц.</span></li>
+</ol>
+<p class="rec"><span class="k">Рекомендуем:</span> вариант 1, потому что иначе ограничение одного push в месяц обходится простым пересохранением.</p>
+<p><span class="k">Без ответа:</span> нельзя реализовать сброс признака отправки при сохранении.</p>
+<p class="note">Закрывает замечания: <a href="#s-13">S-13</a>.</p>
+</article>
+<article class="entry q sev-major" id="q-10">
+<header class="eh"><span class="gut"><span class="eid">Q-10</span></span><span class="et">заказчику (бизнес) <span class="sep">·</span> <span class="lvl lvl-major">нужен до начала спринта</span></span></header>
+<p class="qtext">С каким порогом по Ф-3 сравниваются расходы прошедшего месяца при запоздавшем событии, если порог уже сменили?</p>
+<p class="k k-block">Сейчас в документе:</p><div class="src" role="group" aria-label="Сейчас в документе"><span class="n">39</span><span class="t">Правило действует и для запоздавшего события: если оно довело до порога расходы прошедшего месяца, push отправляется.</span><span class="n">49</span><span class="t">Хранить идентификатор карты, месяц, идентификатор операции, сумму покупки в тиынах, признак отправки и порог в тенге.</span></div>
+<p><span class="k">Суть:</span> Запоздавшее событие обрабатывается, но какой порог брать, не сказано.</p>
+<p class="k k-block">Варианты:</p><ol class="options">
+<li><span class="ans">С порогом, действовавшим в конце того месяца.</span> <span class="cons"><span class="k">Последствие:</span> нужно хранить историю порогов по месяцам.</span></li>
+<li><span class="ans">С текущим порогом.</span> <span class="cons"><span class="k">Последствие:</span> push за прошлый месяц зависит от нового порога.</span></li>
+</ol>
+<p><span class="k">Без ответа:</span> нельзя реализовать обработку запоздавших событий после смены порога.</p>
+<p class="note">Закрывает замечания: <a href="#s-12">S-12</a>.</p>
+</article>
+<article class="entry q sev-major" id="q-11">
+<header class="eh"><span class="gut"><span class="eid">Q-11</span></span><span class="et">заказчику (бизнес) <span class="sep">·</span> <span class="lvl lvl-major">нужен до начала спринта</span></span></header>
+<p class="qtext">Отправляется ли push по Ф-3 по карте, которая стала неактивной уже после сохранения порога?</p>
+<p class="k k-block">Сейчас в документе:</p><div class="src" role="group" aria-label="Сейчас в документе"><span class="n">37</span><span class="t">* **Ф-1.** Держатель активной карты KZT задаёт целый порог от 1 000 до 1 000 000 ₸ включительно. По умолчанию уведомление выключено.</span><span class="n">119</span><span class="t">3. Проверить сумму, переключатель и что карта активна и выпущена в KZT.</span></div>
+<p><span class="k">Суть:</span> Активность карты проверяется только при сохранении порога (Ф-1, строка 119).</p>
+<p class="k k-block">Варианты:</p><ol class="options">
+<li><span class="ans">Да, push отправляется при достижении порога.</span> <span class="cons"><span class="k">Последствие:</span> проверка статуса карты нужна только при сохранении порога.</span></li>
+<li><span class="ans">Нет, по неактивной карте push не отправляется.</span> <span class="cons"><span class="k">Последствие:</span> сервис расходов проверяет статус карты перед отправкой.</span></li>
+</ol>
+<p><span class="k">Без ответа:</span> нельзя реализовать проверку перед отправкой push.</p>
+<p class="note">Закрывает замечания: <a href="#s-14">S-14</a>.</p>
+</article>
+<article class="entry q sev-major" id="q-14">
+<header class="eh"><span class="gut"><span class="eid">Q-14</span></span><span class="et">заказчику (бизнес) <span class="sep">·</span> <span class="lvl lvl-major">нужен до начала спринта</span></span></header>
+<p class="qtext">Входят ли в расходы по Ф-2 оплата услуг в мобильном банке и комиссии, или только покупки по карте в торговых точках?</p>
+<p class="k k-block">Сейчас в документе:</p><div class="src" role="group" aria-label="Сейчас в документе"><span class="n">38</span><span class="t">В расходы входят проведённые покупки.</span></div>
+<p><span class="k">Суть:</span> Исключены только переводы и снятие наличных, термин «покупка» не определён.</p>
+<p class="k k-block">Варианты:</p><ol class="options">
+<li><span class="ans">Только покупки по карте в торговых точках.</span> <span class="cons"><span class="k">Последствие:</span> оплата услуг и комиссии не увеличивают счётчик.</span></li>
+<li><span class="ans">Все списания, кроме переводов и снятия наличных.</span> <span class="cons"><span class="k">Последствие:</span> оплата услуг и комиссии увеличивают счётчик и могут вызвать push.</span></li>
+</ol>
+<p><span class="k">Без ответа:</span> нельзя реализовать фильтр операций процессинга.</p>
+<p class="note">Закрывает замечания: <a href="#d-06">D-06</a>.</p>
+</article>
+<h3>Вопросы аналитику</h3>
+<article class="entry q sev-major" id="q-07">
+<header class="eh"><span class="gut"><span class="eid">Q-07</span></span><span class="et">аналитику <span class="sep">·</span> <span class="lvl lvl-major">нужен до начала спринта</span></span></header>
+<p class="qtext">Какой ответ saveLimit возвращает при enabled вне 0 и 1, например 2?</p>
+<p class="k k-block">Сейчас в документе:</p><div class="src" role="group" aria-label="Сейчас в документе"><span class="n">119</span><span class="t">Проверить сумму, переключатель</span><span class="n">144</span><span class="t">1 знак | Да | 0 или 1</span><span class="n">163</span><span class="t">нет обязательного параметра или неверный формат</span></div>
+<p><span class="k">Суть:</span> Шаг 3 проверяет переключатель, но ответ на отказ по нему не задан.</p>
+<p class="k k-block">Варианты:</p><ol class="options">
+<li><span class="ans">400 «неверный формат».</span> <span class="cons"><span class="k">Последствие:</span> приложение получает {&quot;message&quot;:&quot;Некорректный запрос&quot;}.</span></li>
+<li><span class="ans">200 с result ERROR и описанием в message.</span> <span class="cons"><span class="k">Последствие:</span> обрабатывается так же, как порог вне диапазона.</span></li>
+</ol>
+<p><span class="k">Без ответа:</span> нельзя реализовать проверку переключателя и негативный тест.</p>
+<p class="note">Закрывает замечания: <a href="#d-30">D-30</a>, <a href="#d-34">D-34</a>.</p>
+</article>
+<article class="entry q sev-major" id="q-13">
+<header class="eh"><span class="gut"><span class="eid">Q-13</span></span><span class="et">аналитику <span class="sep">·</span> <span class="lvl lvl-major">нужен до начала спринта</span></span></header>
+<p class="qtext">При отклонении строка 121 велит вернуть прежнее состояние, а ответ и пример (строки 156, 171) содержат только result и message. Как это сочетается?</p>
+<p class="k k-block">Сейчас в документе:</p><div class="src" role="group" aria-label="Сейчас в документе"><span class="n">121</span><span class="t">5. При отклонении суммы или карты вернуть прежнее состояние и результат ERROR с описанием в message.</span><span class="n">156</span><span class="t">| `amount` | string | При успехе | Порог в тенге | `limit_kzt` |</span><span class="n">171</span><span class="t">{&quot;result&quot;:&quot;ERROR&quot;,&quot;message&quot;:&quot;Проверьте сумму&quot;}</span></div>
+<p class="k k-block">Варианты:</p><ol class="options">
+<li class="recommended"><span class="ans">Оба верны: прежняя настройка остаётся в хранилище, в ответе result и message.</span> <span class="rec-mark">рекомендуем</span> <span class="cons"><span class="k">Последствие:</span> приложение после ERROR показывает прежний порог из своих данных.</span></li>
+<li><span class="ans">В ответе ERROR возвращаются amount и enabled прежней настройки.</span> <span class="cons"><span class="k">Последствие:</span> приложение восстанавливает поля из ответа; пример строки 171 дополняется.</span></li>
+</ol>
+<p class="rec"><span class="k">Рекомендуем:</span> вариант 1, потому что пример ответа и таблица (amount «при успехе») сходятся с этим вариантом.</p>
+<p><span class="k">Без ответа:</span> нельзя реализовать разбор ответа ERROR и проверку его состава.</p>
+<p class="note">Закрывает замечания: <a href="#s-02">S-02</a>.</p>
+</article>
+<article class="entry q sev-major" id="q-15">
+<header class="eh"><span class="gut"><span class="eid">Q-15</span></span><span class="et">аналитику <span class="sep">·</span> <span class="lvl lvl-major">нужен до начала спринта</span></span></header>
+<p class="qtext">В какой единице сравниваются расходы с порогом, если сумма покупки хранится в тиынах, а порог в тенге (строка 49)?</p>
+<p class="k k-block">Сейчас в документе:</p><div class="src" role="group" aria-label="Сейчас в документе"><span class="n">49</span><span class="t">сумму покупки в тиынах</span></div>
+<p class="k k-block">Варианты:</p><ol class="options">
+<li class="recommended"><span class="ans">В тиынах: порог умножается на 100.</span> <span class="rec-mark">рекомендуем</span> <span class="cons"><span class="k">Последствие:</span> 49 999,99 ₸ при пороге 50 000 ₸ push не вызывает.</span></li>
+<li><span class="ans">В тенге с округлением расходов.</span> <span class="cons"><span class="k">Последствие:</span> push зависит от правила округления, возможна отправка до фактического достижения.</span></li>
+</ol>
+<p class="rec"><span class="k">Рекомендуем:</span> вариант 1, потому что сравнение без округления исключает преждевременный push.</p>
+<p><span class="k">Без ответа:</span> нельзя реализовать проверку порога и граничные тесты.</p>
+<p class="note">Закрывает замечания: <a href="#d-20">D-20</a>.</p>
+</article>
+<h3>Вопросы архитектору</h3>
+<article class="entry q sev-critical" id="q-01">
+<header class="eh"><span class="gut"><span class="eid">Q-01</span></span><span class="et">архитектору <span class="sep">·</span> <span class="lvl lvl-critical">блокирует разработку</span></span></header>
+<p class="qtext">Порог вне диапазона и неактивная карта: строка 163 даёт 200 с result ERROR, строка 151 считает 200 успехом. Как это сочетается?</p>
+<p class="k k-block">Сейчас в документе:</p><div class="src" role="group" aria-label="Сейчас в документе"><span class="n">151</span><span class="t">Если результат 200 или 201 — успешный. Если результат 400, 401 и далее — неуспешный.</span><span class="n">163</span><span class="t">Порог вне диапазона и неактивная карта дают 200 с result ERROR.</span><span class="n">171</span><span class="t">{&quot;result&quot;:&quot;ERROR&quot;,&quot;message&quot;:&quot;Проверьте сумму&quot;}</span></div>
+<p><span class="k">Суть:</span> Одно место считает 200 успехом, другое возвращает 200 при отклонении.</p>
+<p class="k k-block">Варианты:</p><ol class="options">
+<li class="recommended"><span class="ans">Оба верны: 200 значит запрос обработан, исход в result.</span> <span class="rec-mark">рекомендуем</span> <span class="cons"><span class="k">Последствие:</span> приложение проверяет result при 200; строку 151 уточнить.</span></li>
+<li><span class="ans">Отклонение возвращает код 400 и выше.</span> <span class="cons"><span class="k">Последствие:</span> ошибка порога и карты приходит с кодом 4xx, без result ERROR.</span></li>
+</ol>
+<p class="rec"><span class="k">Рекомендуем:</span> вариант 1, потому что строка 163 прямо задаёт исключение, пример в строке 171 с ним сходится.</p>
+<p><span class="k">Без ответа:</span> нельзя реализовать обработку ответа в приложении и написать тесты API.</p>
+<p class="note">Закрывает замечания: <a href="#s-01">S-01</a>.</p>
+</article>
+<article class="entry q sev-major" id="q-05">
+<header class="eh"><span class="gut"><span class="eid">Q-05</span></span><span class="et">архитектору <span class="sep">·</span> <span class="lvl lvl-major">нужен до начала спринта</span></span></header>
+<p class="qtext">Какой компонент отправляет push сразу после сохранения порога по Ф-4, если накопленные расходы уже не ниже нового порога?</p>
+<p class="k k-block">Сейчас в документе:</p><div class="src" role="group" aria-label="Сейчас в документе"><span class="n">40</span><span class="t">Если при сохранении она уже равна новому порогу или выше, push отправляется сразу после сохранения.</span><span class="n">120</span><span class="t">4. Заменить настройку и вернуть результат сохранения.</span><span class="n">130</span><span class="t">Приложение → AlertsController → хранилище настроек → AlertsController → приложение.</span></div>
+<p><span class="k">Суть:</span> Схема метода (строка 130) не обращается ни к учёту расходов, ни к push.</p>
+<p class="k k-block">Варианты:</p><ol class="options">
+<li class="recommended"><span class="ans">Сервис расходов по событию смены порога.</span> <span class="rec-mark">рекомендуем</span> <span class="cons"><span class="k">Последствие:</span> AlertsController публикует событие, сервис расходов проверяет сумму и шлёт push.</span></li>
+<li><span class="ans">AlertsController в методе saveLimit.</span> <span class="cons"><span class="k">Последствие:</span> контроллер запрашивает расходы и вызывает сервис push.</span></li>
+</ol>
+<p class="rec"><span class="k">Рекомендуем:</span> вариант 1, потому что по строке 43 только сервис расходов владеет суммой и связан с push.</p>
+<p><span class="k">Без ответа:</span> нельзя реализовать немедленный push по Ф-4.</p>
+<p class="note">Закрывает замечания: <a href="#s-05">S-05</a>, <a href="#d-32">D-32</a>.</p>
+</article>
+<article class="entry q sev-major" id="q-06">
+<header class="eh"><span class="gut"><span class="eid">Q-06</span></span><span class="et">архитектору <span class="sep">·</span> <span class="lvl lvl-major">нужен до начала спринта</span></span></header>
+<p class="qtext">Сколько сервис расходов повторяет проверку порога при недоступности сервиса настроек (строка 43)?</p>
+<p class="k k-block">Сейчас в документе:</p><div class="src" role="group" aria-label="Сейчас в документе"><span class="n">43</span><span class="t">Процессинг → сервис расходов: проведена покупка. Сервис расходов → настройки: получить порог карты; если сервис настроек недоступен, сервис расходов повторяет проверку порога позже. Сервис расходов → push: передать последние четыре цифры карты и накопленные расходы за месяц при достижении порога.</span><span class="n">46</span><span class="t">Сервис передаёт push на отправку в течение минуты после получения события.</span></div>
+<p><span class="k">Суть:</span> «Повторяет позже» без интервала и предела.</p>
+<p class="k k-block">Варианты:</p><ol class="options">
+<li><span class="ans">Укладывается в минуту из НФТ, затем отказ.</span> <span class="cons"><span class="k">Последствие:</span> при долгом сбое push не отправляется, событие фиксируется как необработанное.</span></li>
+<li><span class="ans">До восстановления сервиса без ограничения.</span> <span class="cons"><span class="k">Последствие:</span> push приходит с опозданием, минута из НФТ на этот случай не действует.</span></li>
+</ol>
+<p><span class="k">Без ответа:</span> нельзя реализовать повторы и проверить НФТ при сбое.</p>
+<p class="note">Закрывает замечания: <a href="#s-06">S-06</a>, <a href="#d-18">D-18</a>.</p>
+</article>
+<article class="entry q sev-major" id="q-08">
+<header class="eh"><span class="gut"><span class="eid">Q-08</span></span><span class="et">архитектору <span class="sep">·</span> <span class="lvl lvl-major">нужен до начала спринта</span></span></header>
+<p class="qtext">Какой HTTP-код возвращает успешное сохранение порога методом saveLimit?</p>
+<p class="k k-block">Сейчас в документе:</p><div class="src" role="group" aria-label="Сейчас в документе"><span class="n">120</span><span class="t">вернуть результат сохранения</span><span class="n">151</span><span class="t">Если результат 200 или 201 — успешный. Если результат 400, 401 и далее — неуспешный.</span><span class="n">165</span><span class="t">#### 200. Successful — Created</span></div>
+<p><span class="k">Суть:</span> Строка 151 допускает 201, статусы его не описывают.</p>
+<p class="k k-block">Варианты:</p><ol class="options">
+<li class="recommended"><span class="ans">Всегда 200, как в разделе «Статусы».</span> <span class="rec-mark">рекомендуем</span> <span class="cons"><span class="k">Последствие:</span> код 201 не используется, заголовок «Created» убирается.</span></li>
+<li><span class="ans">201 при первом создании, 200 при замене.</span> <span class="cons"><span class="k">Последствие:</span> приложение и тесты различают создание и замену настройки.</span></li>
+</ol>
+<p class="rec"><span class="k">Рекомендуем:</span> вариант 1, потому что раздел статусов и пример описывают только 200.</p>
+<p><span class="k">Без ответа:</span> нельзя написать проверку кода ответа в тестах API.</p>
+<p class="note">Закрывает замечания: <a href="#d-31">D-31</a>, <a href="#s-22">S-22</a>.</p>
+</article>
+<article class="entry q sev-major" id="q-12">
+<header class="eh"><span class="gut"><span class="eid">Q-12</span></span><span class="et">архитектору <span class="sep">·</span> <span class="lvl lvl-major">нужен до начала спринта</span></span></header>
+<p class="qtext">Когда выставляется признак отправки по Ф-3, если сервис push недоступен?</p>
+<p class="k k-block">Сейчас в документе:</p><div class="src" role="group" aria-label="Сейчас в документе"><span class="n">43</span><span class="t">Процессинг → сервис расходов: проведена покупка. Сервис расходов → настройки: получить порог карты; если сервис настроек недоступен, сервис расходов повторяет проверку порога позже. Сервис расходов → push: передать последние четыре цифры карты и накопленные расходы за месяц при достижении порога.</span></div>
+<p><span class="k">Суть:</span> Недоступность сервиса push не описана.</p>
+<p class="k k-block">Варианты:</p><ol class="options">
+<li class="recommended"><span class="ans">Только после успешной передачи в сервис push.</span> <span class="rec-mark">рекомендуем</span> <span class="cons"><span class="k">Последствие:</span> при сбое отправка повторяется, push не теряется.</span></li>
+<li><span class="ans">До передачи, независимо от результата.</span> <span class="cons"><span class="k">Последствие:</span> при сбое push за месяц теряется.</span></li>
+</ol>
+<p class="rec"><span class="k">Рекомендуем:</span> вариант 1, потому что Ф-3 обещает клиенту push, потеря при сбое ему противоречит.</p>
+<p><span class="k">Без ответа:</span> нельзя реализовать и проверить отказ сервиса push.</p>
+<p class="note">Закрывает замечания: <a href="#s-07">S-07</a>.</p>
+</article>
+</section>
+<section class="part" id="appendix-a">
+<h2>Приложение А. Критерии и уровни критичности</h2>
+<p>Для отдельного требования:</p><ul>
+<li><strong>Необходимость</strong> (ISO 29148 п. 5.2.5). Требование задаёт нужную возможность, характеристику или ограничение. Если его убрать, появится пробел, который не закрывают другие требования.</li>
+<li><strong>Уместность уровня</strong> (ISO 29148 п. 5.2.5). Уровень детализации подходит документу. Требование говорит, что нужно получить, и не навязывает проектное или техническое решение без причины.</li>
+<li><strong>Однозначность</strong> (ISO 29148 п. 5.2.5; IEEE 830 п. 4.3.2). Формулировку можно понять только одним способом. Нет оценочных слов, расплывчатых количеств, неясных ссылок, местоимений и терминов без определения.</li>
+<li><strong>Полнота</strong> (ISO 29148 п. 5.2.5; IEEE 830 п. 4.3.3). В требовании есть всё нужное для реализации и проверки: условие, участник, действие, результат, значения и единицы, поведение при ошибках и на границах диапазонов.</li>
+<li><strong>Атомарность</strong> (ISO 29148 п. 5.2.5). Требование описывает одну возможность, характеристику или ограничение, а не несколько сразу.</li>
+<li><strong>Осуществимость</strong> (ISO 29148 п. 5.2.5). Требование можно выполнить при известных технических, правовых и ресурсных ограничениях с приемлемым риском.</li>
+<li><strong>Проверяемость</strong> (ISO 29148 п. 5.2.5; IEEE 830 п. 4.3.6). Есть конечный способ доказать, что требование выполнено: тест, измерение, осмотр или анализ с однозначным критерием успеха.</li>
+<li><strong>Корректность</strong> (ISO 29148 п. 5.2.5; IEEE 830 п. 4.3.1). Требование верно отражает потребность и не содержит фактических и технических ошибок, в том числе нарушений общепринятых стандартов, протоколов и практик безопасности.</li>
+<li><strong>Непротиворечивость</strong> (IEEE 830 п. 4.3.4). Части требования не противоречат друг другу: условие, действие, значения, пример и описание говорят об одном и том же.</li>
+</ul><p>Для набора требований:</p><ul>
+<li><strong>Полнота набора</strong> (ISO 29148 п. 5.2.6; IEEE 830 п. 4.3.3, подраздел «Системная полнота»). Набор покрывает нужные функции, сценарии, данные, интерфейсы и нефункциональные свойства. Нет пустых разделов, заглушек и мест с пометкой «будет определено».</li>
+<li><strong>Согласованность</strong> (ISO 29148 п. 5.2.6; IEEE 830 п. 4.3.4, подраздел «Взаимная непротиворечивость»). Требования не противоречат друг другу и не дублируются. Термины, единицы измерения, типы и значения одинаковы во всём наборе.</li>
+<li><strong>Осуществимость набора</strong> (ISO 29148 п. 5.2.6, подраздел «Осуществимость и стандарты»). Весь набор можно реализовать при заданных ограничениях по срокам, технологиям и рискам.</li>
+<li><strong>Понятность</strong> (ISO 29148 п. 5.2.6, подраздел «Взаимная непротиворечивость»). Из набора ясно, что ожидается от системы и как она связана с окружением и смежными системами.</li>
+<li><strong>Валидируемость</strong> (ISO 29148 п. 5.2.6, подраздел «Системная полнота»). Можно показать, что выполнение набора приведёт к заявленной цели: цель измерима, критерии приёмки покрывают требования.</li>
+<li><strong>Ранжированность</strong> (IEEE 830 п. 4.3.5, подраздел «Осуществимость и стандарты»). У требований указаны важность и (или) стабильность.</li>
+<li><strong>Модифицируемость</strong> (IEEE 830 п. 4.3.7, подраздел «Осуществимость и стандарты»). Структура документа даёт вносить изменения без рассогласования: есть перекрёстные ссылки, нет избыточности, каждое требование записано отдельно.</li>
+<li><strong>Прослеживаемость</strong> (IEEE 830 п. 4.3.8, подраздел «Системная полнота»). У каждого требования есть уникальный идентификатор и понятный источник, на требование можно сослаться из проекта, кода и тестов. Версия документа зафиксирована.</li>
+</ul><p>Уровни критичности:</p><ul>
+<li>CRITICAL: разработку по такому тексту начинать нельзя. Сюда относятся прямое логическое противоречие, требование, которое нельзя проверить, грубое нарушение стандарта протокола или формата, не описанная обработка критической ошибки. Сюда же относится расхождение двух мест документа, если они задают разное наблюдаемое поведение, разный результат расчёта или разные единицы одной величины: по какому месту ни сделай, второе окажется нарушено.</li>
+<li>MAJOR: нужен ответ автора до начала работ. Сюда относятся неполный сценарий, пропущенный граничный случай, двусмысленная формулировка, расхождение типов и форматов одного поля, пустой раздел.</li>
+<li>Расхождение только в названиях, обозначениях и оформлении при одинаковом смысле не выше MAJOR.</li>
+<li>MINOR: разработку не блокирует. Сюда относятся опечатки, стиль, нет служебных сведений о документе.</li>
+</ul>
+</section>
+<section class="part" id="appendix-b">
+<h2>Приложение Б. Снятые, слитые и неподтверждённые замечания</h2>
+<ul class="removed">
+<li id="d-01"><span class="lvl lvl-major">MAJOR</span> <strong>D-01 Полнота</strong> · <a href="#req-01">REQ-01</a> · Цепочки приложения и процессинга не связаны: не указано, как учёт расходов получает порог и признак включения из сервиса настроек. Причина: снято критиком: Строка 43 прямо описывает запрос сервиса расходов к настройкам; признак включения отдельно разобран в другом замечании.<ul><li>Цитата модели: <span class="quote">Карточный процессинг → учёт расходов → сервис push</span> <span class="ln">(строка 26)</span></li></ul></li>
+<li id="d-04"><span class="lvl lvl-major">MAJOR</span> <strong>D-04 Полнота</strong> · <a href="#req-04">REQ-04</a> · Активность карты проверяется только при сохранении. Причина: слито с другим замечанием <a href="#s-14">S-14</a>: Тот же дефект: карта стала неактивной после сохранения.</li>
+<li id="d-09"><span class="lvl lvl-major">MAJOR</span> <strong>D-09 Полнота</strong> · <a href="#req-06">REQ-06</a> · Не сказано, отправляется ли push и выставляется ли признак отправки, если расходы достигли порога, пока уведомление выключено. Причина: слито с другим замечанием <a href="#s-09">S-09</a>: Тот же дефект: достижение порога при выключенном уведомлении.</li>
+<li id="d-10"><span class="lvl lvl-major">MAJOR</span> <strong>D-10 Однозначность</strong> · <a href="#req-06">REQ-06</a> · Если порог менялся после окончания прошедшего месяца, неясно, сравнивать расходы того месяца с порогом, действовавшим в нём, или с текущим. Причина: слито с другим замечанием <a href="#s-12">S-12</a>: Тот же дефект: какой порог для запоздавшего события.</li>
+<li id="d-15"><span class="lvl lvl-major">MAJOR</span> <strong>D-15 Однозначность</strong> · <a href="#req-08">REQ-08</a> · Не заданы интервал повторов, их число и действие, если сервис настроек так и не стал доступен. Причина: слито с другим замечанием <a href="#s-06">S-06</a>: Тот же дефект: параметры повтора не заданы.</li>
+<li id="d-21"><span class="lvl lvl-major">MAJOR</span> <strong>D-21 Полнота</strong> · <a href="#req-11">REQ-11</a> · В части B описан только метод сохранения, а чтение вынесено в /alerts/getLimit, который «описывается отдельно» и в комплекте отсутствует. Причина: слито с другим замечанием <a href="#s-17">S-17</a>: Тот же дефект: метод чтения не описан в комплекте.</li>
+<li id="d-27"><span class="lvl lvl-major">MAJOR</span> <strong>D-27 Полнота</strong> · <a href="#req-15">REQ-15</a> · Метод чтения порога вынесен «отдельно», но не указан документ или раздел с его описанием. Причина: слито с другим замечанием <a href="#s-17">S-17</a>: Тот же дефект: описание getLimit отсутствует.</li>
+<li id="d-29"><span class="lvl lvl-major">MAJOR</span> <strong>D-29 Полнота</strong> · <a href="#req-19">REQ-19</a> · Для контура Prod адрес метода не задан, хотя в URL type (строка 107) заявлены Dev и Prod. Причина: слито с другим замечанием <a href="#s-04">S-04</a>: Тот же дефект: не задан Prod URL.</li>
+<li id="d-33"><span class="lvl lvl-major">MAJOR</span> <strong>D-33 Однозначность</strong> · <a href="#req-25">REQ-25</a> · Неясно, означает ли фраза, что сохранённая настройка не меняется, или что в ответе возвращаются прежние amount и enabled. Причина: слито с другим замечанием <a href="#s-02">S-02</a>: Тот же дефект: смысл «вернуть прежнее состояние» и содержимое ответа ERROR.</li>
+<li id="d-36"><span class="lvl lvl-major">MAJOR</span> <strong>D-36 Полнота</strong> · <a href="#req-28">REQ-28</a> · Правило метода сохранения не описывает последствия смены порога из Ф-3 и Ф-4: сброс признака отправки и push сразу после сохранения, если расходы уже не ниже нового порога. Причина: слито с другим замечанием <a href="#d-32">D-32</a>: Одно исправление: описать в части B сброс признака и push при смене порога.</li>
+<li id="d-39"><span class="lvl lvl-major">MAJOR</span> <strong>D-39 Полнота</strong> · <a href="#req-32">REQ-32</a> · Не указано, что вернуть при enabled вне 0 и 1 (например, 2). Причина: слито с другим замечанием <a href="#d-30">D-30</a>: Тот же дефект: код ответа для enabled вне 0 и 1.</li>
+<li id="d-41"><span class="lvl lvl-major">MAJOR</span> <strong>D-41 Полнота</strong> · <a href="#req-35">REQ-35</a> · Код 201 объявлен успешным, но в разделе Статусы и примерах возвращается только 200; условие возврата 201 не задано. Причина: слито с другим замечанием <a href="#d-31">D-31</a>: Одно исправление: определить, когда возвращается 201.</li>
+<li id="d-42"><span class="lvl lvl-major">MAJOR</span> <strong>D-42 Корректность</strong> · <a href="#req-35">REQ-35</a> · По строке 163 порог вне диапазона и неактивная карта дают 200 с result ERROR, то есть 200 не всегда означает успешное сохранение. Причина: слито с другим замечанием <a href="#s-01">S-01</a>: Тот же дефект: 200 возвращается и при отклонении.</li>
+<li id="d-43"><span class="lvl lvl-major">MAJOR</span> <strong>D-43 Полнота</strong> · <a href="#req-37">REQ-37</a> · Поле есть только при успехе, а логика метода (строка 121) при отклонении требует вернуть прежнее состояние. Причина: слито с другим замечанием <a href="#s-02">S-02</a>: Тот же дефект: содержимое ответа при ERROR.</li>
+<li id="d-44"><span class="lvl lvl-major">MAJOR</span> <strong>D-44 Корректность</strong> · <a href="#req-37">REQ-37</a> · Порог в ответе описан строкой, а в запросе (строка 143) это integer с тем же полем БД limit_kzt. Причина: слито с другим замечанием <a href="#s-18">S-18</a>: Тот же дефект: тип amount в запросе и ответе.</li>
+<li id="d-45"><span class="lvl lvl-major">MAJOR</span> <strong>D-45 Полнота</strong> · <a href="#req-38">REQ-38</a> · В колонке Logic вместо условия присутствия указаны значения, поэтому неясно, возвращается ли enabled при result ERROR. Причина: слито с другим замечанием <a href="#s-02">S-02</a>: Тот же дефект: возвращается ли состояние при ERROR.</li>
+<li id="d-46"><span class="lvl lvl-major">MAJOR</span> <strong>D-46 Корректность</strong> · <a href="#req-38">REQ-38</a> · В запросе enabled integer (строка 144), в ответе string для того же поля БД. Причина: слито с другим замечанием <a href="#s-19">S-19</a>: Тот же дефект: тип enabled в запросе и ответе.</li>
+<li id="d-47"><span class="lvl lvl-major">MAJOR</span> <strong>D-47 Однозначность</strong> · <a href="#req-40">REQ-40</a> · 200 возвращается и при отклонении порога или карты с result ERROR, поэтому «успешное выполнение» можно понимать как успешное сохранение или как корректно обработанный запрос. Причина: слито с другим замечанием <a href="#s-01">S-01</a>: Тот же дефект: смысл успеха при коде 200.</li>
+<li id="d-48"><span class="lvl lvl-major">MAJOR</span> <strong>D-48 Однозначность</strong> · <a href="#req-41">REQ-41</a> · Для enabled задан integer с логикой 0 или 1; значение 2 подходит под тип, но вне допустимых. Причина: слито с другим замечанием <a href="#d-30">D-30</a>: Тот же дефект: код ответа для enabled вне 0 и 1.</li>
+<li id="d-49"><span class="lvl lvl-major">MAJOR</span> <strong>D-49 Полнота</strong> · <a href="#req-41">REQ-41</a> · Шаг 3 логики проверяет, что карта выпущена в KZT, но код ответа для карты в другой валюте не назван. Причина: слито с другим замечанием <a href="#d-30">D-30</a>: Тот же дефект: код ответа для карты не в KZT.</li>
+</ul>
+</section>
+</main>
+</div>
+<script>
+(function () {
+  var tools = document.getElementById('tools');
+  if (!tools) { return; }
+  tools.hidden = false;
+  var entries = Array.prototype.slice.call(document.querySelectorAll('.entry[data-sev]'));
+  var details = Array.prototype.slice.call(document.querySelectorAll('details'));
+  var sevButtons = Array.prototype.slice.call(tools.querySelectorAll('button[data-sev]'));
+  function filter(sev) {
+    entries.forEach(function (c) { c.hidden = !!sev && c.getAttribute('data-sev') !== sev; });
+    sevButtons.forEach(function (b) { b.setAttribute('aria-pressed', String(b.getAttribute('data-sev') === sev)); });
+  }
+  tools.addEventListener('click', function (e) {
+    var b = e.target.closest('button');
+    if (!b) { return; }
+    if (b.hasAttribute('data-sev')) { filter(b.getAttribute('data-sev')); return; }
+    var open = b.getAttribute('data-open') !== '1';
+    details.forEach(function (d) { d.open = open; });
+    b.setAttribute('data-open', open ? '1' : '0');
+    b.textContent = open ? 'свернуть всё' : 'развернуть всё';
+  });
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest('a[href^="#"]');
+    if (!a) { return; }
+    var t = document.getElementById(a.getAttribute('href').slice(1));
+    if (t && (t.hidden || t.closest('[hidden]'))) { filter(''); }
+    var d = t && t.closest('details');
+    if (d) { d.open = true; }
+  });
+  window.addEventListener('beforeprint', function () { details.forEach(function (d) { d.open = true; }); filter(''); });
+})();
+</script>
+</body>
+</html>
