@@ -4,6 +4,11 @@
 - Страница с таблицами: таблицы берёт pdfplumber и превращает в строки Markdown с вертикальными
   чертами, текст вне таблиц тоже берёт pdfplumber, чтобы ячейки не попали в текст второй раз.
   Таблицы и текст идут в том порядке, в каком стоят на странице.
+- Залитые прямоугольники-подложки под текстом (их рисует Word при экспорте в PDF) не считаются
+  линиями таблицы, если на странице есть настоящие линии. Иначе каждая строка текста в ячейке
+  становится отдельной строкой таблицы и появляются лишние пустые столбцы.
+- Таблица, продолженная на следующей странице, склеивается в одну (_join_tables): повтор шапки
+  убирается, строка, разорванная границей страницы, собирается обратно.
 - Колонтитулы: строка вверху или внизу страницы, которая после замены цифр на # повторяется
   на половине страниц и больше, удаляется. Для документа из одной или двух страниц правило не работает.
 - Колонтитул таблицей: таблица у края страницы с тем же правилом повтора удаляется целиком.
@@ -46,6 +51,11 @@ class PdfLine:
     page: int
     kind: str = "text"  # text, table, heading
     level: int = 0
+    # Только для строк таблицы (кроме разделителя): ячейки, страница конца строки и положение
+    # таблицы на странице (верх и низ в долях высоты страницы). Нужны для склейки таблиц через страницу.
+    cells: list[str] | None = field(default=None, repr=False)
+    end_page: int = field(default=0, repr=False)
+    box: tuple[float, float] = field(default=(0.0, 0.0), repr=False)
 
 
 @dataclass
@@ -56,6 +66,8 @@ class PdfText:
     removed_headers: int = 0
     # Страницы, на которых pdfplumber упал: их текст взят через pypdf, таблицы там не разобраны.
     fallback_pages: list[int] = field(default_factory=list)
+    # Сколько раз продолжение таблицы на следующей странице приклеено к её началу.
+    joined_tables: int = 0
 
 
 class ScanError(Exception):
@@ -98,14 +110,24 @@ def _clean(text: str) -> str:
     return re.sub(r"[ \t ]{2,}", " ", text.replace(" ", " ")).strip()
 
 
+# Перенос слова через дефис внутри ячейки: буква, дефис, конец строки, строчная буква.
+CELL_HYPHEN_RE = re.compile(r"(?<=[^\W\d_])-[ \t]*\n\s*(?=[a-zа-яё])")
+
+
 def _cell(value: str | None) -> str:
-    """Перенос внутри ячейки склеивается пробелом, пустая ячейка остаётся пустой (Ч-03)."""
+    """Перенос внутри ячейки склеивается пробелом, перенос слова через дефис без дефиса,
+    как в обычном тексте; пустая ячейка остаётся пустой (Ч-03)."""
     if not value:
         return ""
-    return " ".join(_ligatures(_cid(value)).split()).replace("|", "\\|")
+    value = CELL_HYPHEN_RE.sub("", _ligatures(_cid(value)))
+    return " ".join(value.split()).replace("|", "\\|")
 
 
-def _table_lines(rows: list[list[str | None]], page: int) -> list[PdfLine]:
+def _row_text(cells: list[str]) -> str:
+    return "| " + " | ".join(cells) + " |"
+
+
+def _table_lines(rows: list[list[str | None]], page: int, box: tuple[float, float] = (0.0, 0.0)) -> list[PdfLine]:
     rows = [row for row in rows if row and any(cell for cell in row)]
     if not rows:
         return []
@@ -113,15 +135,45 @@ def _table_lines(rows: list[list[str | None]], page: int) -> list[PdfLine]:
     out = [PdfLine("", page)]
     for index, row in enumerate(rows):
         cells = [_cell(c) for c in row] + [""] * (width - len(row))
-        out.append(PdfLine("| " + " | ".join(cells) + " |", page, "table"))
+        out.append(PdfLine(_row_text(cells), page, "table", cells=cells, end_page=page, box=box))
         if index == 0:
             # Строка-разделитель после шапки, как в Markdown.
-            out.append(PdfLine("| " + " | ".join(["---"] * width) + " |", page, "table"))
+            out.append(PdfLine(_row_text(["---"] * width), page, "table"))
     out.append(PdfLine("", page))
     return out
 
 
+# Толщина, до которой залитый прямоугольник считается линией (рамки таблиц в PDF из Word
+# рисуются залитыми прямоугольниками толщиной около 0,5 pt).
+RULE_THICKNESS = 2.0
+
+
+def _is_rule(obj: dict) -> bool:
+    if obj.get("object_type") in ("line", "curve"):
+        return True
+    return obj.get("object_type") == "rect" and (
+        bool(obj.get("stroke")) or min(obj["width"], obj["height"]) <= RULE_THICKNESS)
+
+
+def _is_backdrop(obj: dict) -> bool:
+    """Залитый прямоугольник без обводки шире линии: подложка ячейки или строки текста."""
+    return (obj.get("object_type") == "rect" and bool(obj.get("fill")) and not obj.get("stroke")
+            and min(obj["width"], obj["height"]) > RULE_THICKNESS)
+
+
+def _without_backdrops(plumber_page):
+    """Страница без подложек, если на ней есть настоящие линии; иначе как есть.
+    Без линий таблицу могут задавать только сами заливки, их не трогаем."""
+    rects = plumber_page.rects
+    if not any(_is_backdrop(r) for r in rects):
+        return plumber_page
+    if not (plumber_page.lines or plumber_page.curves or any(_is_rule(r) for r in rects)):
+        return plumber_page
+    return plumber_page.filter(lambda obj: not _is_backdrop(obj))
+
+
 def _page_lines(pypdf_page, plumber_page, page_no: int) -> list[PdfLine]:
+    plumber_page = _without_backdrops(plumber_page)
     tables = plumber_page.find_tables()
     if not tables:
         text = pypdf_page.extract_text() or ""
@@ -132,8 +184,10 @@ def _page_lines(pypdf_page, plumber_page, page_no: int) -> list[PdfLine]:
     items: list[tuple[float, int, list[PdfLine]]] = []
     for line in outside.extract_text_lines():
         items.append((line["top"], 0, [PdfLine(_clean(line["text"]), page_no)]))
+    height = float(plumber_page.height) or 1.0
     for table in tables:
-        items.append((table.bbox[1], 1, _table_lines(table.extract(), page_no)))
+        box = (table.bbox[1] / height, table.bbox[3] / height)
+        items.append((table.bbox[1], 1, _table_lines(table.extract(), page_no, box)))
     items.sort(key=lambda item: (item[0], item[1]))
     return [line for _, _, lines in items for line in lines]
 
@@ -251,6 +305,107 @@ def _join_wrapped(lines: list[PdfLine]) -> list[PdfLine]:
     return out
 
 
+# Таблица считается доходящей до низа страницы, если её низ ниже этой доли высоты,
+# и начинающейся сверху, если её верх выше этой доли.
+TABLE_BOTTOM_EDGE = 0.7
+TABLE_TOP_EDGE = 0.3
+# Служебные слова, на которых ячейка не может кончаться, если строка не разорвана.
+OPEN_WORDS = frozenset(
+    "и или а но в во на с со к ко по для от до из у о об при без над под за через между что как "
+    "and or but of to in on at by for with from the a an".split()
+)
+
+
+def _norm_cells(cells: list[str]) -> list[str]:
+    return [" ".join(c.split()).casefold() for c in cells]
+
+
+def _unfinished(cell: str) -> bool:
+    """Ячейка обрывается: кончается запятой, дефисом, открытой скобкой или служебным словом."""
+    cell = cell.rstrip()
+    if not cell:
+        return False
+    if cell[-1] in ",(-/":
+        return True
+    words = cell.split()
+    return words[-1].casefold() in OPEN_WORDS
+
+
+def _row_continues(prev: list[str], nxt: list[str], first_col_always_filled: bool) -> bool:
+    """Первая строка продолжения дописывает последнюю строку предыдущей части таблицы."""
+    filled = [(a, b) for a, b in zip(prev, nxt) if b]
+    if not filled:
+        return False
+    for a, b in filled:
+        if a and _unfinished(a):
+            return True
+    # Первая непустая ячейка продолжения начинается со строчной буквы и состоит из нескольких слов,
+    # а ячейка над ней не кончается точкой: фраза разорвана. Одно слово со строчной («да», «daily»)
+    # бывает началом обычной строки, такое не клеим.
+    a, b = filled[0]
+    if a and a[-1] not in SENTENCE_END and b[0].islower() and len(b.split()) > 1 and len(a.split()) > 1:
+        return True
+    # Пустая первая ячейка при заполненной сверху, а во всей таблице первая ячейка нигде больше не пуста.
+    return first_col_always_filled and not nxt[0] and bool(prev[0])
+
+
+def _glue(a: str, b: str) -> str:
+    if not a or not b:
+        return a or b
+    if a.endswith("-") and len(a) > 1 and a[-2].isalpha() and b[0].islower():
+        return a[:-1] + b
+    return a + " " + b
+
+
+def _join_tables(lines: list[PdfLine]) -> int:
+    """Склейка таблицы, продолженной на следующей странице (после снятия колонтитулов).
+
+    Склеиваются две таблицы, между которыми нет текста, если первая кончается внизу страницы,
+    вторая начинается вверху следующей и у них одно число столбцов, больше одного. Повтор шапки в начале
+    продолжения убирается. Первая строка продолжения, которая дописывает разорванную строку
+    (_row_continues), приклеивается к ней по ячейкам. У склеенной строки остаётся страница начала.
+    При любом сомнении таблицы остаются раздельными.
+    """
+    joined = 0
+    index = 0
+    while True:
+        blocks = _table_blocks(lines)
+        pair = None
+        for (a0, a1), (b0, b1) in zip(blocks, blocks[1:]):
+            if b0 <= index:
+                continue
+            if any(line.text for line in lines[a1 + 1:b0]):
+                continue
+            rows_a = [line for line in lines[a0:a1 + 1] if line.cells is not None]
+            rows_b = [line for line in lines[b0:b1 + 1] if line.cells is not None]
+            if not rows_a or not rows_b:
+                continue
+            last, first = rows_a[-1], rows_b[0]
+            # Таблица в один столбец обычно рамка вокруг страницы (слайды, плакаты), а не данные.
+            if (first.page == last.end_page + 1 and len(first.cells) == len(last.cells) > 1
+                    and last.box[1] >= TABLE_BOTTOM_EDGE and first.box[0] <= TABLE_TOP_EDGE):
+                pair = (a0, a1, b0, b1, rows_a, rows_b)
+                break
+        if pair is None:
+            return joined
+        a0, a1, b0, b1, rows_a, rows_b = pair
+        if _norm_cells(rows_b[0].cells) == _norm_cells(rows_a[0].cells):
+            rows_b = rows_b[1:]
+        last = rows_a[-1]
+        if rows_b:
+            first_filled = all(r.cells[0] for r in rows_a + rows_b[1:])
+            if _row_continues(last.cells, rows_b[0].cells, first_filled):
+                head = rows_b.pop(0)
+                last.cells = [_glue(a, b) for a, b in zip(last.cells, head.cells)]
+                last.text = _row_text(last.cells)
+                last.end_page, last.box = head.end_page, (last.box[0], head.box[1])
+        # Строки продолжения сохраняют свою страницу и положение: таблицу на три страницы
+        # и больше следующий шаг склеивает по низу последней части.
+        lines[a1 + 1:b1 + 1] = rows_b
+        joined += 1
+        index = a0
+
+
 def read_pdf(path: Path) -> PdfText:
     """Бросает ScanError для скана; ошибки pypdf пробрасывает вызывающему."""
     import pdfplumber
@@ -285,9 +440,12 @@ def read_pdf(path: Path) -> PdfText:
     # таблица из одних разделителей), для читателя тоже пустая. Проверка на скан выше идёт
     # по исходному тексту: у такой страницы текстовый слой есть.
     empty = sorted(set(empty) | {no for no, page in enumerate(pages, start=1) if not any(_has_text(line) for line in page)})
-    lines = _join_wrapped([line for page in pages for line in page])
+    lines = [line for page in pages for line in page]
+    joined = _join_tables(lines)
+    lines = _join_wrapped(lines)
     _mark_headings(lines)
-    return PdfText(lines=lines, pages=total, empty_pages=empty, removed_headers=removed, fallback_pages=fallback)
+    return PdfText(lines=lines, pages=total, empty_pages=empty, removed_headers=removed, fallback_pages=fallback,
+                   joined_tables=joined)
 
 
 def _has_text(line: PdfLine) -> bool:
