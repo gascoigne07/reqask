@@ -698,6 +698,15 @@ class _Report:
             parts.append(x.section.split(" / ")[-1])
         return " · ".join(parts)
 
+    @staticmethod
+    def _quote_lines(x: Requirement, indent: str = "  ") -> list[str]:
+        """Дословный текст требования под строкой списка: цитата или блок кода с отступом пункта."""
+        quote = x.quote.strip("\n")
+        if not quote.strip():
+            return []
+        body = _fenced(quote) if "\n" in quote.strip() else f"> {quote.strip()}"
+        return [indent + line for line in body.split("\n")]
+
     def requirements(self) -> None:
         self.add("## 3. Проверка каждого требования\n")
         self.add(
@@ -708,14 +717,20 @@ class _Report:
         g = self._groups()
         quiet, moved, noted, touched, plain, set_refs = (
             g["quiet"], g["moved"], g["noted"], g["touched"], g["plain"], g["set_refs"])
-        # Требования без своих замечаний короче блока: строка со ссылкой на строки документа.
+        # Требования без своих замечаний короче блока: строка списка и под ней дословный текст требования.
         if plain:
-            items = ", ".join(f"{_target(x.id)}{x.id} ({_lines(x.line_start, x.line_end)})" for x in plain)
-            self.add(f"**{PLAIN_TITLE} ({len(plain)}):** {items}.\n")
+            self.add(f"**{PLAIN_TITLE} ({len(plain)}):**\n")
+            for x in plain:
+                self.add(f"- {_target(x.id)}**{self._req_head(x)}**")
+                for line in self._quote_lines(x):
+                    self.add(line)
+            self.add("")
         if touched:
             self.add(f"**Своих замечаний нет, но требование затронуто общими замечаниями ({len(touched)}):**\n")
             for x in touched:
                 self.add(f"- {_target(x.id)}**{self._req_head(x)}**: {_links(set_refs[x.id])}.")
+                for line in self._quote_lines(x):
+                    self.add(line)
             self.add("")
         for title, group in (
             ("Дефект описан в общем замечании, на которое ссылается строка", moved),
@@ -727,6 +742,8 @@ class _Report:
             for x in group:
                 tail = "; ".join(([self._moved(x)] if self._moved(x) else []) + self._notes(x, set(), with_na=False))
                 self.add(f"- {_target(x.id)}**{self._req_head(x)}**: {tail}.")
+                for line in self._quote_lines(x):
+                    self.add(line)
             self.add("")
         for x in self.r.requirements:
             if x not in quiet:

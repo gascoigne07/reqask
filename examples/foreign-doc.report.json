@@ -1,4 +1,5 @@
 {
+  "schema_version": 1,
   "document_name": "foreign-doc.md",
   "document_format": "md",
   "document_lines": 128,
@@ -5595,7 +5596,7 @@
       "cache_hits": 0,
       "retries": 0,
       "seconds": 0.0,
-      "summary": "записаны: w5-foreign.md, w5-foreign.questions.md, w5-foreign.json",
+      "summary": "записаны: foreign-doc.report.md, foreign-doc.report.questions.md, foreign-doc.report.json",
       "reason": ""
     }
   ],
@@ -5603,6 +5604,7 @@
   "fatal": null,
   "empty_pages": [],
   "removed_headers": 0,
+  "fallback_pages": [],
   "verdict": {
     "decision": "Не рекомендуется начинать",
     "ready_for_development": "Нет",
@@ -5731,7 +5733,10 @@
     ],
     "placeholder_lines_cited": [
       84
-    ]
+    ],
+    "truncations": 0,
+    "splits": 0,
+    "truncation_retries": 0
   },
   "critic": {
     "done": true,

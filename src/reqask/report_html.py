@@ -41,7 +41,6 @@ from .report import (
     _blocks_label,
     _criterion,
     _gist,
-    _lines,
     _no_dot,
     _one_line,
     _partial_verdict,
@@ -442,13 +441,18 @@ class _Html(md._Report):
         g = self._groups()
         quiet, moved, noted, touched, plain, set_refs = (
             g["quiet"], g["moved"], g["noted"], g["touched"], g["plain"], g["set_refs"])
+        # Под каждой строкой списка стоит дословный текст требования, как в полной записи.
         if plain:
-            items = ", ".join(f"<span{self.tid(x.id)}>{esc(x.id)} ({_lines(x.line_start, x.line_end)})</span>" for x in plain)
-            self.add(f'<p class="plain"><strong>{PLAIN_TITLE} ({len(plain)}):</strong> {items}.</p>')
+            self.add(f'<p><strong>{PLAIN_TITLE} ({len(plain)}):</strong></p><ul class="quiet">')
+            for x in plain:
+                self.add(f"<li><strong{self.tid(x.id)}>{esc(self._req_head(x))}</strong>{self.requirement_src(x)}</li>")
+            self.add("</ul>")
         if touched:
-            self.add(f"<p><strong>Своих замечаний нет, но требование затронуто общими замечаниями ({len(touched)}):</strong></p><ul>")
+            self.add(f"<p><strong>Своих замечаний нет, но требование затронуто общими замечаниями ({len(touched)}):</strong>"
+                     '</p><ul class="quiet">')
             for x in touched:
-                self.add(f"<li><strong{self.tid(x.id)}>{esc(self._req_head(x))}</strong>: {self.links(set_refs[x.id])}.</li>")
+                self.add(f"<li><strong{self.tid(x.id)}>{esc(self._req_head(x))}</strong>: {self.links(set_refs[x.id])}."
+                         f"{self.requirement_src(x)}</li>")
             self.add("</ul>")
         for title, group in (
             ("Дефект описан в общем замечании, на которое ссылается строка", moved),
@@ -456,10 +460,10 @@ class _Html(md._Report):
         ):
             if not group:
                 continue
-            self.add(f"<p><strong>{title} ({len(group)}):</strong></p><ul>")
+            self.add(f'<p><strong>{title} ({len(group)}):</strong></p><ul class="quiet">')
             for x in group:
                 tail = "; ".join(([self.moved_html(x)] if self._moved(x) else []) + self.notes_html(x, set(), with_na=False))
-                self.add(f"<li><strong{self.tid(x.id)}>{esc(self._req_head(x))}</strong>: {tail}.</li>")
+                self.add(f"<li><strong{self.tid(x.id)}>{esc(self._req_head(x))}</strong>: {tail}.{self.requirement_src(x)}</li>")
             self.add("</ul>")
         for x in self.r.requirements:
             if x not in quiet:
@@ -934,6 +938,8 @@ ol.options li::marker { font: 600 0.85em var(--sans); color: var(--muted); }
   align-self: stretch; -webkit-user-select: none; user-select: none; }
 .src .t { white-space: pre-wrap; overflow-wrap: anywhere; padding: 0.1rem 0.9rem; min-width: 0; }
 .src-note { font: 0.8rem var(--sans); color: var(--muted); white-space: normal; }
+ul.quiet > li { margin: 0.75em 0; }
+ul.quiet .src { margin: 0.35em 0 0.2em; }
 .quote { background: var(--quote-bg); padding: 0 0.2em; box-decoration-break: clone; -webkit-box-decoration-break: clone; }
 .ln { font: 0.8em var(--mono); color: var(--ln); white-space: nowrap; }
 

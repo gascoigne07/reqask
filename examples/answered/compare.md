@@ -4,7 +4,7 @@
 
 | | Старый отчёт | Новый отчёт |
 | :--- | :--- | :--- |
-| Файл | opus5.json | answered1.json |
+| Файл | report.json | report.json |
 | Документ | requirements.md | requirements.answered.md |
 | SHA-256 документа | `e7dae55e5453a250...` | `3af3197b9fb78b17...` |
 | Модель | claude-opus-5-5 | claude-opus-5-5 |

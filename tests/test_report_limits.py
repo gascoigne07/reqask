@@ -45,3 +45,21 @@ def test_document_numbers_explained_in_segmentation_and_passport():
     assert text in report
     assert "| Идентификаторы с буквами (вида «ФТ-3») | разных в документе 2, в нарезке 2, потерянных нет |" in report
     assert "Своего номера в документе нет ни у одного требования." == segmentation_ids(_result([]))
+
+
+def test_every_requirement_shows_its_text_in_section_3():
+    """Задание: агент сохраняет цитату требования. Текст стоит и у требований из коротких списков раздела 3:
+    без замечаний, затронутых общим замечанием, со слитым дефектом; многострочный текст идёт блоком кода."""
+    reqs = [_req(1, 10), _req(2, 20), _req(3, 30), _req(4, 40)]
+    reqs[3].quote = "первая строка\nвторая строка"
+    merged = _f("D-02", "requirement", [20], ["REQ-02"])
+    merged.status, merged.merged_into, merged.critic_reason = "merged", "S-01", "повтор"
+    findings = [_f("D-01", "requirement", [10], ["REQ-01"]), merged, _f("S-01", "set", [30], ["REQ-03"])]
+    result = _result(findings, requirements=reqs)
+    report = render(result)
+    section = report[report.index("## 3."): report.index("## 4.")]
+    assert section.count(f"> {reqs[0].quote}") == 3
+    assert "  ```text\n  первая строка\n  вторая строка\n  ```" in section
+    assert "Дословный текст каждого требования стоит в разделе 3." in report
+    html = render_html(result)
+    assert html.count('aria-label="Текст требования"') == len(reqs)
