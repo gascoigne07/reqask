@@ -16,6 +16,7 @@ from .loader import LoadError, load_document
 from .pipeline import DECISIONS, Pipeline
 from .schemas import INACTIVE_STATUSES, StepStat
 from .report import render, render_questions
+from .report_html import render_html
 from .version import agent_version
 
 
@@ -48,6 +49,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--no-edge", action="store_true",
                         help="не запускать третий проход шага 5 (неописанные граничные случаи)")
     parser.add_argument("--no-json", action="store_true", help="не сохранять report.json рядом с отчётом")
+    parser.add_argument("--no-html", action="store_true", help="не сохранять report.html рядом с отчётом")
     parser.add_argument("--fail-on-critical", action="store_true",
                         help="код возврата 10, если вердикт «Не рекомендуется начинать» (для CI)")
     parser.add_argument("--quiet", "-q", action="store_true", help="не печатать ход прогона")
@@ -71,16 +73,24 @@ def _check_output(path: str) -> Path:
     return output
 
 
-def _report_files(output: Path) -> list[Path]:
-    """Все файлы, которые пишет прогон: отчёт, вопросы автору, report.json."""
-    return [output, output.with_name(output.stem + ".questions.md"), output.with_suffix(".json")]
+def _report_files(output: Path, *, json: bool = True, html: bool = True) -> list[Path]:
+    """Файлы прогона: отчёт, вопросы автору, затем report.json и report.html, если они не выключены флагом."""
+    files = [output, output.with_name(output.stem + ".questions.md")]
+    if json:
+        files.append(output.with_suffix(".json"))
+    if html:
+        files.append(output.with_suffix(".html"))
+    return files
 
 
-def _check_not_input(output: Path, source: str) -> None:
-    """Отчёт не должен лечь поверх документа: --output равен --input, и документ потерян."""
+def _check_not_input(output: Path, source: str, *, json: bool = True, html: bool = True) -> None:
+    """Отчёт не должен лечь поверх документа: --output равен --input, и документ потерян.
+
+    Проверяются только файлы, которые прогон запишет: с --no-json и --no-html эти два файла не пишутся.
+    """
     try:
         doc = Path(source).resolve()
-        clash = next((p for p in _report_files(output) if p.resolve() == doc), None)
+        clash = next((p for p in _report_files(output, json=json, html=html) if p.resolve() == doc), None)
     except OSError:
         return
     if clash is not None:
@@ -102,12 +112,15 @@ def _write_unreadable(output: Path, source: str, reason: str) -> None:
     """Документ есть, но прочитать его нельзя (повреждён, пуст, скан, не тот формат): причина идёт и в файл отчёта.
 
     Тот, кто откроет отчёт, увидит диагностику, а не вчерашний отчёт по другому документу.
-    Вопросы и report.json прежнего прогона рядом удаляются по той же причине.
+    Вопросы, report.json и report.html прежнего прогона рядом удаляются по той же причине, и с --no-json
+    и --no-html тоже: флаг выключает запись нового файла, а старый файл всё равно сбивал бы с толку.
     Если файла по пути нет, отчёт не пишется: это ошибка в команде, а не в документе.
     """
     if not Path(source).exists():
         return
-    _, questions, json_path = _report_files(output)
+    # Сам документ не удаляется, даже если его имя совпало с выключенным файлом (-i out/report.html --no-html).
+    doc = Path(source).resolve()
+    stale_files = [p for p in _report_files(output)[1:] if p.resolve() != doc]
     text = (
         f"# Отчёт о проверке требований: {Path(source).name}\n\n"
         f"Отчёт сформирован агентом reqask автоматически. Дата: {time.strftime('%Y-%m-%d %H:%M:%S %z')}.\n\n"
@@ -120,8 +133,8 @@ def _write_unreadable(output: Path, source: str, reason: str) -> None:
     try:
         output.parent.mkdir(parents=True, exist_ok=True)
         output.write_text(text, encoding="utf-8")
-        # Вопросы и report.json от прежнего прогона рядом с новым отчётом сбивали бы с толку.
-        for stale in (questions, json_path):
+        # Вопросы, report.json и report.html от прежнего прогона рядом с новым отчётом сбивали бы с толку.
+        for stale in stale_files:
             stale.unlink(missing_ok=True)
     except OSError as exc:
         _error(f"не удалось записать отчёт: {exc}")
@@ -199,7 +212,7 @@ def _main(argv: list[str] | None = None) -> int:
             _error(f"--batch-size должен быть 1 или больше, указано {args.batch_size}")
             return EXIT_INPUT
         output = _check_output(args.output)
-        _check_not_input(output, args.input)
+        _check_not_input(output, args.input, json=not args.no_json, html=not args.no_html)
         try:
             doc = load_document(args.input)
         except LoadError as exc:
@@ -232,16 +245,19 @@ def _main(argv: list[str] | None = None) -> int:
         print("Прогон прерван.", file=sys.stderr)
         return EXIT_INTERRUPTED
 
-    _, questions_path, json_path = _report_files(output)
+    written = _report_files(output, json=not args.no_json, html=not args.no_html)
+    questions_path = written[1]
+    json_path, html_path = output.with_suffix(".json"), output.with_suffix(".html")
     log("Шаг 9. Отчёт")
     t9 = time.monotonic()
-    written = [output, questions_path] + ([] if args.no_json else [json_path])
     result.steps.append(StepStat(
         number="9", name="Отчёт", summary="записаны: " + ", ".join(p.name for p in written),
     ))
     try:
         output.write_text(render(result), encoding="utf-8")
         questions_path.write_text(render_questions(result), encoding="utf-8")
+        if not args.no_html:
+            html_path.write_text(render_html(result), encoding="utf-8")
         if not args.no_json:
             json_path.write_text(result.model_dump_json(indent=2), encoding="utf-8")
     except OSError as exc:
@@ -255,6 +271,8 @@ def _main(argv: list[str] | None = None) -> int:
         f"(CRITICAL {severity.get('CRITICAL', 0)}, MAJOR {severity.get('MAJOR', 0)}, MINOR {severity.get('MINOR', 0)})"
     )
     print(f"Отчёт: {output}\nВопросы автору: {questions_path}")
+    if not args.no_html:
+        print(f"Отчёт в HTML: {html_path}")
     if is_incomplete(result):
         if not result.requirements and not result.failed_steps:
             print("Требования не найдены: все строки с текстом отмечены как не требования. "
