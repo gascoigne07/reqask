@@ -50,6 +50,7 @@ from .schemas import Evidence, Finding, Question, Requirement, RunResult
 # Отметки оценок вместо значков report.md: эмодзи в HTML не используем, смысл тот же.
 MARKS = {"pass": "✓", "fail": "✗", "na": "○", "unknown": "?"}
 DECISION_CLASS = {"Не рекомендуется начинать": "bad", "Условно допускается": "warn", "Допускается": "ok"}
+EVIDENCE_NOTES = {"fuzzy": "восстановлена по близкому совпадению", "missing": "не найдена в документе"}
 SECTIONS = (
     ("first", "Итог"),
     ("passport", "1. Паспорт прогона"),
@@ -149,12 +150,44 @@ class _Html(md._Report):
 
     def evidence(self, item: Evidence) -> str:
         line = f' <span class="ln">(строка {item.line})</span>' if item.line else ""
-        note = {
-            "exact": "",
-            "fuzzy": ", восстановлена по близкому совпадению",
-            "missing": ", не найдена в документе",
-        }.get(item.status, "")
+        note = EVIDENCE_NOTES.get(item.status, "")
+        note = f", {note}" if note else ""
         return f'<span class="quote">{esc(" ".join(item.quote.split()))}</span>{line}{esc(note)}'
+
+    @staticmethod
+    def src(rows: list[tuple[str, str]], label: str = "") -> str:
+        """Строки документа как в ревью кода: номер в жёлобе слева, текст справа. Текст уже в HTML."""
+        aria = f' role="group" aria-label="{esc(label)}"' if label else ""
+        cells = "".join(f'<span class="n">{n}</span><span class="t">{t}</span>' for n, t in rows)
+        return f'<div class="src"{aria}>{cells}</div>'
+
+    def evidence_src(self, items: list[Evidence], label: str = "Цитата из документа") -> str:
+        """Цитаты замечания одним блоком; у нечёткой и ненайденной цитаты номера нет, пометка текстом."""
+        rows = []
+        for item in items:
+            text = esc(" ".join(item.quote.split()))
+            note = EVIDENCE_NOTES.get(item.status, "")
+            if note:
+                text += f' <span class="src-note">({esc(note)})</span>'
+            rows.append((str(item.line) if item.line else "", text))
+        return self.src(rows, label)
+
+    def requirement_src(self, x: Requirement) -> str:
+        """Текст требования: номер у каждой строки, если строк столько же, сколько в диапазоне; иначе диапазон у первой."""
+        lines = x.quote.strip("\n").split("\n") if "\n" in x.quote.strip() else [x.quote.strip()]
+        if len(lines) == x.line_end - x.line_start + 1:
+            numbers = [str(x.line_start + i) for i in range(len(lines))]
+        else:
+            first = str(x.line_start) if x.line_end == x.line_start else f"{x.line_start}-{x.line_end}"
+            numbers = [first] + [""] * (len(lines) - 1)
+        return self.src([(n, esc(t)) for n, t in zip(numbers, lines)], "Текст требования")
+
+    @staticmethod
+    def head(ident: str, title: str, level: str = "", cls: str = "", tag: str = "header") -> str:
+        """Заголовок записи: идентификатор и уровень в левом поле, название в колонке текста. Всё уже в HTML."""
+        lvl = f'<span class="lvl lvl-{cls}">{level}</span>' if level else ""
+        return (f'<{tag} class="eh"><span class="gut"><span class="eid">{ident}</span>{lvl}</span>'
+                f'<span class="et">{title}</span></{tag}>')
 
     def where(self, f: Finding) -> str:
         if f.req_ids:
@@ -167,8 +200,8 @@ class _Html(md._Report):
         gist = esc(_no_dot(_gist(f, limit)))
         if joined:
             gist = f"{gist} (вместе с {self.links(joined)})"
-        return (f'{self.link(f.id, "bid sev-" + _sev(f))} <span class="sep">·</span> '
-                f'<span class="where">{self.where(f)}</span> <span class="sep">·</span> {gist}')
+        return (f'{self.link(f.id, "bid sev-" + _sev(f))} <span class="li-t">'
+                f'<span class="where">{self.where(f)}</span> <span class="sep">·</span> {gist}</span>')
 
     def section(self, key: str, title: str) -> None:
         self.add(f'<section class="part"{self.tid(key)}>')
@@ -178,11 +211,18 @@ class _Html(md._Report):
         self.add("</section>")
 
     def table(self, head: list[str], rows: list[list[str]], cls: str = "") -> None:
-        """Ячейки уже в HTML. Широкая таблица прокручивается внутри своей обёртки."""
+        """Ячейки уже в HTML. Широкая таблица прокручивается внутри своей обёртки.
+
+        У таблиц нарезки и журнала ячейки несут подпись колонки (data-h): на узком экране строка таблицы
+        становится записью, и подпись стоит перед значением."""
+        labels = cls in ("seg", "steps")
         self.add(f'<div class="table-wrap"><table class="{cls}">')
-        self.add("<thead><tr>" + "".join(f"<th>{h}</th>" for h in head) + "</tr></thead><tbody>")
+        self.add("<thead><tr>" + "".join(f'<th scope="col">{h}</th>' for h in head) + "</tr></thead><tbody>")
         for row in rows:
-            self.add("<tr>" + "".join(f"<td>{c}</td>" for c in row) + "</tr>")
+            cells = "".join(
+                (f'<td data-h="{head[i]}">' if labels and i < len(head) else "<td>") + f"{c}</td>" for i, c in enumerate(row)
+            )
+            self.add(f"<tr>{cells}</tr>")
         self.add("</tbody></table></div>")
 
     # ---------- первый экран ----------
@@ -203,13 +243,15 @@ class _Html(md._Report):
     def first_screen(self) -> None:
         r, v = self.r, self.r.verdict
         self.add('<header class="doc-head">')
-        self.add(f"<h1>Отчёт о проверке требований: {esc(r.document_name)}</h1>")
+        self.add(f'<h1><span class="h1-kind">Отчёт о проверке требований<span class="colon">:</span></span> '
+                 f'<span class="h1-doc">{esc(r.document_name)}</span></h1>')
         self.add(
             '<p class="sub">Отчёт сформирован агентом reqask автоматически по ISO/IEC/IEEE 29148:2018 и IEEE 830. '
             f"Модель: {esc(r.model)}. Дата: {esc(r.started_at)}.</p>"
         )
         self.add("</header>")
         self.toc()
+        self.add('<main class="doc">')
         self.add(f'<section class="first"{self.tid("first")}>')
         self.incomplete_block()
         cls = DECISION_CLASS.get(v.decision, "none")
@@ -228,15 +270,16 @@ class _Html(md._Report):
 
         sev = Counter(f.severity for f in self.active)
         with_defects = sum(1 for rid in self.reqs if self._has_defect(rid))
-        tiles = [
-            ("reqs", "", len(self.reqs), "Требований"),
-            ("with-defects", "", with_defects, "с дефектами"),
-            *((s.lower(), f" sev-{s.lower()}", sev.get(s, 0), s) for s in SEVERITIES),
-            ("questions", "", len(r.questions), "Вопросов автору"),
+        stats = [
+            ("reqs", len(self.reqs), "Требований"),
+            ("with-defects", with_defects, "с дефектами"),
+            *((s.lower(), sev.get(s, 0), s) for s in SEVERITIES),
+            ("questions", len(r.questions), "Вопросов автору"),
         ]
-        self.add('<div class="tiles">')
-        for key, extra, value, label in tiles:
-            self.add(f'<div class="tile{extra}" data-k="{key}"><b>{value}</b><span>{esc(label)}</span></div>')
+        self.add('<div class="stats">')
+        for key, value, label in stats:
+            hot = " hot" if key == "critical" and value else ""
+            self.add(f'<div class="stat{hot}" data-k="{key}"><b>{value}</b><span>{esc(label)}</span></div>')
         self.add("</div>")
         lost = [f for f in self.inactive if f.severity == "CRITICAL" and f.status in ("quarantine", "question_only")]
         if lost:
@@ -246,7 +289,7 @@ class _Html(md._Report):
             self.add("<h2>Блокеры</h2>")
             rows = self._blocker_rows()
             shown = len(rows) if len(rows) <= FIRST_SCREEN_BLOCKERS_ALL else FIRST_SCREEN_BLOCKERS
-            self.add('<ul class="blockers">')
+            self.add('<ul class="blockers idlist">')
             for f, joined in rows[:shown]:
                 self.add(f"<li>{self.blocker_line(f, joined)}</li>")
             rest = len(rows) - shown
@@ -255,10 +298,10 @@ class _Html(md._Report):
             self.add("</ul>")
         if r.questions:
             self.add("<h2>Главные вопросы автору ТЗ</h2>")
-            self.add('<ul class="topq">')
+            self.add('<ul class="topq idlist">')
             for q in r.questions[:FIRST_SCREEN_QUESTIONS]:
-                self.add(f'<li>{self.link(q.id, "qid")} <span class="sep">·</span> {esc(_addressee(q.addressee))}: '
-                         f"{esc(_one_line(q.text, 220))}</li>")
+                self.add(f'<li>{self.link(q.id, "qid")} <span class="li-t"><span class="where">'
+                         f"{esc(_addressee(q.addressee))}:</span> {esc(_one_line(q.text, 220))}</span></li>")
             self.add("</ul>")
             self.add('<p>Все вопросы в <a href="#questions">разделе 7</a>, для отправки автору: '
                      "файл <code>report.questions.md</code>.</p>")
@@ -426,22 +469,21 @@ class _Html(md._Report):
     def requirement_block(self, x: Requirement) -> None:
         r = self.r
         self.add(f'<section class="req"{self.tid(x.id)}>')
-        self.add(f"<h3>{esc(self._req_head(x))}</h3>")
-        if "\n" in x.quote.strip():
-            self.add(f'<pre class="doc">{esc(x.quote.strip(chr(10)))}</pre>')
-        else:
-            self.add(f'<blockquote class="doc">{esc(x.quote.strip())}</blockquote>')
+        head = self._req_head(x)
+        rest = head[len(x.id):].removeprefix(" · ") if head.startswith(x.id) else head
+        self.add(self.head(esc(x.id), esc(rest), tag="h3"))
+        self.add(self.requirement_src(x))
         if x.id in r.unreviewed:
             self.add("<p>Требование не проверено: модель не вернула по нему результат.</p></section>")
             return
         shown = [f for f in self.req_findings.get(x.id, []) if _active(f)]
         visible, st = self._statuses(x)
-        chips = " ".join(
-            f'<span class="chip st-{st["statuses"][c.code]}" title="{esc(c.name)}: {esc(STATUS_RU[st["statuses"][c.code]])}">'
-            f'{MARKS[st["statuses"][c.code]]} {esc(c.short)}</span>'
+        checks = " ".join(
+            f'<span class="ck st-{st["statuses"][c.code]}" title="{esc(c.name)}: {esc(STATUS_RU[st["statuses"][c.code]])}">'
+            f'{MARKS[st["statuses"][c.code]]} {esc(c.short)}</span>'
             for c in visible
         )
-        self.add(f'<p class="checks">Оценки: {chips}</p>')
+        self.add(f'<p class="checks"><span class="k">Оценки:</span> {checks}</p>')
         notes = self.notes_html(x, {f.criterion for f in shown})
         if notes:
             self.add('<ul class="check-notes">' + "".join(f"<li>{n}</li>" for n in notes) + "</ul>")
@@ -455,16 +497,15 @@ class _Html(md._Report):
         self.add("</section>")
 
     def card_head(self, f: Finding, title: str) -> str:
-        return (f'<header><span class="badge sev-{_sev(f)}">{esc(f.severity)}</span> '
-                f'<span class="fid">{esc(f.id)}</span> <span class="ftitle">{esc(title)}</span></header>')
+        return self.head(esc(f.id), esc(title), esc(f.severity), _sev(f))
 
     def defect(self, f: Finding) -> None:
-        self.add(f'<article class="card sev-{_sev(f)}" data-sev="{_sev(f)}"{self.tid(f.id)}>')
+        self.add(f'<article class="entry sev-{_sev(f)}" data-sev="{_sev(f)}"{self.tid(f.id)}>')
         self.add(self.card_head(f, _criterion(f.criterion)))
         self.add(f'<p class="problem">{esc(f.problem)}</p>')
         found = md._found(f.evidence)
         if found:
-            self.add('<p class="cite"><span class="k">Цитата:</span> ' + "; ".join(self.evidence(e) for e in found) + ".</p>")
+            self.add(self.evidence_src(found))
         if f.impact and f.severity != "MINOR":
             self.add(f'<p><span class="k">Последствие:</span> {esc(f.impact)}</p>')
         others = [i for i in f.req_ids[1:] if i in self.reqs]
@@ -534,7 +575,7 @@ class _Html(md._Report):
         self.end()
 
     def set_finding(self, f: Finding) -> None:
-        self.add(f'<article class="card sev-{_sev(f)}" data-sev="{_sev(f)}"{self.tid(f.id)}>')
+        self.add(f'<article class="entry sev-{_sev(f)}" data-sev="{_sev(f)}"{self.tid(f.id)}>')
         self.add(self.card_head(f, f.title or _criterion(f.criterion)))
         meta = [esc(KIND_RU.get(f.kind, f.kind).capitalize()), esc(_criterion(f.criterion))]
         req_ids = [i for i in f.req_ids if i in self.reqs]
@@ -547,8 +588,7 @@ class _Html(md._Report):
             self.add(f'<p><span class="k">Места:</span> {esc("; ".join(f.places))}.</p>')
         found = md._found(f.evidence)
         if found:
-            label = "Цитата" if len(found) == 1 else "Цитаты"
-            self.add(f'<p class="cite"><span class="k">{label}:</span> ' + "; ".join(self.evidence(e) for e in found) + ".</p>")
+            self.add(self.evidence_src(found, "Цитата из документа" if len(found) == 1 else "Цитаты из документа"))
         else:
             self.add('<p class="cite">Цитаты нет: в документе этих сведений нет.</p>')
         impact = f' <span class="k">Последствие:</span> {esc(f.impact)}' if f.impact and f.severity != "MINOR" else ""
@@ -651,9 +691,9 @@ class _Html(md._Report):
     def question(self, q: Question) -> None:
         label = _blocks_label(q, self.by_id)
         cls = {"блокирует разработку": "critical", "нужен до начала спринта": "major"}.get(label, "minor")
-        self.add(f'<article class="card qcard sev-{cls}"{self.tid(q.id)}>')
-        self.add(f'<header><span class="fid">{esc(q.id)}</span> <span class="sep">·</span> {esc(_addressee(q.addressee))} '
-                 f'<span class="sep">·</span> <span class="badge sev-{cls}">{esc(label)}</span></header>')
+        self.add(f'<article class="entry q sev-{cls}"{self.tid(q.id)}>')
+        self.add(self.head(esc(q.id), f'{esc(_addressee(q.addressee))} <span class="sep">·</span> '
+                                      f'<span class="lvl lvl-{cls}">{esc(label)}</span>'))
         self.add(f'<p class="qtext">{esc(q.text)}</p>')
         self.add(self.question_body(q))
         self.add(f'<p class="note">Закрывает замечания: {self.links(q.finding_ids)}.</p>')
@@ -664,8 +704,7 @@ class _Html(md._Report):
         rows: list[str] = []
         quotes = distinct_quotes(q.quotes)
         if quotes:
-            rows.append('<p class="cite"><span class="k">Сейчас в документе:</span> '
-                        + "; ".join(self.evidence(e) for e in quotes) + ".</p>")
+            rows.append('<p class="k k-block">Сейчас в документе:</p>' + self.evidence_src(quotes, "Сейчас в документе"))
             if q.doc_says and not _repeats_quotes(q.doc_says, quotes):
                 rows.append(f'<p><span class="k">Суть:</span> {esc(q.doc_says)}</p>')
         elif q.doc_says:
@@ -673,11 +712,14 @@ class _Html(md._Report):
         else:
             rows.append('<p><span class="k">Сейчас в документе:</span> не описано.</p>')
         if q.options:
-            rows.append('<p class="k">Варианты:</p><ol class="options">')
+            rows.append('<p class="k k-block">Варианты:</p><ol class="options">')
             for number, option in enumerate(q.options, start=1):
-                rec = ' class="recommended"' if q.recommended == number else ""
-                rows.append(f"<li{rec}>{esc(option.answer.rstrip('.'))}. "
-                            f'<span class="k">Последствие:</span> {esc(_no_dot(_sentence_case(option.consequence)))}.</li>')
+                chosen = q.recommended == number
+                rec = ' class="recommended"' if chosen else ""
+                mark = ' <span class="rec-mark">рекомендуем</span>' if chosen else ""
+                rows.append(f"<li{rec}><span class=\"ans\">{esc(option.answer.rstrip('.'))}.</span>{mark} "
+                            f'<span class="cons"><span class="k">Последствие:</span> '
+                            f"{esc(_no_dot(_sentence_case(option.consequence)))}.</span></li>")
             rows.append("</ol>")
         if q.recommended:
             why = f", потому что {esc(_no_dot(_sentence_case(q.why_recommended)))}." if q.why_recommended else "."
@@ -716,7 +758,7 @@ class _Html(md._Report):
                 reason += f" {self.link(f.merged_into)}"
             if f.critic_reason:
                 reason += f": {esc(_no_dot(f.critic_reason))}"
-            item = (f'<li{self.tid(f.id)}><span class="badge sev-{_sev(f)}">{esc(f.severity)}</span> '
+            item = (f'<li{self.tid(f.id)}><span class="lvl lvl-{_sev(f)}">{esc(f.severity)}</span> '
                     f"<strong>{esc(f.id)} {esc(_criterion(f.criterion))}</strong> · {self.where(f)} · "
                     f"{esc(_no_dot(_gist(f, 200)))}. Причина: {reason}.")
             if f.status != "merged" and f.evidence:
@@ -752,8 +794,8 @@ class _Html(md._Report):
             "<meta http-equiv=\"content-security-policy\" content=\"default-src 'none'; "
             "style-src 'unsafe-inline'; script-src 'unsafe-inline'\">\n"
             '<meta name="color-scheme" content="light dark">\n'
-            f"<title>{title}</title>\n<style>{CSS}</style>\n</head>\n<body>\n<main class=\"wrap\">\n"
-            f"{body}\n</main>\n<script>{JS}</script>\n</body>\n</html>\n"
+            f"<title>{title}</title>\n<style>{CSS}</style>\n</head>\n<body>\n<div class=\"page\">\n"
+            f"{body}\n</main>\n</div>\n<script>{JS}</script>\n</body>\n</html>\n"
         )
 
 
@@ -763,151 +805,271 @@ def render_html(result: RunResult) -> str:
 
 CSS = """
 :root {
-  --bg: #ffffff; --fg: #1b1d21; --muted: #545a63; --line: #d5d9df; --surface: #f4f6f8; --link: #0b57b0;
-  --crit-bg: #fde7e7; --crit-fg: #8b1010; --crit-bd: #c62828;
-  --maj-bg: #fdf0d6; --maj-fg: #6e4300; --maj-bd: #d48806;
-  --min-bg: #e7eef7; --min-fg: #1f426b; --min-bd: #5b7fa8;
-  --ok-bg: #e2f3e6; --ok-fg: #1b5a2d; --ok-bd: #2e7d43;
-  --none-bg: #eceef1; --none-fg: #3a3f46; --none-bd: #8a929c;
-  --quote-bg: #eef1f5;
+  color-scheme: light dark;
+  --bg: #ffffff; --fg: #1a1b1d; --muted: #5b6066; --ln: #6c7178; --rule: #dadcdf; --strong: #1a1b1d;
+  --quote-bg: #f5f5f2; --link: #1f4e8c; --crit: #b42318; --major: #8a5300; --mark: #fff0b3;
+  --serif: Charter, "Bitstream Charter", "Sitka Text", Cambria, Georgia, serif;
+  --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, Roboto, "Helvetica Neue", Arial, sans-serif;
+  --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  --measure: 37em; --gutter: 0px; --gap: 1.25rem;
 }
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #15171a; --fg: #e6e8eb; --muted: #a9b0b8; --line: #343a41; --surface: #1d2024; --link: #8bb8ff;
-    --crit-bg: #4a1818; --crit-fg: #ffd0d0; --crit-bd: #ef6060;
-    --maj-bg: #43310d; --maj-fg: #ffe2a6; --maj-bd: #e0a630;
-    --min-bg: #1d2d43; --min-fg: #cfe0f6; --min-bd: #7fa3cf;
-    --ok-bg: #173520; --ok-fg: #bde8c8; --ok-bd: #55b06f;
-    --none-bg: #2a2e33; --none-fg: #d6dadf; --none-bd: #8a929c;
-    --quote-bg: #252a30;
+    --bg: #161719; --fg: #e6e4e0; --muted: #a6aab0; --ln: #8f949b; --rule: #34373b; --strong: #e6e4e0;
+    --quote-bg: #212326; --link: #93bbf5; --crit: #ff8b7e; --major: #e3ad52; --mark: #4d4214;
   }
 }
 * { box-sizing: border-box; }
 html { -webkit-text-size-adjust: 100%; }
-body { margin: 0; background: var(--bg); color: var(--fg);
-  font: 16px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  overflow-wrap: anywhere; }
-.wrap { max-width: 980px; margin: 0 auto; padding: 16px; }
-a { color: var(--link); }
-h1 { font-size: 1.5rem; line-height: 1.25; margin: 0.2em 0 0.3em; }
-h2 { font-size: 1.3rem; margin: 1.6em 0 0.6em; padding-bottom: 0.25em; border-bottom: 1px solid var(--line); }
-h3 { font-size: 1.1rem; margin: 1.4em 0 0.5em; }
-code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.88em; }
-.sub, .legend, .note, .meta { color: var(--muted); }
-.sep { color: var(--muted); }
-.toc { position: sticky; top: 0; z-index: 2; background: var(--bg); border-bottom: 1px solid var(--line);
-  padding: 6px 0; margin-bottom: 12px; }
-.toc ul { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 0.92rem; }
-.tools { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 6px; font-size: 0.9rem; }
+body { margin: 0; background: var(--bg); color: var(--fg); font: 17px/1.58 var(--serif);
+  font-kerning: normal; overflow-wrap: break-word; }
+a { color: var(--link); text-decoration-thickness: 1px; text-underline-offset: 0.16em; }
+.doc a[href^="#"] { white-space: nowrap; }
+a:focus-visible, button:focus-visible, summary:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+code { font: 0.84em var(--mono); overflow-wrap: anywhere; }
+p, ul, ol { margin: 0.55em 0; }
+ul, ol { padding-left: 1.35em; }
+li { margin: 0.25em 0; }
+
+/* раскладка: узкий экран по умолчанию */
+.page { padding: 0 16px 3rem; max-width: calc(var(--measure) + 32px); margin: 0 auto; }
+.doc-head { padding: 1.8rem 0 0.6rem; }
+h1 { font: 600 1.6rem/1.2 var(--serif); margin: 0 0 0.5rem; letter-spacing: -0.005em; }
+.h1-kind { display: block; font: 600 0.72rem/1.4 var(--sans); letter-spacing: 0.09em; text-transform: uppercase;
+  color: var(--muted); margin-bottom: 0.45rem; }
+.colon { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+.h1-doc { overflow-wrap: anywhere; }
+.sub { font: 0.82rem/1.5 var(--sans); color: var(--muted); margin: 0; }
+
+.toc { font: 0.86rem/1.4 var(--sans); border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule);
+  padding: 0.6rem 0; margin: 1.2rem 0 0.4rem; }
+.toc ul { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 0.15rem 1rem; }
+.toc li { margin: 0; }
+.toc a { color: var(--fg); text-decoration: none; display: inline-block; padding: 0.2rem 0; }
+.toc a:hover { color: var(--link); text-decoration: underline; }
+.tools { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 0.95rem; margin-top: 0.4rem; }
 .tools[hidden] { display: none; }
 .tools-label { color: var(--muted); }
-.tools button { font: inherit; color: var(--fg); background: var(--surface); border: 1px solid var(--line);
-  border-radius: 6px; padding: 2px 10px; cursor: pointer; }
-.tools button[aria-pressed="true"] { border-color: var(--fg); font-weight: 600; }
-.verdict { border: 2px solid var(--none-bd); background: var(--none-bg); color: var(--none-fg);
-  border-radius: 10px; padding: 14px 16px; margin: 8px 0 14px; }
-.verdict-main .label { display: block; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.04em; }
-.decision { display: block; font-size: 1.9rem; line-height: 1.2; }
-.verdict-note { margin: 0.5em 0 0; }
-.v-bad { border-color: var(--crit-bd); background: var(--crit-bg); color: var(--crit-fg); }
-.v-warn { border-color: var(--maj-bd); background: var(--maj-bg); color: var(--maj-fg); }
-.v-ok { border-color: var(--ok-bd); background: var(--ok-bg); color: var(--ok-fg); }
-.ready { display: flex; flex-wrap: wrap; gap: 8px 24px; margin: 12px 0 0; }
-.ready dt { font-size: 0.85rem; }
-.ready dd { margin: 0; font-weight: 700; font-size: 1.1rem; }
-.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(96px, 1fr)); gap: 8px; margin: 0 0 12px; }
-.tile { border: 1px solid var(--line); background: var(--surface); border-radius: 8px; padding: 8px 10px; }
-.tile b { display: block; font-size: 1.6rem; line-height: 1.1; }
-.tile span { font-size: 0.85rem; }
-.tile.sev-critical { background: var(--crit-bg); color: var(--crit-fg); border-color: var(--crit-bd); }
-.tile.sev-major { background: var(--maj-bg); color: var(--maj-fg); border-color: var(--maj-bd); }
-.tile.sev-minor { background: var(--min-bg); color: var(--min-fg); border-color: var(--min-bd); }
-.first h2 { font-size: 1.15rem; }
-.blockers li, .topq li { margin: 0.35em 0; }
-.bid { font-weight: 700; }
-.incomplete { border: 2px solid var(--maj-bd); background: var(--maj-bg); color: var(--maj-fg);
-  border-radius: 8px; padding: 8px 14px; margin: 8px 0; }
+.tools button { font: inherit; color: var(--link); background: none; border: 0; padding: 0.3rem 0; cursor: pointer;
+  text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 0.18em; }
+.tools button[aria-pressed="true"] { color: var(--fg); font-weight: 700; text-decoration: none; }
+
+/* заголовки */
+h2 { font: 600 1.45rem/1.25 var(--serif); margin: 3rem 0 0.9rem; padding-top: 0.55rem;
+  border-top: 1px solid var(--strong); }
+h3 { font: 600 1.14rem/1.35 var(--serif); margin: 2rem 0 0.5rem; }
+.first h2 { font: 600 0.72rem/1.4 var(--sans); letter-spacing: 0.09em; text-transform: uppercase;
+  border: 0; padding: 0; margin: 2rem 0 0.4rem; }
+
+/* вердикт и числа */
+.verdict { --v: var(--muted); border-top: 4px solid var(--v); padding-top: 0.75rem; margin: 1.4rem 0 1.6rem; }
+.v-bad { --v: var(--crit); } .v-warn { --v: var(--major); } .v-ok { --v: var(--fg); }
+.verdict .label { display: block; font: 600 0.72rem/1.4 var(--sans); letter-spacing: 0.09em;
+  text-transform: uppercase; color: var(--muted); }
+.decision { display: block; font: 600 2.1rem/1.12 var(--serif); color: var(--v); margin: 0.2rem 0 0.5rem;
+  letter-spacing: -0.012em; text-wrap: balance; }
+.verdict-note { margin: 0.3rem 0; color: var(--muted); }
+.ready { font: 0.88rem/1.5 var(--sans); display: flex; flex-wrap: wrap; gap: 0.1rem 1.6rem; margin: 0.5rem 0 0; }
+.ready div { display: flex; gap: 0.35em; }
+.ready dt::after { content: ":"; }
+.ready dd { margin: 0; font-weight: 700; }
+.stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem 0.75rem; margin: 0 0 1.4rem; }
+.stat b { display: block; font: 600 1.85rem/1.05 var(--serif); font-variant-numeric: lining-nums tabular-nums; }
+.stat span { display: block; font: 0.74rem/1.3 var(--sans); color: var(--muted); margin-top: 0.25rem; }
+.stat.hot b { color: var(--crit); }
+.incomplete { border-top: 2px solid var(--major); border-bottom: 1px solid var(--rule); padding: 0.5rem 0;
+  margin: 1.2rem 0 0; }
+.incomplete strong { color: var(--major); }
 .incomplete a { color: inherit; }
-.warn-line { color: var(--crit-fg); }
-.table-wrap { overflow-x: auto; margin: 0.6em 0 1em; border: 1px solid var(--line); border-radius: 6px; }
-table { border-collapse: collapse; width: 100%; font-size: 0.92rem; }
-th, td { text-align: left; vertical-align: top; padding: 6px 8px; border-bottom: 1px solid var(--line); }
-th { background: var(--surface); }
-tbody tr:last-child td { border-bottom: 0; }
-table.kv td:first-child { white-space: nowrap; font-weight: 600; }
-table.num td:last-child { text-align: center; }
-table.seg, table.steps { min-width: 640px; }
-table.kv { min-width: 0; }
-table.kv td { overflow-wrap: anywhere; }
-details { margin: 0.6em 0; }
-summary { cursor: pointer; font-weight: 600; }
-.st-bad { color: var(--crit-fg); font-weight: 700; }
-.st-warn { color: var(--maj-fg); font-weight: 700; }
-.req { border-top: 1px solid var(--line); margin-top: 1.4em; padding-top: 0.2em; }
-.req h3 { margin-top: 0.8em; }
-blockquote.doc, pre.doc { margin: 0.4em 0 0.8em; padding: 8px 12px; background: var(--quote-bg);
-  border-left: 3px solid var(--none-bd); border-radius: 4px; }
-pre.doc { overflow-x: auto; white-space: pre; }
-.checks { line-height: 2; }
-.chip, .mark { display: inline-block; border-radius: 4px; padding: 0 6px; font-size: 0.85rem; line-height: 1.5;
-  border: 1px solid var(--line); white-space: nowrap; }
-.mark { padding: 0 4px; }
-.st-pass { background: var(--ok-bg); color: var(--ok-fg); border-color: var(--ok-bd); }
-.st-fail { background: var(--crit-bg); color: var(--crit-fg); border-color: var(--crit-bd); }
-.st-na { background: var(--none-bg); color: var(--none-fg); }
-.st-unknown { background: var(--maj-bg); color: var(--maj-fg); border-color: var(--maj-bd); }
-.check-notes { margin: 0.2em 0 0.6em; }
-.card { border: 1px solid var(--line); border-left: 5px solid var(--none-bd); border-radius: 8px;
-  padding: 10px 14px; margin: 10px 0; background: var(--bg); }
-.card[hidden] { display: none; }
-.card header { font-weight: 600; margin-bottom: 4px; }
-.card p { margin: 0.35em 0; }
-.card.sev-critical { border-left-color: var(--crit-bd); }
-.card.sev-major { border-left-color: var(--maj-bd); }
-.card.sev-minor { border-left-color: var(--min-bd); }
-.badge { display: inline-block; font-size: 0.78rem; font-weight: 700; letter-spacing: 0.02em; border-radius: 4px;
-  padding: 1px 7px; border: 1px solid var(--line); }
-.badge.sev-critical { background: var(--crit-bg); color: var(--crit-fg); border-color: var(--crit-bd); }
-.badge.sev-major { background: var(--maj-bg); color: var(--maj-fg); border-color: var(--maj-bd); }
-.badge.sev-minor { background: var(--min-bg); color: var(--min-fg); border-color: var(--min-bd); }
-.k { font-weight: 600; }
-.quote { background: var(--quote-bg); border-radius: 3px; padding: 0 4px; box-decoration-break: clone;
-  -webkit-box-decoration-break: clone; }
-.ln { color: var(--muted); white-space: nowrap; }
-.ask { background: var(--surface); border-radius: 6px; padding: 6px 8px; }
-.rewrite { background: var(--ok-bg); color: var(--ok-fg); border-radius: 6px; padding: 8px 12px; margin: 0.6em 0; }
-.qtext { font-weight: 700; font-size: 1.05rem; }
-.options li.recommended { font-weight: 600; }
+.warn-line { color: var(--crit); }
+
+/* списки с идентификатором в поле */
+.idlist { list-style: none; padding: 0; margin: 0.3rem 0 1rem; }
+.idlist > li { position: relative; margin: 0; padding: 0.5rem 0 0.5rem 3.7rem; border-top: 1px solid var(--rule); }
+.idlist > li > .bid, .idlist > li > .qid { position: absolute; left: 0; top: 0.72rem; }
+.bid, .qid, .eid { font: 600 0.8rem/1.3 var(--mono); font-variant-numeric: tabular-nums; letter-spacing: 0; white-space: nowrap; }
+.idlist a.bid, .idlist a.qid { text-decoration: none; }
+.bid.sev-critical { color: var(--crit); }
+.idlist .qid { color: var(--fg); }
+.entry a.qid, p a.qid { font: inherit; }
+.where { font-family: var(--sans); font-size: 0.86em; color: var(--muted); }
+.sep { color: var(--muted); }
+ol.blockers li { margin: 0.4rem 0; }
+
+/* записи: замечания, требования, вопросы */
+.entry { position: relative; border-top: 1px solid var(--rule); padding: 0.95rem 0 1rem; }
+.entry[hidden] { display: none; }
+.entry > p { margin: 0.4em 0; }
+.eh { position: relative; display: block; font: 600 1rem/1.45 var(--serif); margin: 0 0 0.3rem; }
+.gut { display: inline; margin-right: 0.15em; }
+.gut .eid { margin-right: 0.55em; }
+.lvl { font: 700 0.68rem/1.3 var(--sans); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted);
+  white-space: nowrap; }
+.gut .lvl { margin-right: 0.6em; }
+.lvl-critical { color: var(--crit); }
+.lvl-major { color: var(--major); }
+.req { margin-top: 2.6rem; }
+.req > .eh { font-size: 1.08rem; border-top: 1px solid var(--strong); padding-top: 0.55rem; margin: 0 0 0.6rem; }
+.req > .eh .et { font-weight: 600; }
+.k { font: 600 0.7rem/1.4 var(--sans); letter-spacing: 0.07em; text-transform: uppercase; color: var(--muted);
+  margin-right: 0.3em; }
+p.k-block { margin: 0.8em 0 0.25em; }
+.problem { font-weight: 400; }
+.note, .meta, .moved, .legend { font: 0.84rem/1.5 var(--sans); color: var(--muted); }
+.checks { font: 0.84rem/1.7 var(--sans); margin: 0.6rem 0; }
+.ck { white-space: nowrap; margin-right: 0.85em; color: var(--muted); }
+.st-fail { color: var(--crit); font-weight: 700; }
+.st-unknown { color: var(--major); font-weight: 700; }
+.mark { font-family: var(--sans); }
+.mark.st-pass, .mark.st-na { color: var(--muted); }
+.check-notes { font-size: 0.94em; }
+.rewrite { background: var(--quote-bg); padding: 0.65rem 0.95rem; margin: 0.4rem 0 0.4rem; }
+.rewrite strong { display: block; font: 600 0.7rem/1.4 var(--sans); letter-spacing: 0.07em; text-transform: uppercase;
+  color: var(--muted); margin-bottom: 0.2rem; }
+.q .eid { font-size: 1.05rem; color: var(--fg); }
+.q .eh { font: 0.86rem/1.6 var(--sans); color: var(--muted); }
+.q .eh .lvl { font-size: 0.66rem; }
+.qtext { font-weight: 700; margin-top: 0.2rem; }
+ol.options { padding-left: 1.5em; margin: 0.2em 0 0.6em; }
+ol.options li { margin: 0.45em 0; }
+ol.options li::marker { font: 600 0.85em var(--sans); color: var(--muted); }
+.cons { display: block; color: var(--muted); font-size: 0.94em; }
+.cons .k { color: inherit; }
+.rec-mark { font: 700 0.66rem/1 var(--sans); letter-spacing: 0.08em; text-transform: uppercase; color: var(--fg);
+  border-bottom: 1px solid currentColor; margin-left: 0.25em; white-space: nowrap; }
+
+/* строки документа: номер в жёлобе, текст справа */
+.src { display: grid; grid-template-columns: max-content minmax(0, 1fr); align-items: baseline;
+  background: var(--quote-bg); margin: 0.6em 0 0.8em; padding: 0.4rem 0; font-size: 0.94em; line-height: 1.5; }
+.src .n { font: 0.72rem/1.5 var(--mono); font-variant-numeric: tabular-nums; color: var(--ln); text-align: right;
+  min-width: 2.1rem; padding: 0.1rem 0.5rem 0.1rem 0.5rem; border-right: 1px solid var(--rule);
+  align-self: stretch; -webkit-user-select: none; user-select: none; }
+.src .t { white-space: pre-wrap; overflow-wrap: anywhere; padding: 0.1rem 0.9rem; min-width: 0; }
+.src-note { font: 0.8rem var(--sans); color: var(--muted); white-space: normal; }
+.quote { background: var(--quote-bg); padding: 0 0.2em; box-decoration-break: clone; -webkit-box-decoration-break: clone; }
+.ln { font: 0.8em var(--mono); color: var(--ln); white-space: nowrap; }
+
+/* таблицы: только линейки */
+.table-wrap { margin: 0.7rem 0 1.3rem; overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font: 0.84rem/1.45 var(--sans); font-variant-numeric: tabular-nums; }
+th { font: 600 0.68rem/1.4 var(--sans); letter-spacing: 0.07em; text-transform: uppercase; color: var(--muted);
+  text-align: left; vertical-align: bottom; padding: 0.35rem 0.9rem 0.35rem 0; border-bottom: 1px solid var(--strong); }
+td { text-align: left; vertical-align: top; padding: 0.45rem 0.9rem 0.45rem 0; border-bottom: 1px solid var(--rule); }
+th:last-child, td:last-child { padding-right: 0; }
+table.kv td:first-child { white-space: nowrap; color: var(--muted); }
+table.kv th:first-child { width: 11.5em; }
+table.steps td:nth-child(2) { min-width: 9.5em; }
+table.num td:last-child, table.num th:last-child { text-align: right; }
+table.steps td:nth-child(1), table.steps td:nth-child(3), table.steps td:nth-child(4), table.steps td:nth-child(5),
+table.steps th:nth-child(1), table.steps th:nth-child(3), table.steps th:nth-child(4), table.steps th:nth-child(5),
+table.seg td:nth-child(1), table.seg td:nth-child(2), table.seg td:nth-child(4),
+table.seg th:nth-child(1), table.seg th:nth-child(2), table.seg th:nth-child(4) { white-space: nowrap; }
+table.steps td:nth-child(4), table.steps td:nth-child(5), table.steps th:nth-child(4), table.steps th:nth-child(5) {
+  text-align: right; }
+table.steps td:nth-child(1), table.seg td:nth-child(1) { font-family: var(--mono); font-size: 0.95em; }
+.st-bad { color: var(--crit); font-weight: 700; }
+.st-warn { color: var(--major); font-weight: 700; }
+details { margin: 0.7rem 0; }
+summary { cursor: pointer; font: 600 0.86rem/1.5 var(--sans); padding: 0.25rem 0; }
+.set-fail { color: var(--crit); }
+.set-partial { color: var(--major); }
+.removed { list-style: none; padding: 0; }
+.removed > li { margin: 0; padding: 0.6rem 0; border-top: 1px solid var(--rule); }
+.removed > li > ul { font-size: 0.94em; }
 .decision-line { font-size: 1.3rem; }
-.decision-line.v-bad { color: var(--crit-fg); }
-.decision-line.v-warn { color: var(--maj-fg); }
-.decision-line.v-ok { color: var(--ok-fg); }
-.removed > li { margin: 0.5em 0; }
-.set-fail { color: var(--crit-fg); }
-.set-partial { color: var(--maj-fg); }
-.set-ok { color: var(--ok-fg); }
+.decision-line.v-bad { color: var(--crit); }
+.decision-line.v-warn { color: var(--major); }
+.rule { color: var(--muted); }
 .dead { font-weight: inherit; }
-[id] { scroll-margin-top: 100px; }
-.card:target, .req:target, li:target, span:target, strong:target { outline: 2px solid var(--link); outline-offset: 2px; }
-@media (max-width: 600px) {
-  .wrap { padding: 12px 16px; }
-  h1 { font-size: 1.25rem; }
-  .decision { font-size: 1.5rem; }
-  .toc { position: static; }
-  ul, ol { padding-left: 1.3em; }
+
+/* переход по ссылке */
+[id] { scroll-margin-top: 1rem; }
+.entry:target > .eh .eid, .req:target > .eh .eid { background: var(--fg); color: var(--bg); padding: 0 0.3em; }
+li:target, span:target, strong:target { background: var(--mark); }
+
+/* узкий экран: строки нарезки и журнала становятся записями */
+@media (max-width: 639px) {
+  table.seg, table.steps, table.seg tbody, table.steps tbody { display: block; }
+  table.seg thead, table.steps thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  table.seg tr, table.steps tr { display: block; padding: 0.5rem 0; border-bottom: 1px solid var(--rule); }
+  table.seg td, table.steps td { display: inline; padding: 0; border: 0; white-space: normal; }
+  table.seg td:nth-child(-n+2), table.steps td:nth-child(-n+2) { margin-right: 0.5em; }
+  table.seg td:nth-child(2) { color: var(--muted); }
+  table.seg td:nth-child(3), table.seg td:nth-child(5), table.steps td:nth-child(2), table.steps td:last-child { display: block; }
+  table.seg td:nth-child(3) { color: var(--muted); }
+  table.steps td:nth-child(2) { display: inline; font-weight: 600; }
+  table.steps td:nth-child(2)::after { content: "\\A"; white-space: pre; }
+  table.steps td:nth-child(3) { margin-right: 0.9em; }
+  table.seg td:nth-child(4)::before, table.steps td:nth-child(4)::before, table.steps td:nth-child(5)::before {
+    content: attr(data-h) ": "; color: var(--muted); }
+  table.steps td:nth-child(4), table.steps td:nth-child(5) { margin-right: 0.9em; }
+  table.kv:not(.num), table.kv:not(.num) thead, table.kv:not(.num) tbody, table.kv:not(.num) tr,
+  table.kv:not(.num) td { display: block; }
+  table.kv:not(.num) th { display: none; }
+  table.kv:not(.num) th:first-child { display: block; width: auto; }
+  table.kv:not(.num) td { border: 0; padding: 0; }
+  table.kv:not(.num) td:first-child { white-space: normal; font-size: 0.92em; padding-top: 0.5rem; }
+  table.kv:not(.num) td:last-child { padding-bottom: 0.5rem; border-bottom: 1px solid var(--rule); }
 }
+
+/* широкий экран: идентификаторы висят в левом поле */
+@media (min-width: 800px) {
+  :root { --gutter: 7rem; }
+  .page { max-width: calc(var(--measure) + var(--gutter) + 4rem); padding: 0 2rem 4rem; }
+  .doc-head, .doc, .toc { margin-left: var(--gutter); }
+  .doc { max-width: var(--measure); }
+  .doc-head { padding-top: 3rem; max-width: var(--measure); }
+  h1 { font-size: 2rem; }
+  .part > h2 { margin-left: calc(-1 * var(--gutter)); padding-left: var(--gutter); }
+  .req > .eh { margin-left: calc(-1 * var(--gutter)); padding-left: var(--gutter); }
+  .gut { position: absolute; right: calc(100% + var(--gap)); top: 0.1rem; width: calc(var(--gutter) - var(--gap));
+    display: flex; flex-direction: column; align-items: flex-end; gap: 0.15rem; margin: 0; text-align: right; }
+  .req > .eh > .gut { right: calc(100% - var(--gutter) + var(--gap)); top: 0.62rem; }
+  .gut .eid, .gut .lvl { margin: 0; }
+  .q .eh .gut { top: -0.05rem; }
+  .idlist > li { padding-left: 0; }
+  .idlist > li > .bid, .idlist > li > .qid { left: auto; right: calc(100% + var(--gap)); top: 0.68rem; }
+  .decision { font-size: 2.5rem; }
+  .src .n { min-width: 2.7rem; padding: 0.1rem 0.65rem 0.1rem 0.7rem; }
+  .stats { display: flex; flex-wrap: wrap; gap: 0.8rem 0; }
+  .stat { padding: 0 1.15rem; border-left: 1px solid var(--rule); }
+  .stat:first-child { padding-left: 0; border-left: 0; }
+  .stat b { font-size: 2rem; }
+}
+
+/* от 1100 px: оглавление слева, липкое */
+@media (min-width: 1100px) {
+  .page { display: grid; grid-template-columns: 12rem minmax(0, calc(var(--gutter) + var(--measure)));
+    grid-template-rows: auto 1fr; column-gap: 2rem; justify-content: center; max-width: none; }
+  .doc-head { grid-column: 2; grid-row: 1; }
+  .doc { grid-column: 2; grid-row: 2; }
+  .toc { grid-column: 1; grid-row: 1 / span 2; align-self: start; position: sticky; top: 0; max-height: 100vh;
+    overflow-y: auto; margin: 0; padding: 3.3rem 0 2rem; border: 0; }
+  .toc ul { display: block; }
+  .toc li { border-top: 1px solid var(--rule); }
+  .toc li:first-child { border-top: 1px solid var(--strong); }
+  .toc a { display: block; padding: 0.32rem 0; }
+  .tools { flex-direction: column; align-items: flex-start; gap: 0; margin-top: 1.4rem; padding-top: 0.5rem;
+    border-top: 1px solid var(--strong); }
+  .tools-label { padding: 0.3rem 0 0.1rem; }
+  .tools button { padding: 0.18rem 0; }
+}
+
 @media print {
-  :root { --bg: #fff; --fg: #000; --muted: #333; --surface: #f3f3f3; --link: #000; }
-  body { font-size: 11pt; }
+  :root { --bg: #fff; --fg: #000; --muted: #444; --ln: #555; --rule: #bbb; --strong: #000; --quote-bg: #f2f2f0;
+    --link: #000; --crit: #a3150b; --major: #6b4000; --mark: transparent; --gutter: 6rem; }
+  @page { margin: 16mm 14mm; }
+  body { font-size: 10.5pt; }
   .toc, .tools { display: none; }
-  .wrap { max-width: none; padding: 0; }
-  .card, .req h3, blockquote.doc, tr { break-inside: avoid; }
-  h2, h3 { break-after: avoid; }
-  a { text-decoration: none; }
-  .table-wrap { overflow: visible; border: 0; }
-  table.seg, table.steps { min-width: 0; }
-  pre.doc { white-space: pre-wrap; }
-  .card[hidden] { display: block; }
+  .page { display: block; max-width: none; padding: 0; }
+  .doc-head, .doc { margin-left: var(--gutter); max-width: none; padding-top: 0; }
+  a { color: inherit; text-decoration: none; }
+  .entry, .src, tr, .verdict, .stats, .idlist > li, .removed > li { break-inside: avoid; }
+  h2, h3, .eh, p.k-block { break-after: avoid; }
+  .entry[hidden] { display: block; }
+  .table-wrap { overflow: visible; }
+  details::details-content { content-visibility: visible; display: contents; }
+  .entry:target > .eh .eid, .req:target > .eh .eid { background: none; color: inherit; padding: 0; }
 }
 """
 
@@ -917,11 +1079,11 @@ JS = """
   var tools = document.getElementById('tools');
   if (!tools) { return; }
   tools.hidden = false;
-  var cards = Array.prototype.slice.call(document.querySelectorAll('.card[data-sev]'));
+  var entries = Array.prototype.slice.call(document.querySelectorAll('.entry[data-sev]'));
   var details = Array.prototype.slice.call(document.querySelectorAll('details'));
   var sevButtons = Array.prototype.slice.call(tools.querySelectorAll('button[data-sev]'));
   function filter(sev) {
-    cards.forEach(function (c) { c.hidden = !!sev && c.getAttribute('data-sev') !== sev; });
+    entries.forEach(function (c) { c.hidden = !!sev && c.getAttribute('data-sev') !== sev; });
     sevButtons.forEach(function (b) { b.setAttribute('aria-pressed', String(b.getAttribute('data-sev') === sev)); });
   }
   tools.addEventListener('click', function (e) {
