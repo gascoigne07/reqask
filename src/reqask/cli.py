@@ -10,6 +10,7 @@ import traceback
 from collections import Counter
 from pathlib import Path
 
+from .compare import compare, render_compare, summary_lines
 from .config import ConfigError, load_settings
 from .llm import LLMClient, LLMError, LLMFatal, redact
 from .loader import LoadError, load_document
@@ -41,6 +42,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--output", "-o", help="куда записать отчёт, файл .md")
     parser.add_argument("--check", action="store_true",
                         help="проверить ключ и модель одним коротким вызовом, без документа")
+    parser.add_argument("--compare", nargs=2, metavar=("OLD.json", "NEW.json"),
+                        help="сравнить два report.json без модели и без ключа; с --output сравнение пишется в .md")
     parser.add_argument("--model", help="модель, если нужно переопределить значение из .env")
     parser.add_argument("--env-file", help="путь к файлу с ключом (по умолчанию .env в текущей папке)")
     parser.add_argument("--batch-size", type=int, help="сколько требований проверять одним запросом")
@@ -142,6 +145,49 @@ def _write_unreadable(output: Path, source: str, reason: str) -> None:
     print(f"Отчёт с причиной: {output}", file=sys.stderr)
 
 
+def run_compare(paths: list[str], output: str | None) -> int:
+    """--compare: два report.json, сводка в консоль, полный Markdown в --output (без него в консоль)."""
+    from pydantic import ValidationError
+
+    from .schemas import RunResult
+
+    results = []
+    for path in paths:
+        file = Path(path)
+        try:
+            results.append(RunResult.model_validate_json(file.read_text(encoding="utf-8")))
+        except OSError as exc:
+            _error(f"не удалось прочитать «{path}»: {exc.strerror or exc}")
+            return EXIT_INPUT
+        except (ValidationError, ValueError):
+            _error(f"«{path}» не похож на report.json прогона reqask: файл повреждён или это другой JSON")
+            return EXIT_INPUT
+    target = None
+    if output:
+        try:
+            target = _check_output(output)
+        except ConfigError as exc:
+            _error(str(exc))
+            return EXIT_INPUT
+        if any(Path(p).resolve() == target.resolve() for p in paths):
+            _error("сравнение записалось бы поверх одного из входных файлов, укажите другой --output")
+            return EXIT_INPUT
+    c = compare(*results)
+    text = render_compare(c, Path(paths[0]).name, Path(paths[1]).name)
+    if target is None:
+        print(text)
+        return EXIT_OK
+    try:
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(text, encoding="utf-8")
+    except OSError as exc:
+        _error(f"не удалось записать сравнение: {exc}")
+        return EXIT_INPUT
+    print("\n".join(summary_lines(c)))
+    print(f"Сравнение: {target}")
+    return EXIT_OK
+
+
 def run_check(settings, log) -> int:
     """--check: ключ, модель, режим JSON и уровень рассуждения одним вызовом (М-14).
 
@@ -201,6 +247,11 @@ def _main(argv: list[str] | None = None) -> int:
 
     try:
         settings = None
+        if args.compare:
+            if args.input or args.check:
+                _error("--compare работает без --input и --check: нужны два report.json и, по желанию, --output")
+                return EXIT_INPUT
+            return run_compare(args.compare, args.output)
         if args.check:
             settings = load_settings(args.env_file).with_overrides(model=args.model)
             return run_check(settings, log)
